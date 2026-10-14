@@ -283,8 +283,12 @@ for(let y=0;y<MH;y++)for(let x=0;x<MW;x++) if(map[y*MW+x]===TR){const [sx,sy]=is
 
 /* ---------- ピラミッド（攻略マップ） ---------- */
 const DG_SAFE=(x,y)=>x>=CX-1&&x<CX+2&&y>=CY-1&&y<CY+2;
-function genDungeon(){
-  const R2=mulberry(777),t=new Uint8Array(MW*MH).fill(WL),sh=new Float32Array(MW*MH);
+const PAL_SAND={left:'#8a6c40',right:'#a8864f',top:'#c9a86c',line:'rgba(60,40,15,.35)',glyph:'rgba(70,45,15,.55)',hi:'rgba(255,230,170,.35)',
+  bg:'#1a130c',wall:'#2a1f14',floor:s=>`hsl(${34+s*6},${32+s*6}%,${44+s*8}%)`,fline:'rgba(70,45,20,.35)',crack:'rgba(60,40,20,.3)',flame:['255,190,90','#ff8a2a','#ffe08a']};
+const PAL_VOID={left:'#241a38',right:'#33284d',top:'#4a3a6a',line:'rgba(180,140,255,.22)',glyph:'rgba(190,140,255,.75)',hi:'rgba(210,180,255,.4)',
+  bg:'#08060e',wall:'#14101e',floor:s=>`hsl(${255+s*12},${18+s*8}%,${18+s*8}%)`,fline:'rgba(150,110,230,.3)',crack:'rgba(120,230,255,.45)',flame:['150,120,255','#8a5aff','#d8c8ff']};
+function genDungeon(seed=777){
+  const R2=mulberry(seed),t=new Uint8Array(MW*MH).fill(WL),sh=new Float32Array(MW*MH);
   for(let i=0;i<MW*MH;i++)sh[i]=R2();
   const carve=(x0,y0,x1,y1)=>{for(let y=Math.max(2,Math.min(y0,y1));y<=Math.min(MH-3,Math.max(y0,y1));y++)for(let x=Math.max(2,Math.min(x0,x1));x<=Math.min(MW-3,Math.max(x0,x1));x++)t[y*MW+x]=SA};
   const rooms=[{x:CX-3,y:CY-3,w:7,h:7}];carve(CX-3,CY-3,CX+3,CY+3);
@@ -303,45 +307,45 @@ function genDungeon(){
   return {tiles:t,shade:sh};
 }
 const WALL_H=44;
-function makeWall(glyph){
+function makeWall(glyph,pal=PAL_SAND){
   const c=document.createElement('canvas');c.width=64;c.height=32+WALL_H;const g=c.getContext('2d'),H=WALL_H;
   const face=(pts,col)=>{g.beginPath();g.moveTo(...pts[0]);for(const p of pts.slice(1))g.lineTo(...p);g.closePath();g.fillStyle=col;g.fill()};
-  face([[0,16],[32,32],[32,32+H],[0,16+H]],'#8a6c40');face([[32,32],[64,16],[64,16+H],[32,32+H]],'#a8864f');face([[32,0],[64,16],[32,32],[0,16]],'#c9a86c');
-  g.strokeStyle='rgba(60,40,15,.35)';g.lineWidth=1;
+  face([[0,16],[32,32],[32,32+H],[0,16+H]],pal.left);face([[32,32],[64,16],[64,16+H],[32,32+H]],pal.right);face([[32,0],[64,16],[32,32],[0,16]],pal.top);
+  g.strokeStyle=pal.line;g.lineWidth=1;
   for(let i=1;i<4;i++){const yy=i*H/4;g.beginPath();g.moveTo(0,16+yy);g.lineTo(32,32+yy);g.lineTo(64,16+yy);g.stroke()}
   for(let i=0;i<4;i++){const yy=i*H/4,o=i%2?10:20;g.beginPath();g.moveTo(o,16+yy+o/2);g.lineTo(o,16+yy+o/2+H/4);g.moveTo(32+o,32+yy-o/2);g.lineTo(32+o,32+yy-o/2+H/4);g.stroke()}
-  if(glyph){g.fillStyle='rgba(70,45,15,.55)';g.fillRect(42,30,3,9);g.beginPath();g.arc(52,30,3.5,0,7);g.fill();g.fillRect(48,38,9,2.5);g.fillRect(12,30,8,2.5);g.fillRect(15,26,2.5,10)}
-  g.strokeStyle='rgba(255,230,170,.35)';g.beginPath();g.moveTo(0,16);g.lineTo(32,0);g.lineTo(64,16);g.stroke();
+  if(glyph){g.fillStyle=pal.glyph;g.fillRect(42,30,3,9);g.beginPath();g.arc(52,30,3.5,0,7);g.fill();g.fillRect(48,38,9,2.5);g.fillRect(12,30,8,2.5);g.fillRect(15,26,2.5,10)}
+  g.strokeStyle=pal.hi;g.beginPath();g.moveTo(0,16);g.lineTo(32,0);g.lineTo(64,16);g.stroke();
   return c;
 }
 const wallImgs=[makeWall(false),makeWall(true)];
-function renderDungeonGround(D){
+function renderDungeonGround(D,pal=PAL_SAND){
   const c=document.createElement('canvas');c.width=GW;c.height=GH;const g=c.getContext('2d');
-  g.fillStyle='#1a130c';g.fillRect(0,0,GW,GH);
+  g.fillStyle=pal.bg;g.fillRect(0,0,GW,GH);
   for(let y=0;y<MH;y++)for(let x=0;x<MW;x++){const i=y*MW+x,t=D.tiles[i],s=D.shade[i],[px,py]=iso(x,y);
     g.beginPath();g.moveTo(px,py);g.lineTo(px+32,py+16);g.lineTo(px,py+32);g.lineTo(px-32,py+16);g.closePath();
-    if(t===WL){g.fillStyle='#2a1f14';g.fill();continue}
-    g.fillStyle=`hsl(${34+s*6},${32+s*6}%,${44+s*8}%)`;g.fill();g.strokeStyle='rgba(70,45,20,.35)';g.lineWidth=1;g.stroke();
+    if(t===WL){g.fillStyle=pal.wall;g.fill();continue}
+    g.fillStyle=pal.floor(s);g.fill();g.strokeStyle=pal.fline;g.lineWidth=1;g.stroke();
     if(DG_SAFE(x+.5,y+.5)){g.fillStyle='rgba(120,220,255,.22)';g.fill()}
-    if(s>.8){g.strokeStyle='rgba(60,40,20,.3)';g.beginPath();g.moveTo(px-8,py+12);g.lineTo(px+2,py+17);g.lineTo(px+9,py+15);g.stroke()}}
+    if(s>.8){g.strokeStyle=pal.crack;g.beginPath();g.moveTo(px-8,py+12);g.lineTo(px+2,py+17);g.lineTo(px+9,py+15);g.stroke()}}
   return c;
 }
-function dungeonObjs(D){
+function dungeonObjs(D,imgs=wallImgs,pal=PAL_SAND){
   const out=[],T=(x,y)=>(x<0||y<0||x>=MW||y>=MH)?WL:D.tiles[y*MW+x];
   for(let y=0;y<MH;y++)for(let x=0;x<MW;x++){if(T(x,y)!==WL)continue;
     let edge=false;for(const [dx,dy] of DIRS)if(T(x+dx,y+dy)===SA)edge=true;if(!edge)continue;
-    const [sx,sy]=iso(x+.5,y+.5),s=D.shade[y*MW+x];out.push({d:x+y+1,sx,sy,img:wallImgs[s>.85?1:0],ox:32,oy:16+WALL_H});
+    const [sx,sy]=iso(x+.5,y+.5),s=D.shade[y*MW+x];out.push({d:x+y+1,sx,sy,img:imgs[s>.85?1:0],ox:32,oy:16+WALL_H});
     if(s<.13&&(T(x+1,y)===SA||T(x,y+1)===SA)){const side=T(x+1,y)===SA?1:-1;
-      out.push({d:x+y+1.05,sx,sy,fn:(X,Y)=>drawTorch(X+side*15,Y-WALL_H*.55)})}}
+      out.push({d:x+y+1.05,sx,sy,fn:(X,Y)=>drawTorch(X+side*15,Y-WALL_H*.55,pal.flame)})}}
   return out;
 }
-function drawTorch(x,y){
+function drawTorch(x,y,fl=PAL_SAND.flame){
   const f=1+Math.sin(time*13+x)*.12+Math.sin(time*7.3+y)*.08;
-  const g=ctx.createRadialGradient(x,y-6,1,x,y-6,46*f);g.addColorStop(0,'rgba(255,190,90,.45)');g.addColorStop(1,'rgba(255,170,60,0)');
+  const g=ctx.createRadialGradient(x,y-6,1,x,y-6,46*f);g.addColorStop(0,`rgba(${fl[0]},.45)`);g.addColorStop(1,`rgba(${fl[0]},0)`);
   ctx.fillStyle=g;ctx.beginPath();ctx.arc(x,y-6,46*f,0,7);ctx.fill();
   ctx.fillStyle='#3a2a18';ctx.fillRect(x-2,y-2,4,9);
-  ctx.fillStyle='#ff8a2a';ctx.beginPath();ctx.ellipse(x,y-6,4.5*f,8*f,0,0,7);ctx.fill();
-  ctx.fillStyle='#ffe08a';ctx.beginPath();ctx.ellipse(x,y-4,2.4,4.5*f,0,0,7);ctx.fill();
+  ctx.fillStyle=fl[1];ctx.beginPath();ctx.ellipse(x,y-6,4.5*f,8*f,0,0,7);ctx.fill();
+  ctx.fillStyle=fl[2];ctx.beginPath();ctx.ellipse(x,y-4,2.4,4.5*f,0,0,7);ctx.fill();
 }
 
 /* ---------- データ ---------- */
@@ -480,7 +484,9 @@ const earnedStatPts=lv=>{let s=0;for(let l=2;l<=lv;l++)s+=3+Math.floor(l/5);retu
 const GXS=[];for(let dy=-3;dy<=3;dy++)for(let dx=-3;dx<=3;dx++)if(((dx===0||dy===0)&&Math.abs(dx+dy)<=3)||(Math.abs(dx)===1&&Math.abs(dy)===1))GXS.push([dx,dy]);
 const needBase=l=>Math.floor(18*Math.pow(l,1.85)+10);
 const needJob=l=>Math.floor(14*Math.pow(l,1.75)+8);
-const skillCapBonus=()=>Math.floor(P.jlv/30);
+const skillCapBonus=()=>Math.floor((P.jlv+P.rebJ)/30);
+// 転生しても強さはそのまま：計算には「今のLv＋これまでの転生で積み上げたLv」を使う
+const effLv=()=>P.lv+(P.rebLv||0);
 const skillMax=id=>SK[id].max+skillCapBonus();
 const statCost=v=>2+Math.floor((v-1)/10);
 
@@ -493,6 +499,7 @@ let NPCS=[
   {id:'guide',n:'案内人 ロウ',x:CX-2.5,y:CY+4.5,body:'#8a4b3a',hair:'#2b2b33',face:1},
   {id:'gate',n:'待ち人 ネフェル',x:CX-3.5,y:CY+2.5,body:'#c9a24a',hair:'#1a1a2a',face:1,hat:'pharaoh'},
   {id:'merc',n:'傭兵ギルド ガルド',x:CX-1.5,y:CY-3.5,body:'#5a4a3a',hair:'#3a2a1a',face:1,hat:'helm'},
+  {id:'chrono',n:'時の番人 クロノ',x:CX+3.5,y:CY+4.5,body:'#2a2a4a',hair:'#e8e8ff',face:-1,hat:'witch'},
 ];
 
 /* ---------- マップ切り替え ---------- */
@@ -500,16 +507,46 @@ const FIELD={id:'field',name:'ルーンの草原',tiles:map,shade,ground,objs:tr
 let curMap=FIELD,DG=null;
 function getDungeon(){
   if(DG)return DG;const D=genDungeon();
-  DG={id:'pyramid',name:'ピラミッド',tiles:D.tiles,shade:D.shade,ground:renderDungeonGround(D),objs:dungeonObjs(D),safe:DG_SAFE,bgm:'pyramid',
+  DG={id:'pyramid',name:'ピラミッド',initMobs:()=>initDungeonMobs(),tiles:D.tiles,shade:D.shade,ground:renderDungeonGround(D),objs:dungeonObjs(D),safe:DG_SAFE,bgm:'pyramid',
     npcs:[{id:'ret',n:'帰還の神官 アニ',x:CX+1.5,y:CY-.5,body:'#efe6cc',hair:'#1a1a2a',face:-1}],
     spawn:()=>{for(let i=0;i<600;i++){const x=irand(2,MW-3),y=irand(2,MH-3);if(D.tiles[y*MW+x]===SA&&Math.hypot(x+.5-CX,y+.5-CY)>6)return [x+.5,y+.5]}return [CX+.5,CY+8.5]}};
   return DG;
 }
+/* ---------- 最終ダンジョン「終焉の神殿」 ---------- */
+let FD=null;
+function getFinal(){
+  if(FD)return FD;const D=genDungeon(9999),imgs=[makeWall(false,PAL_VOID),makeWall(true,PAL_VOID)];
+  FD={id:'final',name:'終焉の神殿',tiles:D.tiles,shade:D.shade,ground:renderDungeonGround(D,PAL_VOID),objs:dungeonObjs(D,imgs,PAL_VOID),safe:DG_SAFE,bgm:'final',initMobs:()=>initFinalMobs(),
+    npcs:[{id:'ret',n:'帰還の神官 アニ',x:CX+1.5,y:CY-.5,body:'#efe6cc',hair:'#1a1a2a',face:-1}],
+    spawn:()=>{for(let i=0;i<600;i++){const x=irand(2,MW-3),y=irand(2,MH-3);if(D.tiles[y*MW+x]===SA&&Math.hypot(x+.5-CX,y+.5-CY)>7)return [x+.5,y+.5]}return [CX+.5,CY+9.5]},
+    bossSpawn:()=>{let best=null,bd=0;for(let i=0;i<800;i++){const x=irand(2,MW-3),y=irand(2,MH-3),dd=Math.hypot(x+.5-CX,y+.5-CY);if(D.tiles[y*MW+x]===SA&&dd>bd){bd=dd;best=[x+.5,y+.5]}}return best||[CX+.5,CY+12.5]}};
+  return FD;
+}
+function finalDefs(){
+  const L=1100+P.reb*300;
+  const mk=(n,kind,col,size,off,o={})=>{const lv=L+off;
+    return {n,kind,lv,hp:Math.round(8*Math.pow(lv,1.35)+60),atk:[Math.round(lv*1.6),Math.round(lv*2.3)],def:40,hit:lv+40,flee:Math.round(lv*.7),
+      exp:Math.round(Math.pow(lv,1.25)),jexp:Math.round(Math.pow(lv,1.25)*.7),speed:o.speed||2.3,delay:o.delay||1.2,aggro:true,aggroR:9,chaseR:20,col,size,
+      count:o.count||10,respawn:12,look:o.look||{},drops:[['blue',.15],['relic',.12],['gold',.1]],zeny:[lv*4,lv*8]}};
+  const lv=L+300;
+  const boss={n:'終焉の王 アポカリオン',kind:'dragon',lv,hp:Math.round(150*Math.pow(lv,1.3)*4),atk:[Math.round(lv*3),Math.round(lv*4)],def:55,hit:lv+60,flee:Math.round(lv*.9),
+    exp:Math.round(Math.pow(lv,1.6)*3),jexp:Math.round(Math.pow(lv,1.6)*2),speed:2.4,delay:1.1,aggro:true,aggroR:10,chaseR:30,boss:true,final:true,tier:bossTier(),
+    col:'#3a1a5a',size:3.2,aura:'170,90,255',count:1,respawn:0,look:{},drops:[['relic',1],['relic',1],['gold',1],['blue',1]],zeny:[lv*200,lv*400],mvp:[['relic',1]]};
+  return {
+    dknight:mk('深淵の騎士','human','#1a1a2a',1.15,0,{count:12,look:{hat:'helm',body:'#1a1a2a',hair:'#0a0a12',skin:'#9a90b0',eye:'#c04aff'}}),
+    vghost:mk('虚ろの亡霊','ghost','#5a4a8a',1.1,30,{count:10,speed:2.6}),
+    cdrake:mk('混沌の幼竜','dragon','#4a2a7a',1.1,60,{count:8,speed:2.2}),
+    vprun:mk('虚無プルン','prun','#3a2a4a',1.3,-60,{count:10}),
+    dmage:mk('堕ちた大魔導師','human','#2a1a3a',1.1,90,{count:6,look:{hat:'witch',body:'#2a1a3a',hair:'#d8d0ff',skin:'#b8b0d0',eye:'#ff4aff'}}),
+    apoc:boss,
+  };
+}
+function initFinalMobs(){const defs=finalDefs();mobs=[];for(const k in defs){const def=defs[k];for(let i=0;i<def.count;i++){const m={key:k,def,seed:rnd()*10};spawnMob(m);mobs.push(m)}}}
 function useMap(M){curMap=M;map=M.tiles;shade=M.shade;ground=M.ground;trees=M.objs;NPCS=M.npcs;safeXY=M.safe}
 function enterMap(M,x,y){
   curMap.mobs=mobs;curMap.items=groundItems;curMap.traps=traps;
   useMap(M);
-  if(M.id==='pyramid'){initDungeonMobs();groundItems=[];traps=[]}else{mobs=M.mobs||mobs;groundItems=M.items||[];traps=M.traps||[]}
+  if(M.initMobs){M.initMobs();groundItems=[];traps=[]}else{mobs=M.mobs||mobs;groundItems=M.items||[];traps=M.traps||[]}
   P.x=x;P.y=y;P.path=[];P.target=null;P.queued=null;P.casting=null;P.sit=false;aiming=null;
   if(merc){[merc.x,merc.y]=nearFree(x+.8,y+.8);merc.path=[];merc.target=null;merc.cast=null}
   if(harvest)for(const u of harvest.units){if(u.carry)hvDeliver(u.carry);Object.assign(u,{x:x+(rnd()-.5)*1.5,y:y+(rnd()-.5)*1.5,st:'idle',it:null,carry:null})}
@@ -540,7 +577,7 @@ function newPlayer(){
   const p={x:SPAWN[0],y:SPAWN[1],face:1,path:[],target:null,queued:null,casting:null,
     lv:1,exp:0,jlv:1,jexp:0,statPts:0,skillPts:0,str:7,agi:6,vit:4,int:4,dex:5,luk:3,
     hp:1,sp:1,zeny:120,inv:[],eq:{weapon:null,armor:null},skills:{...JOBS.aco.skills},job:'aco',jobData:{},
-    buff:{agi:0,agiLv:0,magni:0,bless:0,blessLv:0,angelus:0,angelusLv:0,conc:0,concLv:0},atkT:0,swingT:0,walk:0,dead:false,bubble:null,sit:false,emote:null};
+    buff:{agi:0,agiLv:0,magni:0,bless:0,blessLv:0,angelus:0,angelusLv:0,conc:0,concLv:0},atkT:0,swingT:0,walk:0,dead:false,bubble:null,sit:false,emote:null,reb:0,rebLv:0,rebJ:0,finalClear:false};
   return p;
 }
 function addItem(id,q=1){
@@ -555,24 +592,24 @@ function S(){
   for(const e of [P.eq.weapon,P.eq.armor]) if(e) for(const c of e.cards){const bb=ITEMS[c].b;for(const k in bb)b[k]+=bb[k]}
   const agiB=P.buff.agi>0?2+P.buff.agiLv:0,bl=P.buff.bless>0?P.buff.blessLv:0,cc=P.buff.conc>0?2+P.buff.concLv:0;
   const str=P.str+b.str+bl,agi=P.agi+b.agi+agiB+cc,vit=P.vit+b.vit,int=P.int+b.int+bl,dex=P.dex+b.dex+bl+cc,luk=P.luk+b.luk;
-  const hunter=P.job==='hunter',wi=P.eq.weapon&&ITEMS[P.eq.weapon.id],w=wi&&wi.cls===JOBS[P.job].w?wi.atk:0,a=(P.eq.armor?ITEMS[P.eq.armor.id].def:0)+(P.buff.angelus>0?2*P.buff.angelusLv:0)+b.def;
+  const EL=effLv(),hunter=P.job==='hunter',wi=P.eq.weapon&&ITEMS[P.eq.weapon.id],w=wi&&wi.cls===JOBS[P.job].w?wi.atk:0,a=(P.eq.armor?ITEMS[P.eq.armor.id].def:0)+(P.buff.angelus>0?2*P.buff.angelusLv:0)+b.def;
   return {str,agi,vit,int,dex,luk,b,agiB,
-    atk:(hunter?dex*2+Math.floor(str/5):str*2+Math.floor(dex/5))+Math.floor(luk/5)+w+b.atk+P.lv,
+    atk:(hunter?dex*2+Math.floor(str/5):str*2+Math.floor(dex/5))+Math.floor(luk/5)+w+b.atk+EL,
     range:hunter?8.5:0,
-    matk:int*3+Math.floor(int*int/25)+P.lv+(wi&&wi.cls===JOBS[P.job].w&&wi.matk?wi.matk:0),
+    matk:int*3+Math.floor(int*int/25)+EL+(wi&&wi.cls===JOBS[P.job].w&&wi.matk?wi.matk:0),
     castMul:Math.max(.15,1-dex/150),
-    def:a,vdef:Math.floor(vit*.6),hit:P.lv+dex,flee:P.lv+agi,crit:1+luk*.3,
+    def:a,vdef:Math.floor(vit*.6),hit:EL+dex,flee:EL+agi,crit:1+luk*.3,
     delay:Math.max(.16,.85-agi*.012-dex*.003)*(P.buff.agi>0?.9:1),
-    mhp:Math.floor((38+P.lv*11)*(1+vit*.02))+b.mhp,
-    msp:Math.floor((12+P.lv*3)*(1+int*.025)),
+    mhp:Math.floor((38+EL*11)*(1+vit*.02))+b.mhp,
+    msp:Math.floor((12+EL*3)*(1+int*.025)),
     speed:4.2*(P.buff.agi>0?1.3:1)};
 }
-const healAmt=l=>{const s=P?S():{int:5};return Math.floor(12*l+((P?P.lv:1)+s.int)*1.5)};
+const healAmt=l=>{const s=P?S():{int:5};return Math.floor(12*l+((P?effLv():1)+s.int)*1.5)};
 
 /* ---------- 保存 ---------- */
 const SAVE_KEY='rune-meadow-save-v1';
 function serialize(){
-  const keys=['x','y','lv','exp','jlv','jexp','statPts','skillPts','str','agi','vit','int','dex','luk','hp','sp','zeny','skills'];
+  const keys=['x','y','lv','exp','jlv','jexp','statPts','skillPts','str','agi','vit','int','dex','luk','hp','sp','zeny','skills','reb','rebLv','rebJ','finalClear'];
   const o={}; for(const k of keys) o[k]=P[k];
   o.inv=P.inv.map(e=>({id:e.id,qty:e.qty,cards:e.cards.slice()}));
   o.eqW=P.inv.indexOf(P.eq.weapon); o.eqA=P.inv.indexOf(P.eq.armor);
@@ -671,7 +708,12 @@ function bnote(t,n,dur,type,vol,att=.02){const o=AC.createOscillator(),g=AC.crea
   g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vol,t+att);g.gain.exponentialRampToValueAtTime(.0008,t+dur);o.connect(g);g.connect(bgmGain);o.start(t);o.stop(t+dur+.05);return o}
 function flute(t,n,dur){const o=bnote(t,n,dur*.95+.15,'triangle',.16,.05),v=AC.createOscillator(),vg=AC.createGain();
   v.frequency.value=5.2;vg.gain.value=7;v.connect(vg);vg.connect(o.detune);v.start(t);v.stop(t+dur+.2);bnote(t,n+12,dur*.9,'sine',.03,.06)}
-const SONGS={town:{beat:60/112,bpb:3,bars:SONG},pyramid:{beat:60/88,bpb:4,bars:SONG_PYRAMID,drone:38}};
+const SONG_FINAL=[
+  ['Em',[[64,2],[67,1],[71,1]]],['F',[[72,2],[71,1],[69,1]]],['Em',[[67,1],[66,1],[64,2]]],['D',[[66,1],[69,1],[74,2]]],
+  ['C',[[76,1.5],[74,.5],[72,2]]],['B7',[[71,1],[75,1],[78,2]]],['Am',[[76,1],[72,1],[69,1],[72,1]]],['B',[[71,4]]],
+];
+CH.F=[41,[53,57,60]];CH.B=[47,[51,54,59]];
+const SONGS={town:{beat:60/112,bpb:3,bars:SONG},pyramid:{beat:60/88,bpb:4,bars:SONG_PYRAMID,drone:38},final:{beat:60/76,bpb:4,bars:SONG_FINAL,drone:40}};
 let bgmSong='town',bgmLp=null;
 function scheduleBar(i,t){
   const S2=SONGS[bgmSong],B=S2.beat,[ch,mel]=S2.bars[i],[bass,tri]=CH[ch];
@@ -705,7 +747,7 @@ function findSpawn(z){
     if(d>=z[0]&&d<=z[1]&&pass(x,y)&&!townXY(x+.5,y+.5)) return [x+.5,y+.5];}
   return [CX+12.5,CY+12.5];
 }
-function spawnMob(m){const [x,y]=curMap.spawn(m.def);Object.assign(m,{x,y,hp:m.def.hp,state:'idle',wt:rnd()*3,wx:x,wy:y,atkT:1,flash:0,hpShow:0,face:1,moving:false,fade:0,loot:[],lootT:rnd(),lootTarget:null,emote:null,hinted:false,root:0})}
+function spawnMob(m){const [x,y]=(m.def.final&&curMap.bossSpawn?curMap.bossSpawn:curMap.spawn)(m.def);Object.assign(m,{x,y,hp:m.def.hp,state:'idle',wt:rnd()*3,wx:x,wy:y,atkT:1,flash:0,hpShow:0,face:1,moving:false,fade:0,loot:[],lootT:rnd(),lootTarget:null,emote:null,hinted:false,root:0})}
 function initMobs(){
   mobs=[];for(const k in MOBS){const def=MOBS[k];for(let i=0;i<def.count;i++){const m={key:k,def,seed:rnd()*10};spawnMob(m);mobs.push(m)}}
   // ボスは最初は1体だけ。残りは1分ごとに1体ずつ湧く
@@ -766,6 +808,12 @@ function updateMobs(dt,s){
       }
     }
     if(m.state==='chase'){
+      // 最終ボスは定期的に範囲攻撃（赤い円が出てから1.3秒後に爆発）
+      if(m.def.final&&d<8){m.spT=(m.spT==null?5:m.spT)-dt;if(m.spT<=0){m.spT=7;const cx=m.x,cy=m.y,r=4.2,big=m.def.atk[1]*1.6;
+        fx.push({type:'warn',x:cx,y:cy,r,t:0,at:1.3,life:1.32,cb:()=>{fx.push({type:'boom',x:cx,y:cy,t:0,life:.7,big:true});sfx('gx');
+          if(!P.dead&&Math.hypot(P.x-cx,P.y-cy)<=r){const s2=S(),dmg=Math.max(1,Math.round(big*(1-Math.min(.5,s2.def/100))-s2.vdef));P.hp-=dmg;float(P.x,P.y,dmg,'#ff4a3a',24,1,true);if(P.hp<=0)die()}
+          if(merc&&!(merc.down>0)&&Math.hypot(merc.x-cx,merc.y-cy)<=r){merc.hp-=Math.round(big*.6);if(merc.hp<=0){merc.down=20;merc.cast=null;msg(`傭兵 ${MERC_LOOK[merc.job].name} が倒れた…（20秒後に復帰）`,'warn')}}}});
+        m.bubble=null;msg('終焉の王が力を溜めている！ 赤い円の外へ逃げろ！','warn')}}
       // プレイヤーと傭兵のうち近いほうを狙う
       let tx=P.x,ty=P.y,td=d,onMerc=false;
       if(merc&&!(merc.down>0)){const dm=Math.hypot(merc.x-m.x,merc.y-m.y);if(dm<td){tx=merc.x;ty=merc.y;td=dm;onMerc=true}}
@@ -825,6 +873,7 @@ function killMob(m){
   if(m.loot){for(const g of m.loot)dropItem(g.id,g.qty,m);m.loot=[]}
   if(m.def.boss){
     const rw=(m.def.mvp.find(([,r])=>rnd()<r)||m.def.mvp[m.def.mvp.length-1])[0];addItem(rw);
+    if(m.def.final){P.finalClear=true;setTimeout(openRebirth,1800)}
     fx.push({type:'mvp',t:0,life:3.2});sfx('mvp');
     msg(`MVP！ ${m.def.n} を討伐しました`,'sys');msg(`MVP報酬 ${ITEMS[rw].n} を獲得`,'item');
   }
@@ -841,7 +890,7 @@ function gainExp(b,j){
   if(bl){const s=S();P.hp=s.mhp;P.sp=s.msp;
     msg(`ベースレベルが ${P.lv} になりました！${bl>1?`（+${bl}）`:''} ステータスポイントを振れます (A)`,'sys')}
   if(jl)msg(`ジョブレベルが ${P.jlv} になりました！ スキルポイント+${jl} (S)`,'sys');
-  if(bl){const s0=TOWN_STAGES.filter(([l])=>P.lv-bl>=l).length,s1=townStage();
+  if(bl&&!P.reb){const s0=TOWN_STAGES.filter(([l])=>P.lv-bl>=l).length,s1=townStage();
     for(let i=s0;i<s1;i++)msg(`街が発展した！ ${TOWN_STAGES[i][1]}ができました`,'item')}
   if(bl){const t0=Math.min(9,Math.floor((P.lv-bl)/100)),t1=bossTier();
     if(t1>t0){msg(`Base Lv ${t1*100} 到達！ ボス段階${t1+1}：新しいボスが出現するようになりました`,'item');spawnRandomBoss(2)}}
@@ -967,7 +1016,7 @@ const MERC_LOOK={
 };
 let merc=null;
 const fmtTime=s=>{s=Math.max(0,Math.ceil(s));return `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`};
-function mercStats(){const L=P.lv;return {atk:30+L*5,matk:40+L*6,mhp:200+L*30,heal:60+L*8}}
+function mercStats(){const L=effLv();return {atk:30+L*5,matk:40+L*6,mhp:200+L*30,heal:60+L*8}}
 function hireMerc(job,dur=MERC_TIME,silent){
   const st=mercStats(),[x,y]=nearFree(P.x+.8,P.y+.8);
   merc={job,x,y,face:1,hp:st.mhp,end:time+dur,atkT:1,healT:0,buffT:0,repath:0,path:[],target:null,down:0,cast:null,castN:0,walk:0,moving:false,swing:0,bubble:null};
@@ -1253,6 +1302,7 @@ function renderStatus(){
    <div><span>DEF</span><b>${s.def} + ${s.vdef}</b></div><div><span>HIT</span><b>${s.hit}</b></div>
    <div><span>FLEE</span><b>${s.flee}</b></div><div><span>CRI</span><b>${s.crit.toFixed(1)}</b></div>
    <div><span>ASPD</span><b>${Math.round(200-s.delay*50)} <small>(${sec(s.delay)})</small></b></div><div><span>最大HP</span><b>${s.mhp}</b></div>
+   ${P.reb?`<div><span>転生</span><b>${P.reb}回 <small>(Lv+${P.rebLv})</small></b></div>`:''}
   </div></div>
   <div class="foot"><span class="note" style="margin:0">STR:物理 / AGI:回避・速度 / VIT:HP / INT:魔法 / DEX:命中 / LUK:会心</span></div>
   <div class="foot"><span class="note" style="margin:0">進行状況はこのブラウザに自動保存</span><button class="btn warn" data-act="reset">${resetArm?'本当に消す？':'データ初期化'}</button></div>`;
@@ -1299,9 +1349,34 @@ function openNpc(n){
       `<div class="it">${icon('収','#d9a52c')}<div class="tx"><div class="nm">ハーヴェスト</div><div class="ds">小さな8匹の群れ。まわりに落ちたアイテムとZenyを拾って届けてくれる。戦闘はしない</div></div><button class="btn" data-act="hire-hv" ${P.zeny<MERC_PRICE?'disabled':''}>${harvest?'延長':'雇う'}</button></div></div>`+
       `<div class="foot"><span>所持金 <b class="price">${P.zeny.toLocaleString()} z</b></span><span class="btns">${merc?'<button class="btn warn" data-act="fire-merc">傭兵を解除</button>':''}${harvest?'<button class="btn warn" data-act="fire-hv">ハーヴェストを解除</button>':''}${!merc&&!harvest?'<button class="btn" data-close>やめておく</button>':''}</span></div>`;
   }
+  else if(n.id==='chrono'){
+    if(P.finalClear){openRebirth();return}
+    html=P.lv>=MAX_LV
+      ?`<p class="talk-t">……ついに時の果てに至ったか。<br>終焉の神殿の最奥に「終焉の王」が待つ。倒せば、強さを保ったまま時を巻き戻し、Lv1から新たな旅を始められる（転生）。<br>神殿の魔物はLv${1100+P.reb*300}前後。安全なのは入口の9マスだけだ。</p><div class="btns"><button class="btn" data-act="warp-final">終焉の神殿へ行く</button><button class="btn" data-close>まだ早い</button></div>`
+      :`<p class="talk-t">わしは時の番人。Base Lv ${MAX_LV} に至った者だけを、終焉の神殿へ案内しておる。<br>お前はまだ Lv ${P.lv}。あと ${MAX_LV-P.lv} だ。${P.reb?`<br>（転生 ${P.reb}回目の旅だな）`:''}</p><div class="btns"><button class="btn" data-close>わかった</button></div>`;
+  }
   else if(n.id==='ret') html=`<p class="talk-t">帰りたいか？</p><div class="btns"><button class="btn" data-act="warp-home">ルーンの草原へ帰る</button><button class="btn" data-close>まだ残る</button></div>`;
   else html=`<p class="talk-t">${TIPS[Math.floor(rnd()*TIPS.length)]}</p><div class="btns"><button class="btn" data-act="tip">ほかには？</button><button class="btn" data-close>ありがとう</button></div>`;
   $('b-talk').innerHTML=html;toggleWin('talk',true);
+}
+/* ---------- 転生 ---------- */
+function openRebirth(){
+  if(!P.finalClear)return;
+  talkNpc=NPCS.find(n=>n.id==='chrono')||null;$('talkName').textContent='時の番人 クロノ';
+  $('b-talk').innerHTML=`<p class="talk-t">見事だ……終焉の王は倒れた。<br>時を巻き戻し、<b>Base Lv・Job Lv を 1 に戻して</b>新たな旅を始めるか？<br>ステータス・スキル・装備・アイテム・Zenyはそのまま。強さは Lv${effLv()} 相当のまま引き継がれ、レベルを上げ直すほどさらに強くなる。</p>
+    <div class="btns"><button class="btn" data-act="rebirth">転生する</button><button class="btn" data-close>あとで（町の時の番人からいつでも）</button></div>`;
+  toggleWin('talk',true);
+}
+function doRebirth(){
+  if(!P.finalClear)return;
+  const bl=P.lv,jl=P.jlv;
+  P.rebLv+=P.lv-1;P.rebJ+=P.jlv-1;P.lv=1;P.jlv=1;P.exp=0;P.jexp=0;P.reb++;P.finalClear=false;
+  if(curMap.id!=='field')enterMap(FIELD,SPAWN[0],SPAWN[1]);
+  const s=S();P.hp=s.mhp;P.sp=s.msp;
+  fx.push({type:'lv',t:0,life:2.4,angel:true,rgb:'200,170,255'},{type:'shock',t:0,life:1.2,rgb:'200,170,255'});
+  fx.push({type:'lvbig',t:0,life:3.6,title:'REBIRTH!',job:true,lines:[`転生 ${P.reb}回目`,`Base Lv ${bl} → 1 ／ Job Lv ${jl} → 1`,`強さは Lv${effLv()} 相当を引き継ぎ`]});
+  sfx('mvp');msg(`転生した！（${P.reb}回目）Lv1からの新たな旅が始まる。強さは引き継がれている`,'item');
+  dirty=true;save();
 }
 document.addEventListener('click',e=>{
   const o=e.target.closest('[data-open]');if(o){toggleWin(o.dataset.open);return}
@@ -1332,6 +1407,8 @@ document.addEventListener('click',e=>{
     openNpc(talkNpc);dirty=true;return}
   else if(act==='fire-hv'){if(harvest){for(const u of harvest.units)if(u.carry)hvDeliver(u.carry);harvest=null;msg('ハーヴェストとの契約を解除しました','sys')}openNpc(talkNpc);dirty=true;return}
   else if(act==='fire-merc'){if(merc){msg(`傭兵 ${MERC_LOOK[merc.job].name} との契約を解除しました`,'sys');merc=null}openNpc(talkNpc);dirty=true;return}
+  else if(act==='warp-final'){$('w-talk').hidden=true;if(P.lv<MAX_LV)return;enterMap(getFinal(),CX-.5,CY+1.5);return}
+  else if(act==='rebirth'){$('w-talk').hidden=true;doRebirth();return}
   else if(act==='warp-home'){$('w-talk').hidden=true;enterMap(FIELD,CX-3.5,CY+3.5);return}
   else if(act==='reset'){if(!resetArm){resetArm=true;dirty=true;setTimeout(()=>{resetArm=false;dirty=true},4000);return}
     resetArm=false;try{localStorage.removeItem(SAVE_KEY)}catch(_){}if(curMap.id!=='field'){useMap(FIELD);bgmSwitch('town')}merc=null;harvest=null;freshStart();initMobs();groundItems=[];traps=[];buildHotbar();msg('データを初期化しました','sys')}
@@ -1357,7 +1434,7 @@ for(const b of document.querySelectorAll('[data-job]'))b.addEventListener('click
 hotbar.addEventListener('click',e=>{const b=e.target.closest('[data-slot]');if(b)useSlot(+b.dataset.slot)});
 function hud(){
   const s=S();
-  $('hJob').textContent=JOBS[P.job].n;
+  $('hJob').textContent=JOBS[P.job].n+(P.reb?` ★${P.reb}`:'');
   for(const b of document.querySelectorAll('[data-job]'))b.setAttribute('aria-pressed',String(b.dataset.job===P.job));
   $('hLv').textContent=P.lv;$('hJlv').textContent=P.jlv;
   $('hpBar').style.width=(P.hp/s.mhp*100)+'%';$('hpTxt').textContent=`HP ${Math.ceil(P.hp)} / ${s.mhp}`;
@@ -1376,7 +1453,7 @@ function hud(){
   const bAlive=mobs.filter(m=>m.def.boss&&m.state!=='dead').length,bt=Math.ceil(bossTimer);
   $('mmTxt').textContent=`${curMap.name} (${Math.floor(P.x)}, ${Math.floor(P.y)})`;
   $('mmBoss').textContent=curMap.id==='field'?`ボス段階${bossTier()+1} ${bAlive}体　`+(bAlive<BOSS_MAX_ALIVE?`次 ${Math.floor(bt/60)}:${String(bt%60).padStart(2,'0')}`:'最大数')
-    :`敵 ${mobs.filter(m=>m.state!=='dead').length}体　ファラオン${bAlive?'出現中':'不在'}`;
+    :`敵 ${mobs.filter(m=>m.state!=='dead').length}体　${((mobs.find(m=>m.def.boss)||{def:{n:'ボス'}}).def.n).split(/[ の]/).pop()}${bAlive?'出現中':'不在'}`;
   HOT.forEach(([k,id],i)=>{const el=$('hn'+i),b=el.parentElement;
     if(k==='s'){const lv=P.skills[id];el.textContent=lv?'Lv'+lv:'';b.classList.toggle('off',!lv||P.sp<SK[id].sp(lv));b.classList.toggle('aim',aiming===id||(P.queued&&P.queued.id===id))}
     else{const n=count(id);el.textContent=n;b.classList.toggle('off',!n)}});
@@ -1541,6 +1618,9 @@ function drawMob(m){
   const [x,y]=iso(m.x,m.y);
   if(m.state==='dead'){if(m.fade>.5)return;ctx.globalAlpha=1-m.fade/.5}
   if(m.lunge>0)m.lunge-=1/60;
+  if(m.def.aura&&m.state!=='dead'){const r=26*m.def.size,pl=1+Math.sin(time*3)*.1;
+    const g=ctx.createRadialGradient(x,y,2,x,y,r*pl);g.addColorStop(0,`rgba(${m.def.aura},.5)`);g.addColorStop(1,`rgba(${m.def.aura},0)`);
+    ctx.fillStyle=g;ctx.beginPath();ctx.ellipse(x,y,r*pl,r*.5*pl,0,0,7);ctx.fill()}
   if(m.def.resist&&m.state!=='dead'){const r=20*m.def.size,pl=1+Math.sin(time*4+m.seed)*.12;
     ctx.fillStyle=m.def.resist==='aco'?'rgba(120,180,255,.28)':'rgba(120,230,110,.28)';ctx.beginPath();ctx.ellipse(x,y,r*pl,r*.45*pl,0,0,7);ctx.fill();
     ctx.strokeStyle=m.def.resist==='aco'?'rgba(150,200,255,.8)':'rgba(150,240,130,.8)';ctx.lineWidth=2;ctx.stroke()}
@@ -1571,7 +1651,7 @@ function drawItem(g){
 }
 /* ---------- 街の発展（Base Lvで飾りが増える） ---------- */
 const TOWN_STAGES=[[30,'花壇'],[80,'街灯'],[150,'王国の旗'],[250,'黄金の噴水'],[350,'飾り石畳'],[500,'植え込み'],[650,'天使像'],[800,'光の粒'],[999,'虹']];
-const townStage=()=>TOWN_STAGES.filter(([l])=>P.lv>=l).length;
+const townStage=()=>{const lv=P.reb>0?999:P.lv;return TOWN_STAGES.filter(([l])=>lv>=l).length};
 const DECO={
   planter:[[-5,-5],[5,-5],[-5,5],[5,5]],
   lamp:[[-1.6,-5.5],[1.6,-5.5],[-1.6,5.5],[1.6,5.5],[-5.5,-1.6],[-5.5,1.6],[5.5,-1.6],[5.5,1.6]],
@@ -1661,6 +1741,9 @@ function draw(){
     if(tr.k==='ankle'){ctx.strokeStyle='#8a8f99';ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(x,y,10,5,0,0,7);ctx.stroke();ctx.fillStyle='#b9bec8';
       for(let i=0;i<8;i++){const a=i/8*Math.PI*2;ctx.beginPath();ctx.moveTo(x+Math.cos(a)*10,y+Math.sin(a)*5);ctx.lineTo(x+Math.cos(a)*6,y+Math.sin(a)*3-3);ctx.lineTo(x+Math.cos(a+.3)*10,y+Math.sin(a+.3)*5);ctx.fill()}}
     else{ctx.fillStyle='#3a3a42';ctx.beginPath();ctx.ellipse(x,y,9,4.5,0,0,7);ctx.fill();ctx.fillStyle=Math.sin(time*6)>0?'#ff4a3a':'#7a2a22';ctx.beginPath();ctx.arc(x,y-1,2,0,7);ctx.fill()}}
+  for(const f of fx){if(f.type!=='warn'||f.t>f.at)continue;const [x,y]=iso(f.x,f.y),q=f.t/f.at,rx=f.r*45,ry=f.r*22.6;
+    ctx.fillStyle=`rgba(255,40,40,${.15+q*.3})`;ctx.beginPath();ctx.ellipse(x,y,rx,ry,0,0,7);ctx.fill();
+    ctx.strokeStyle='rgba(255,90,90,.9)';ctx.lineWidth=2.5;ctx.beginPath();ctx.ellipse(x,y,rx*q,ry*q,0,0,7);ctx.stroke();ctx.beginPath();ctx.ellipse(x,y,rx,ry,0,0,7);ctx.stroke()}
   for(const f of fx){if(f.type!=='click')continue;const [x,y]=iso(f.x,f.y),p=f.t/f.life;ctx.strokeStyle=`rgba(255,255,255,${1-p})`;ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(x,y,14*(1-p*.5),7*(1-p*.5),0,0,7);ctx.stroke()}
   if(P.target&&P.target.kind==='mob'){const m=P.target.ref,[x,y]=iso(m.x,m.y),p=1+Math.sin(time*8)*.08;ctx.strokeStyle='rgba(255,90,80,.9)';ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(x,y,17*m.def.size*p,7*m.def.size*p,0,0,7);ctx.stroke()}
   for(const f of fx){if(f.type!=='gx')continue;const p=f.t/f.life,a=p<.12?p/.12:Math.max(0,1-(p-.12)/.88);
@@ -1793,10 +1876,10 @@ function drawLvBanner(){
     const sc=t<.12?.3+t/.12*1.05:t<.22?1.35-(t-.12)/.1*.35:1,a=p>.8?(1-p)/.2:1,cy=VH*.3-(p>.8?(p-.8)*80:0);
     ctx.globalAlpha=a;ctx.save();ctx.translate(VW/2,cy);ctx.scale(sc,sc);
     const big=Math.min(60,VW/9);ctx.font=`${big}px "DotGothic16",monospace`;ctx.textAlign='center';ctx.lineJoin='round';
-    ctx.lineWidth=9;ctx.strokeStyle=f.job?'#3a1f5a':'#5a2a08';ctx.strokeText('LEVEL UP!',0,0);
+    const ttl=f.title||'LEVEL UP!';ctx.lineWidth=9;ctx.strokeStyle=f.job?'#3a1f5a':'#5a2a08';ctx.strokeText(ttl,0,0);
     const g=ctx.createLinearGradient(0,-big*.8,0,0);
     if(f.job){g.addColorStop(0,'#f3e8ff');g.addColorStop(1,'#a873e6')}else{g.addColorStop(0,'#fffbe0');g.addColorStop(.5,'#ffd84a');g.addColorStop(1,'#e68a1c')}
-    ctx.fillStyle=g;ctx.fillText('LEVEL UP!',0,0);
+    ctx.fillStyle=g;ctx.fillText(ttl,0,0);
     // きらめき
     ctx.fillStyle='rgba(255,255,255,.85)';for(let i=0;i<5;i++){const a2=time*2+i*1.3,rx=Math.cos(a2)*big*2.6,ry=-big*.4+Math.sin(a2*1.7)*big*.5,r=2+Math.abs(Math.sin(time*6+i))*3;
       ctx.beginPath();ctx.moveTo(rx,ry-r*2);ctx.lineTo(rx+r*.6,ry);ctx.lineTo(rx,ry+r*2);ctx.lineTo(rx-r*.6,ry);ctx.closePath();ctx.fill();
@@ -1832,7 +1915,7 @@ function update(dt){
     if(mouse.down&&mouse.ground){mouse.holdT-=dt;if(mouse.holdT<=0){mouse.holdT=.25;const [wx,wy]=toWorld(mouse.x,mouse.y);moveTo(Math.floor(wx),Math.floor(wy))}}
   }
   if(P.bubble){P.bubble.t-=dt;if(P.bubble.t<=0)P.bubble=null}
-  for(const n of NPCS){if(n.bubble){n.bubble.t-=dt;if(n.bubble.t<=0)n.bubble=null}else if(rnd()<dt*.04){const L={shop:['ポーションあるよ〜','いらっしゃい！'],heal:['癒やしが必要な方は？'],guide:['困ったら話しかけてね'],gate:['砂の向こうで待っている…','ピラミッドへ行くかい？'],ret:['帰りたいか？','ここだけは安全だ'],merc:['腕利きの傭兵、いるぜ','5000zで10分だ！']}[n.id]||['…'];n.bubble={text:L[Math.floor(rnd()*L.length)],t:3}}}
+  for(const n of NPCS){if(n.bubble){n.bubble.t-=dt;if(n.bubble.t<=0)n.bubble=null}else if(rnd()<dt*.04){const L={shop:['ポーションあるよ〜','いらっしゃい！'],heal:['癒やしが必要な方は？'],guide:['困ったら話しかけてね'],gate:['砂の向こうで待っている…','ピラミッドへ行くかい？'],ret:['帰りたいか？','ここだけは安全だ'],merc:['腕利きの傭兵、いるぜ','5000zで10分だ！'],chrono:['時の果てを目指す者よ…','Lv999で会おう']}[n.id]||['…'];n.bubble={text:L[Math.floor(rnd()*L.length)],t:3}}}
   updateMobs(dt,s);updateTraps(dt);updateMerc(dt);updateHarvest(dt);
   for(const f of fx){f.t+=dt;
     if(f.cb&&!f.done&&f.t>=f.at){f.done=true;f.cb()}
