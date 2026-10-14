@@ -51,8 +51,10 @@ kbd{font-family:var(--f-display);font-size:10px;color:var(--muted);margin-left:2
 .jobsw button+button{border-left:1px solid var(--line)}
 .jobsw button[aria-pressed="true"]{background:var(--head);color:var(--head-ink);cursor:default}
 .jobsw button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
-.merc{position:relative;display:flex;justify-content:space-between;gap:6px;margin-top:5px;padding:2px 6px 5px;border-radius:4px;background:var(--win-2);font:11px var(--f-display);color:var(--ink);overflow:hidden;font-variant-numeric:tabular-nums}
-.merc i{position:absolute;left:0;bottom:0;height:3px;background:var(--hp)}
+.merc{display:flex;flex-direction:column;gap:3px;margin-top:5px}
+.mrow{position:relative;display:flex;white-space:nowrap;justify-content:space-between;gap:6px;padding:2px 6px 5px;border-radius:4px;background:var(--win-2);font:11px var(--f-display);color:var(--ink);overflow:hidden;font-variant-numeric:tabular-nums}
+.mrow i{position:absolute;left:0;bottom:0;height:3px;background:var(--hp)}
+.mrow.hv i{background:var(--exp)}
 .buffs{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px;min-height:0}
 .buffs span{font:11px var(--f-display);background:var(--sp);color:var(--head-ink);border-radius:3px;padding:0 5px}
 
@@ -510,6 +512,7 @@ function enterMap(M,x,y){
   if(M.id==='pyramid'){initDungeonMobs();groundItems=[];traps=[]}else{mobs=M.mobs||mobs;groundItems=M.items||[];traps=M.traps||[]}
   P.x=x;P.y=y;P.path=[];P.target=null;P.queued=null;P.casting=null;P.sit=false;aiming=null;
   if(merc){[merc.x,merc.y]=nearFree(x+.8,y+.8);merc.path=[];merc.target=null;merc.cast=null}
+  if(harvest)for(const u of harvest.units){if(u.carry)hvDeliver(u.carry);Object.assign(u,{x:x+(rnd()-.5)*1.5,y:y+(rnd()-.5)*1.5,st:'idle',it:null,carry:null})}
   [camX,camY]=iso(x,y);fx=fx.filter(f=>f.type==='lvbig'||f.type==='mvp');fx.push({type:'fade',t:0,life:.9});
   for(const w of ['w-talk','w-shop'])$(w).hidden=true;
   msg(`${M.name} に到着した`,'sys');bgmSwitch(M.bgm);dirty=true;
@@ -575,6 +578,7 @@ function serialize(){
   o.eqW=P.inv.indexOf(P.eq.weapon); o.eqA=P.inv.indexOf(P.eq.armor);
   if(curMap.id!=='field'){o.x=SPAWN[0];o.y=SPAWN[1]}
   o.merc=merc?{job:merc.job,remain:Math.max(0,merc.end-time)}:null;
+  o.harvest=harvest?{remain:Math.max(0,harvest.end-time)}:null;
   o.job=P.job; o.jobData={};
   for(const j in P.jobData) if(j!==P.job){const d=P.jobData[j];o.jobData[j]={...d,skills:{...d.skills},weapon:P.inv.indexOf(d.weapon)}}
   return o;
@@ -1015,6 +1019,51 @@ function updateMerc(dt){
   else if(dP>2.5)mercMove(P.x,P.y,dt);
   if(merc.moving)merc.walk+=dt;
 }
+/* ---------- ハーヴェスト（収集係） ---------- */
+let harvest=null;const HV_N=8;
+function hireHarvest(dur=MERC_TIME,silent){
+  harvest={end:time+dur,units:Array.from({length:HV_N},(_,i)=>({x:P.x+(rnd()-.5)*1.5,y:P.y+(rnd()-.5)*1.5,st:'idle',it:null,carry:null,ph:rnd()*7,k:i,face:1}))};
+  if(!silent)msg('ハーヴェストを雇いました。落ちているアイテムとZenyを集めてきます（10分間）','item');dirty=true;
+}
+function hvStep(u,tx,ty,sp,dt){const dx=tx-u.x,dy=ty-u.y,d=Math.hypot(dx,dy);if(d<1e-3)return 0;const st=Math.min(d,sp*dt);u.x+=dx/d*st;u.y+=dy/d*st;if(Math.abs(dx-dy)>.02)u.face=(dx-dy)>0?1:-1;return d-st}
+function hvDeliver(g){
+  if(g.id==='zeny'){P.zeny+=g.qty;msg(`ハーヴェストが ${g.qty} Zeny を拾ってきた`,'item')}
+  else{addItem(g.id,g.qty);msg(`ハーヴェストが ${ITEMS[g.id].n} を拾ってきた`,'item')}
+  sfx('pick');dirty=true;
+}
+function updateHarvest(dt){
+  if(!harvest)return;
+  if(time>=harvest.end){for(const u of harvest.units)if(u.carry)hvDeliver(u.carry);msg('ハーヴェストとの契約が切れました','sys');harvest=null;dirty=true;return}
+  for(const u of harvest.units){u.ph+=dt*14;
+    if(u.st==='idle'){
+      const a=u.k/HV_N*Math.PI*2+time*.6;hvStep(u,P.x+Math.cos(a)*1.1,P.y+Math.sin(a)*1.1,5,dt);
+      let best=null,bd=110;
+      for(const g of groundItems){if(g.hv&&g.hv.it===g)continue;const dd=(g.x-P.x)**2+(g.y-P.y)**2;if(dd<bd){bd=dd;best=g}}
+      if(best){u.it=best;best.hv=u;u.st='go'}
+    }else if(u.st==='go'){
+      if(!groundItems.includes(u.it)){u.it=null;u.st='idle';continue}
+      if(hvStep(u,u.it.x,u.it.y,6.5,dt)<.15){const g=u.it;groundItems.splice(groundItems.indexOf(g),1);u.carry=g;u.it=null;u.st='back'}
+    }else if(u.st==='back'){
+      if(hvStep(u,P.x,P.y,6.5,dt)<.5){hvDeliver(u.carry);u.carry=null;u.st='idle'}
+    }
+  }
+}
+function drawHvUnit(u){
+  const [x,y]=iso(u.x,u.y),hop=Math.abs(Math.sin(u.ph))*2,leg=Math.sin(u.ph*1.6)*1.5;
+  ctx.fillStyle='rgba(0,0,0,.22)';ctx.beginPath();ctx.ellipse(x,y,5,2,0,0,7);ctx.fill();
+  ctx.save();ctx.translate(x,y-4-hop);if(u.face<0)ctx.scale(-1,1);
+  ctx.strokeStyle='#5a3d0c';ctx.lineWidth=1;ctx.beginPath();
+  for(const lx of [-2.5,0,2.5]){ctx.moveTo(lx,1);ctx.lineTo(lx-1+leg*(lx>0?1:-1),4)}ctx.stroke();
+  ctx.fillStyle='#f2c23a';ctx.beginPath();ctx.ellipse(0,0,4.5,3.2,0,0,7);ctx.fill();
+  ctx.fillStyle='#c48a1c';ctx.fillRect(-.6,-3,1.2,6);
+  ctx.fillStyle='#ffe9a0';ctx.beginPath();ctx.arc(4.2,-1,2.2,0,7);ctx.fill();
+  ctx.fillStyle='#2a1a05';ctx.fillRect(4.6,-1.8,1,1);
+  ctx.strokeStyle='#5a3d0c';ctx.beginPath();ctx.moveTo(5,-2.6);ctx.lineTo(7,-5.5);ctx.moveTo(4,-2.8);ctx.lineTo(4.8,-6);ctx.stroke();
+  ctx.restore();
+  if(u.carry){const g=u.carry,cy=y-13-hop;
+    if(g.id==='zeny'){ctx.fillStyle='#f2c94c';ctx.strokeStyle='#a37a14';ctx.lineWidth=1;ctx.beginPath();ctx.ellipse(x,cy,3.5,2.8,0,0,7);ctx.fill();ctx.stroke()}
+    else{ctx.fillStyle=ITEMS[g.id].c;ctx.strokeStyle='rgba(255,255,255,.9)';ctx.lineWidth=1;ctx.beginPath();ctx.roundRect(x-3.5,cy-3.5,7,7,2);ctx.fill();ctx.stroke()}}
+}
 function mobHitMerc(m){
   m.lunge=.2;if(rnd()<.15){float(merc.x,merc.y,'Miss','#bfe3ff',14);return}
   const dmg=Math.max(1,Math.round(irand(m.def.atk[0],m.def.atk[1])*.8-P.lv*.3));merc.hp-=dmg;float(merc.x,merc.y,dmg,'#ff9a8c',15,1,true);
@@ -1246,7 +1295,9 @@ function openNpc(n){
     html=`<p class="talk-t">腕利きの傭兵がそろってるぜ。1人 ${MERC_PRICE.toLocaleString()}z で10分間、一緒に戦ってくれる。</p>${cur}<div class="list">`+
       Object.keys(JOBS).map(j=>{const L=MERC_LOOK[j],same=merc&&merc.job===j;
         return `<div class="it">${icon(j==='aco'?'聖':j==='hunter'?'弓':'魔',L.body)}<div class="tx"><div class="nm">${L.name}（${JOBS[j].n}）</div><div class="ds">${desc[j]}</div></div><button class="btn" data-act="hire" data-job="${j}" ${P.zeny<MERC_PRICE?'disabled':''}>${same?'延長':'雇う'}</button></div>`}).join('')+
-      `</div><div class="foot"><span>所持金 <b class="price">${P.zeny.toLocaleString()} z</b></span>${merc?'<button class="btn warn" data-act="fire-merc">契約を解除</button>':'<button class="btn" data-close>やめておく</button>'}</div>`;
+      `</div><p class="note" style="margin:10px 0 4px">戦わない収集係（上の傭兵と同時に雇える）${harvest?`　契約中：残り ${fmtTime(harvest.end-time)}`:''}</p><div class="list">`+
+      `<div class="it">${icon('収','#d9a52c')}<div class="tx"><div class="nm">ハーヴェスト</div><div class="ds">小さな8匹の群れ。まわりに落ちたアイテムとZenyを拾って届けてくれる。戦闘はしない</div></div><button class="btn" data-act="hire-hv" ${P.zeny<MERC_PRICE?'disabled':''}>${harvest?'延長':'雇う'}</button></div></div>`+
+      `<div class="foot"><span>所持金 <b class="price">${P.zeny.toLocaleString()} z</b></span><span class="btns">${merc?'<button class="btn warn" data-act="fire-merc">傭兵を解除</button>':''}${harvest?'<button class="btn warn" data-act="fire-hv">ハーヴェストを解除</button>':''}${!merc&&!harvest?'<button class="btn" data-close>やめておく</button>':''}</span></div>`;
   }
   else if(n.id==='ret') html=`<p class="talk-t">帰りたいか？</p><div class="btns"><button class="btn" data-act="warp-home">ルーンの草原へ帰る</button><button class="btn" data-close>まだ残る</button></div>`;
   else html=`<p class="talk-t">${TIPS[Math.floor(rnd()*TIPS.length)]}</p><div class="btns"><button class="btn" data-act="tip">ほかには？</button><button class="btn" data-close>ありがとう</button></div>`;
@@ -1276,10 +1327,14 @@ document.addEventListener('click',e=>{
   else if(act==='hire'){const j=a.dataset.job;if(P.zeny<MERC_PRICE){msg('Zenyが足りません','warn');return}
     P.zeny-=MERC_PRICE;if(merc&&merc.job===j){merc.end+=MERC_TIME;msg(`契約を10分延長しました（-${MERC_PRICE}z）`,'item')}else hireMerc(j);
     openNpc(talkNpc);dirty=true;return}
+  else if(act==='hire-hv'){if(P.zeny<MERC_PRICE){msg('Zenyが足りません','warn');return}
+    P.zeny-=MERC_PRICE;if(harvest){harvest.end+=MERC_TIME;msg(`ハーヴェストの契約を10分延長しました（-${MERC_PRICE}z）`,'item')}else hireHarvest();
+    openNpc(talkNpc);dirty=true;return}
+  else if(act==='fire-hv'){if(harvest){for(const u of harvest.units)if(u.carry)hvDeliver(u.carry);harvest=null;msg('ハーヴェストとの契約を解除しました','sys')}openNpc(talkNpc);dirty=true;return}
   else if(act==='fire-merc'){if(merc){msg(`傭兵 ${MERC_LOOK[merc.job].name} との契約を解除しました`,'sys');merc=null}openNpc(talkNpc);dirty=true;return}
   else if(act==='warp-home'){$('w-talk').hidden=true;enterMap(FIELD,CX-3.5,CY+3.5);return}
   else if(act==='reset'){if(!resetArm){resetArm=true;dirty=true;setTimeout(()=>{resetArm=false;dirty=true},4000);return}
-    resetArm=false;try{localStorage.removeItem(SAVE_KEY)}catch(_){}if(curMap.id!=='field'){useMap(FIELD);bgmSwitch('town')}merc=null;freshStart();initMobs();groundItems=[];traps=[];buildHotbar();msg('データを初期化しました','sys')}
+    resetArm=false;try{localStorage.removeItem(SAVE_KEY)}catch(_){}if(curMap.id!=='field'){useMap(FIELD);bgmSwitch('town')}merc=null;harvest=null;freshStart();initMobs();groundItems=[];traps=[];buildHotbar();msg('データを初期化しました','sys')}
   dirty=true;
 });
 document.addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&e.target.matches&&e.target.matches('.it[data-act]')){e.preventDefault();e.target.click()}});
@@ -1311,9 +1366,12 @@ function hud(){
   const be=P.exp/needBase(P.lv)*100,je=P.jexp/needJob(P.jlv)*100;
   $('exBar').style.width=be+'%';$('jxBar').style.width=je+'%';
   $('hExp').textContent=`Exp ${be.toFixed(1)}% / Job ${je.toFixed(1)}%`;$('hZeny').textContent=P.zeny.toLocaleString()+' z';
-  const hm=$('hMerc');hm.hidden=!merc;
+  const hm=$('hMerc'),rows=[];
   if(merc){const st=mercStats(),L=MERC_LOOK[merc.job];
-    hm.innerHTML=`<span>傭兵 ${L.name}（${JOBS[merc.job].n}）</span><span>${merc.down>0?`復帰まで ${Math.ceil(merc.down)}秒`:`残り ${fmtTime(merc.end-time)}`}</span><i style="width:${merc.down>0?0:clamp(merc.hp/st.mhp,0,1)*100}%"></i>`}
+    rows.push(`<div class="mrow"><span>傭兵 ${L.name}（${JOBS[merc.job].n}）</span><span>${merc.down>0?`復帰まで ${Math.ceil(merc.down)}秒`:`残り ${fmtTime(merc.end-time)}`}</span><i style="width:${merc.down>0?0:clamp(merc.hp/st.mhp,0,1)*100}%"></i></div>`)}
+  if(harvest){const busy=harvest.units.filter(u=>u.st!=='idle').length;
+    rows.push(`<div class="mrow hv"><span>ハーヴェスト</span><span>${busy?`${busy}匹収集中　`:''}残り ${fmtTime(harvest.end-time)}</span><i style="width:${clamp((harvest.end-time)/MERC_TIME,0,1)*100}%"></i></div>`)}
+  hm.hidden=!rows.length;hm.innerHTML=rows.join('');
   $('hBuff').innerHTML=BUFFS.filter(([k])=>P.buff[k]>0).map(([k,n])=>`<span>${n} ${Math.ceil(P.buff[k])}s</span>`).join('');
   const bAlive=mobs.filter(m=>m.def.boss&&m.state!=='dead').length,bt=Math.ceil(bossTimer);
   $('mmTxt').textContent=`${curMap.name} (${Math.floor(P.x)}, ${Math.floor(P.y)})`;
@@ -1620,6 +1678,7 @@ function draw(){
   for(const m of mobs)objs.push([m.x+m.y,()=>drawMob(m)]);
   if(curMap.id==='field'){objs.push([CX+CY,drawFountain]);addTownDeco(objs)}
   if(merc&&!(merc.down>0))objs.push([merc.x+merc.y,drawMerc]);
+  if(harvest)for(const u of harvest.units)objs.push([u.x+u.y-.2,()=>drawHvUnit(u)]);
   for(const n of NPCS)objs.push([n.x+n.y,()=>{const [x,y]=iso(n.x,n.y);drawHuman(x,y,{face:n.face,body:n.body,hair:n.hair,hat:n.hat});label(n.n,x,y-56,'#ffe9a8',12)}]);
   if(!P.dead||true)objs.push([P.x+P.y,()=>{const [x,y]=iso(P.x,P.y);
     if(P.dead)ctx.globalAlpha=.5;
@@ -1774,7 +1833,7 @@ function update(dt){
   }
   if(P.bubble){P.bubble.t-=dt;if(P.bubble.t<=0)P.bubble=null}
   for(const n of NPCS){if(n.bubble){n.bubble.t-=dt;if(n.bubble.t<=0)n.bubble=null}else if(rnd()<dt*.04){const L={shop:['ポーションあるよ〜','いらっしゃい！'],heal:['癒やしが必要な方は？'],guide:['困ったら話しかけてね'],gate:['砂の向こうで待っている…','ピラミッドへ行くかい？'],ret:['帰りたいか？','ここだけは安全だ'],merc:['腕利きの傭兵、いるぜ','5000zで10分だ！']}[n.id]||['…'];n.bubble={text:L[Math.floor(rnd()*L.length)],t:3}}}
-  updateMobs(dt,s);updateTraps(dt);updateMerc(dt);
+  updateMobs(dt,s);updateTraps(dt);updateMerc(dt);updateHarvest(dt);
   for(const f of fx){f.t+=dt;
     if(f.cb&&!f.done&&f.t>=f.at){f.done=true;f.cb()}
     if(f.type==='gx'){const n=f.t>=.1?Math.min(3,Math.floor((f.t-.1)/.3)+1):0;while(f.hits<n){f.hits++;gxHit(f)}}
@@ -1807,6 +1866,7 @@ function start(data){
   msg(`【経験値 ${EXP_RATE}倍】 Zキーで座る / チャットで /! /? /ho /lv /thx のエモーション`,'sys');
   cv.style.cursor=CUR.def;
   if(d)msg('前回の続きから再開しました','item');
+  if(d&&d.harvest&&d.harvest.remain>1){hireHarvest(d.harvest.remain,true);msg(`ハーヴェストが合流しました（残り ${fmtTime(harvest.end-time)}）`,'item')}
   if(d&&d.merc&&d.merc.remain>1&&MERC_LOOK[d.merc.job]){hireMerc(d.merc.job,d.merc.remain,true);msg(`傭兵 ${MERC_LOOK[merc.job].name} が合流しました（残り ${fmtTime(merc.end-time)}）`,'item')}
   msg('Qでアコライト、Wでハンター、Rでマジシャンに切り替え（左上のボタンでも可）','sys');
   buildHotbar();hud();requestAnimationFrame(t=>{last=t;requestAnimationFrame(frame)});
