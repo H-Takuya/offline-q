@@ -203,13 +203,15 @@ const R=mulberry(20261013);
 /* ---------- マップ ---------- */
 const TW=64,TH=32,MW=56,MH=56,CX=28,CY=28;
 const G=0,FL=1,DI=2,ST=3,WA=4,TR=5;
-const map=new Uint8Array(MW*MH), shade=new Float32Array(MW*MH);
+const SA=6,WL=7;
+let map=new Uint8Array(MW*MH), shade=new Float32Array(MW*MH);
 const OX=MH*TW/2, GW=(MW+MH)*TW/2, GH=(MW+MH)*TH/2+8;
 const iso=(x,y)=>[(x-y)*TW/2+OX,(x+y)*TH/2];
 const tile=(x,y)=>(x<0||y<0||x>=MW||y>=MH)?TR:map[y*MW+x];
-const pass=(x,y)=>{const t=tile(x,y);return t!==WA&&t!==TR};
+const pass=(x,y)=>{const t=tile(x,y);return t!==WA&&t!==TR&&t!==WL};
 const townXY=(x,y)=>x>=CX-7&&x<CX+7&&y>=CY-7&&y<CY+7;
-const mobPass=(x,y)=>pass(Math.floor(x),Math.floor(y))&&!townXY(x,y);
+let safeXY=townXY;
+const mobPass=(x,y)=>pass(Math.floor(x),Math.floor(y))&&!safeXY(x,y);
 const cheb=(x,y)=>Math.max(Math.abs(x-CX),Math.abs(y-CY));
 const DIRS=[[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]];
 
@@ -237,7 +239,7 @@ function genMap(){
 }
 genMap();
 
-const ground=document.createElement('canvas'); ground.width=GW; ground.height=GH;
+let ground=document.createElement('canvas'); ground.width=GW; ground.height=GH;
 (function renderGround(){
   const g=ground.getContext('2d');
   g.fillStyle='#2f4a26';g.fillRect(0,0,GW,GH);
@@ -270,8 +272,71 @@ function makeTree(h){
   return c;
 }
 const treeImgs=[makeTree(110),makeTree(124),makeTree(98)];
-const trees=[];
-for(let y=0;y<MH;y++)for(let x=0;x<MW;x++) if(map[y*MW+x]===TR){const [sx,sy]=iso(x+.5,y+.5);trees.push({d:x+y+1,sx,sy,v:Math.floor(shade[y*MW+x]*3)})}
+let trees=[];
+for(let y=0;y<MH;y++)for(let x=0;x<MW;x++) if(map[y*MW+x]===TR){const [sx,sy]=iso(x+.5,y+.5);trees.push({d:x+y+1,sx,sy,img:treeImgs[Math.floor(shade[y*MW+x]*3)],ox:38,oy:96})}
+
+/* ---------- ピラミッド（攻略マップ） ---------- */
+const DG_SAFE=(x,y)=>x>=CX-1&&x<CX+2&&y>=CY-1&&y<CY+2;
+function genDungeon(){
+  const R2=mulberry(777),t=new Uint8Array(MW*MH).fill(WL),sh=new Float32Array(MW*MH);
+  for(let i=0;i<MW*MH;i++)sh[i]=R2();
+  const carve=(x0,y0,x1,y1)=>{for(let y=Math.max(2,Math.min(y0,y1));y<=Math.min(MH-3,Math.max(y0,y1));y++)for(let x=Math.max(2,Math.min(x0,x1));x<=Math.min(MW-3,Math.max(x0,x1));x++)t[y*MW+x]=SA};
+  const rooms=[{x:CX-3,y:CY-3,w:7,h:7}];carve(CX-3,CY-3,CX+3,CY+3);
+  for(let k=0;k<300&&rooms.length<16;k++){const w=5+Math.floor(R2()*7),h=5+Math.floor(R2()*7),x=3+Math.floor(R2()*(MW-w-6)),y=3+Math.floor(R2()*(MH-h-6));
+    if(rooms.some(r=>x<r.x+r.w+2&&x+w+2>r.x&&y<r.y+r.h+2&&y+h+2>r.y))continue;rooms.push({x,y,w,h});carve(x,y,x+w-1,y+h-1)}
+  const cen=r=>[r.x+(r.w>>1),r.y+(r.h>>1)],link=(a,b)=>{const [ax,ay]=cen(a),[bx,by]=cen(b);
+    if(R2()<.5){carve(ax,ay,bx,ay+1);carve(bx,ay,bx+1,by)}else{carve(ax,ay,ax+1,by);carve(ax,by,bx,by+1)}};
+  const order=rooms.slice(1).sort((a,b)=>Math.atan2(cen(a)[1]-CY,cen(a)[0]-CX)-Math.atan2(cen(b)[1]-CY,cen(b)[0]-CX));
+  link(rooms[0],order[0]);for(let i=1;i<order.length;i++)link(order[i-1],order[i]);
+  for(let i=0;i<5;i++)link(rooms[Math.floor(R2()*rooms.length)],rooms[Math.floor(R2()*rooms.length)]);
+  for(const r of rooms.slice(1))if(r.w>=8&&r.h>=8)for(const [px,py] of [[r.x+2,r.y+2],[r.x+r.w-3,r.y+2],[r.x+2,r.y+r.h-3],[r.x+r.w-3,r.y+r.h-3]])t[py*MW+px]=WL;
+  // 入口の部屋から行けない床は壁に戻す
+  const seen=new Uint8Array(MW*MH),q=[[CX,CY]];seen[CY*MW+CX]=1;
+  while(q.length){const [x,y]=q.pop();for(const [dx,dy] of DIRS.slice(0,4)){const nx=x+dx,ny=y+dy,k=ny*MW+nx;if(t[k]===SA&&!seen[k]){seen[k]=1;q.push([nx,ny])}}}
+  for(let i=0;i<MW*MH;i++)if(t[i]===SA&&!seen[i])t[i]=WL;
+  return {tiles:t,shade:sh};
+}
+const WALL_H=44;
+function makeWall(glyph){
+  const c=document.createElement('canvas');c.width=64;c.height=32+WALL_H;const g=c.getContext('2d'),H=WALL_H;
+  const face=(pts,col)=>{g.beginPath();g.moveTo(...pts[0]);for(const p of pts.slice(1))g.lineTo(...p);g.closePath();g.fillStyle=col;g.fill()};
+  face([[0,16],[32,32],[32,32+H],[0,16+H]],'#8a6c40');face([[32,32],[64,16],[64,16+H],[32,32+H]],'#a8864f');face([[32,0],[64,16],[32,32],[0,16]],'#c9a86c');
+  g.strokeStyle='rgba(60,40,15,.35)';g.lineWidth=1;
+  for(let i=1;i<4;i++){const yy=i*H/4;g.beginPath();g.moveTo(0,16+yy);g.lineTo(32,32+yy);g.lineTo(64,16+yy);g.stroke()}
+  for(let i=0;i<4;i++){const yy=i*H/4,o=i%2?10:20;g.beginPath();g.moveTo(o,16+yy+o/2);g.lineTo(o,16+yy+o/2+H/4);g.moveTo(32+o,32+yy-o/2);g.lineTo(32+o,32+yy-o/2+H/4);g.stroke()}
+  if(glyph){g.fillStyle='rgba(70,45,15,.55)';g.fillRect(42,30,3,9);g.beginPath();g.arc(52,30,3.5,0,7);g.fill();g.fillRect(48,38,9,2.5);g.fillRect(12,30,8,2.5);g.fillRect(15,26,2.5,10)}
+  g.strokeStyle='rgba(255,230,170,.35)';g.beginPath();g.moveTo(0,16);g.lineTo(32,0);g.lineTo(64,16);g.stroke();
+  return c;
+}
+const wallImgs=[makeWall(false),makeWall(true)];
+function renderDungeonGround(D){
+  const c=document.createElement('canvas');c.width=GW;c.height=GH;const g=c.getContext('2d');
+  g.fillStyle='#1a130c';g.fillRect(0,0,GW,GH);
+  for(let y=0;y<MH;y++)for(let x=0;x<MW;x++){const i=y*MW+x,t=D.tiles[i],s=D.shade[i],[px,py]=iso(x,y);
+    g.beginPath();g.moveTo(px,py);g.lineTo(px+32,py+16);g.lineTo(px,py+32);g.lineTo(px-32,py+16);g.closePath();
+    if(t===WL){g.fillStyle='#2a1f14';g.fill();continue}
+    g.fillStyle=`hsl(${34+s*6},${32+s*6}%,${44+s*8}%)`;g.fill();g.strokeStyle='rgba(70,45,20,.35)';g.lineWidth=1;g.stroke();
+    if(DG_SAFE(x+.5,y+.5)){g.fillStyle='rgba(120,220,255,.22)';g.fill()}
+    if(s>.8){g.strokeStyle='rgba(60,40,20,.3)';g.beginPath();g.moveTo(px-8,py+12);g.lineTo(px+2,py+17);g.lineTo(px+9,py+15);g.stroke()}}
+  return c;
+}
+function dungeonObjs(D){
+  const out=[],T=(x,y)=>(x<0||y<0||x>=MW||y>=MH)?WL:D.tiles[y*MW+x];
+  for(let y=0;y<MH;y++)for(let x=0;x<MW;x++){if(T(x,y)!==WL)continue;
+    let edge=false;for(const [dx,dy] of DIRS)if(T(x+dx,y+dy)===SA)edge=true;if(!edge)continue;
+    const [sx,sy]=iso(x+.5,y+.5),s=D.shade[y*MW+x];out.push({d:x+y+1,sx,sy,img:wallImgs[s>.85?1:0],ox:32,oy:16+WALL_H});
+    if(s<.13&&(T(x+1,y)===SA||T(x,y+1)===SA)){const side=T(x+1,y)===SA?1:-1;
+      out.push({d:x+y+1.05,sx,sy,fn:(X,Y)=>drawTorch(X+side*15,Y-WALL_H*.55)})}}
+  return out;
+}
+function drawTorch(x,y){
+  const f=1+Math.sin(time*13+x)*.12+Math.sin(time*7.3+y)*.08;
+  const g=ctx.createRadialGradient(x,y-6,1,x,y-6,46*f);g.addColorStop(0,'rgba(255,190,90,.45)');g.addColorStop(1,'rgba(255,170,60,0)');
+  ctx.fillStyle=g;ctx.beginPath();ctx.arc(x,y-6,46*f,0,7);ctx.fill();
+  ctx.fillStyle='#3a2a18';ctx.fillRect(x-2,y-2,4,9);
+  ctx.fillStyle='#ff8a2a';ctx.beginPath();ctx.ellipse(x,y-6,4.5*f,8*f,0,0,7);ctx.fill();
+  ctx.fillStyle='#ffe08a';ctx.beginPath();ctx.ellipse(x,y-4,2.4,4.5*f,0,0,7);ctx.fill();
+}
 
 /* ---------- データ ---------- */
 const ITEMS={
@@ -294,6 +359,7 @@ const ITEMS={
   c_kino:{n:'キノコンカード',t:'card',b:{vit:3},sell:10,g:'札',c:'#b05c3b',d:'VIT+3'},
   c_wolf:{n:'ウルフカード',t:'card',b:{atk:20},sell:10,g:'札',c:'#7f889b',d:'ATK+20'},
   c_gtb:{n:'黄金ゴキカード',t:'card',b:{def:15,mhp:300},sell:10,g:'札',c:'#b8901e',d:'DEF+15 / 最大HP+300'},
+  relic:{n:'古代の秘宝',t:'etc',sell:3000,g:'宝',c:'#c9a23a',d:'ピラミッドで見つかる秘宝。高く売れる'},
   c_kking:{n:'キノコ大王カード',t:'card',b:{vit:5,mhp:200},sell:10,g:'札',c:'#a8322a',d:'VIT+5 / 最大HP+200'},
   c_mist:{n:'ミストプルンカード',t:'card',b:{int:6},sell:10,g:'札',c:'#9a7be0',d:'INT+6'},
   c_wlord:{n:'ウルフロードカード',t:'card',b:{atk:40,agi:3},sell:10,g:'札',c:'#4a4f62',d:'ATK+40 / AGI+3'},
@@ -405,11 +471,52 @@ const statCost=v=>2+Math.floor((v-1)/10);
 /* ---------- 状態 ---------- */
 const SPAWN=[CX+.5,CY+3.5];
 let P, mobs=[], groundItems=[], fx=[], floats=[], traps=[], time=0, dirty=true, aiming=null;
-const NPCS=[
+let NPCS=[
   {id:'shop',n:'道具屋 トルテ',x:CX-4.5,y:CY-2.5,body:'#3f7b5a',hair:'#5a3b22',face:1},
   {id:'heal',n:'シスター・エマ',x:CX+3.5,y:CY-3.5,body:'#2f3e66',hair:'#e9d9a8',face:-1},
   {id:'guide',n:'案内人 ロウ',x:CX-2.5,y:CY+4.5,body:'#8a4b3a',hair:'#2b2b33',face:1},
+  {id:'gate',n:'待ち人 ネフェル',x:CX-3.5,y:CY+2.5,body:'#c9a24a',hair:'#1a1a2a',face:1,hat:'pharaoh'},
 ];
+
+/* ---------- マップ切り替え ---------- */
+const FIELD={id:'field',name:'ルーンの草原',tiles:map,shade,ground,objs:trees,npcs:NPCS,safe:townXY,spawn:def=>findSpawn(def.zone),bgm:'town'};
+let curMap=FIELD,DG=null;
+function getDungeon(){
+  if(DG)return DG;const D=genDungeon();
+  DG={id:'pyramid',name:'ピラミッド',tiles:D.tiles,shade:D.shade,ground:renderDungeonGround(D),objs:dungeonObjs(D),safe:DG_SAFE,bgm:'pyramid',
+    npcs:[{id:'ret',n:'帰還の神官 アニ',x:CX+1.5,y:CY-.5,body:'#efe6cc',hair:'#1a1a2a',face:-1}],
+    spawn:()=>{for(let i=0;i<600;i++){const x=irand(2,MW-3),y=irand(2,MH-3);if(D.tiles[y*MW+x]===SA&&Math.hypot(x+.5-CX,y+.5-CY)>6)return [x+.5,y+.5]}return [CX+.5,CY+8.5]}};
+  return DG;
+}
+function useMap(M){curMap=M;map=M.tiles;shade=M.shade;ground=M.ground;trees=M.objs;NPCS=M.npcs;safeXY=M.safe}
+function enterMap(M,x,y){
+  curMap.mobs=mobs;curMap.items=groundItems;curMap.traps=traps;
+  useMap(M);
+  if(M.id==='pyramid'){initDungeonMobs();groundItems=[];traps=[]}else{mobs=M.mobs||mobs;groundItems=M.items||[];traps=M.traps||[]}
+  P.x=x;P.y=y;P.path=[];P.target=null;P.queued=null;P.casting=null;P.sit=false;aiming=null;
+  [camX,camY]=iso(x,y);fx=fx.filter(f=>f.type==='lvbig'||f.type==='mvp');fx.push({type:'fade',t:0,life:.9});
+  for(const w of ['w-talk','w-shop'])$(w).hidden=true;
+  msg(`${M.name} に到着した`,'sys');bgmSwitch(M.bgm);dirty=true;
+}
+function dungeonDefs(){
+  const L=Math.max(20,P.lv);
+  const mk=(n,kind,col,size,off,o={})=>{const lv=Math.max(5,Math.round(L+off));
+    return {n,kind,lv,hp:Math.round(8*Math.pow(lv,1.35)+60),atk:[Math.round(lv*1.5),Math.round(lv*2.1)],def:Math.min(40,5+Math.floor(lv/25)),
+      hit:lv+20,flee:Math.round(lv*.6),exp:Math.round(Math.pow(lv,1.25)),jexp:Math.round(Math.pow(lv,1.25)*.7),speed:o.speed||2,delay:o.delay||1.3,
+      aggro:true,aggroR:8,chaseR:18,col,size,count:o.count||10,respawn:10,look:o.look||{},drops:[['yellow',.15],['blue',.05],['relic',.04],['gold',.03]],zeny:[lv*2,lv*5]}};
+  const ph=mk('砂塵の王ファラオン','human','#e0b040',1.6,60,{count:1,speed:2.2,delay:1,look:{hat:'pharaoh',body:'#e8c050',hair:'#1a1a2a',skin:'#c99a6a',eye:'#3af0ff'}});
+  Object.assign(ph,{boss:true,tier:bossTier(),hp:Math.round(150*Math.pow(ph.lv,1.3)),def:30,exp:Math.round(Math.pow(ph.lv,1.6)),jexp:Math.round(Math.pow(ph.lv,1.6)*.7),
+    drops:[['relic',1],['relic',.6],['gold',1],['blue',.8]],zeny:[ph.lv*60,ph.lv*120],mvp:[['relic',1]]});
+  return {
+    mummy:mk('マミー','human','#d8cfb0',1,0,{count:14,speed:1.6,look:{body:'#d8cfb0',skin:'#e2dabf',hair:'#d8cfb0',eye:'#ff5a3a',mummy:true}}),
+    scarab:mk('スカラベ','gtb','#2a6a7a',.8,-10,{count:12,speed:3,delay:1}),
+    sprun:mk('砂プルン','prun','#d8b878',1,-20,{count:10,speed:1.6}),
+    dskel:mk('墓守の骸骨','human','#d8d2c0',1.05,10,{count:10,look:{hat:'helm',body:'#8a8576',hair:'#d8d2c0',skin:'#e8e4d8',eye:'#ff3a2a'}}),
+    dghost:mk('呪いの亡霊','ghost','#b8a8e0',1,15,{count:8,speed:2.4}),
+    pharaoh:ph,
+  };
+}
+function initDungeonMobs(){const defs=dungeonDefs();mobs=[];for(const k in defs){const def=defs[k];for(let i=0;i<def.count;i++){const m={key:k,def,seed:rnd()*10};spawnMob(m);mobs.push(m)}}}
 function newPlayer(){
   const p={x:SPAWN[0],y:SPAWN[1],face:1,path:[],target:null,queued:null,casting:null,
     lv:1,exp:0,jlv:1,jexp:0,statPts:0,skillPts:0,str:7,agi:6,vit:4,int:4,dex:5,luk:3,
@@ -449,6 +556,7 @@ function serialize(){
   const o={}; for(const k of keys) o[k]=P[k];
   o.inv=P.inv.map(e=>({id:e.id,qty:e.qty,cards:e.cards.slice()}));
   o.eqW=P.inv.indexOf(P.eq.weapon); o.eqA=P.inv.indexOf(P.eq.armor);
+  if(curMap.id!=='field'){o.x=SPAWN[0];o.y=SPAWN[1]}
   o.job=P.job; o.jobData={};
   for(const j in P.jobData) if(j!==P.job){const d=P.jobData[j];o.jobData[j]={...d,skills:{...d.skills},weapon:P.inv.indexOf(d.weapon)}}
   return o;
@@ -521,10 +629,15 @@ const SFX={hit:()=>{noise(.07,.35,1200);tone(150,.09,'square',.06,0,.5)},crit:()
     [523,659,784,1047].forEach(f=>tone(f,1.2,'triangle',.06,.36));tone(1568,1,'sine',.06,.36)}};
 function sfx(k){if(muted||!AC)return;try{SFX[k]()}catch(_){}}
 
-/* ---------- BGM（オリジナル曲「石畳の都のワルツ」） ---------- */
+/* ---------- BGM（オリジナル曲「石畳の都のワルツ」「砂の迷宮」） ---------- */
 let bgmOn=true;try{bgmOn=localStorage.getItem('rune-meadow-bgm')!=='0'}catch(_){}
-const BEAT=60/112,BAR=BEAT*3,mf=n=>440*Math.pow(2,(n-69)/12);
-const CH={G:[43,[55,59,62]],D:[38,[50,54,57]],DF:[42,[50,54,57]],Em:[40,[52,55,59]],C:[48,[52,55,60]],Am:[45,[57,60,64]],D7:[38,[54,57,60]],B7:[47,[51,54,57]]};
+const mf=n=>440*Math.pow(2,(n-69)/12);
+const CH={G:[43,[55,59,62]],D:[38,[50,54,57]],DF:[42,[50,54,57]],Em:[40,[52,55,59]],C:[48,[52,55,60]],Am:[45,[57,60,64]],D7:[38,[54,57,60]],B7:[47,[51,54,57]],
+  Dm:[38,[50,53,57]],Eb:[39,[51,55,58]],A:[45,[49,52,57]],Gm:[43,[55,58,62]]};
+const SONG_PYRAMID=[
+  ['Dm',[[74,1],[72,.5],[70,.5],[69,2]]],['Eb',[[70,1],[69,.5],[67,.5],[66,2]]],['Dm',[[67,1],[69,1],[70,1],[69,1]]],['A',[[66,1],[67,.5],[66,.5],[63,2]]],
+  ['Gm',[[70,1.5],[72,.5],[74,2]]],['Eb',[[75,1],[74,1],[72,1],[70,1]]],['A',[[69,1],[70,.5],[69,.5],[66,1],[67,1]]],['Dm',[[62,4]]],
+];
 const SONG=[
   ['G',[[71,2],[74,1]]],['DF',[[69,2],[66,1]]],['Em',[[67,1],[69,1],[71,1]]],['C',[[76,2],[74,1]]],
   ['G',[[74,1],[71,1],[67,1]]],['Am',[[72,2],[76,1]]],['D',[[74,1],[72,1],[69,1]]],['D7',[[66,3]]],
@@ -536,21 +649,33 @@ function bnote(t,n,dur,type,vol,att=.02){const o=AC.createOscillator(),g=AC.crea
   g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vol,t+att);g.gain.exponentialRampToValueAtTime(.0008,t+dur);o.connect(g);g.connect(bgmGain);o.start(t);o.stop(t+dur+.05);return o}
 function flute(t,n,dur){const o=bnote(t,n,dur*.95+.15,'triangle',.16,.05),v=AC.createOscillator(),vg=AC.createGain();
   v.frequency.value=5.2;vg.gain.value=7;v.connect(vg);vg.connect(o.detune);v.start(t);v.stop(t+dur+.2);bnote(t,n+12,dur*.9,'sine',.03,.06)}
+const SONGS={town:{beat:60/112,bpb:3,bars:SONG},pyramid:{beat:60/88,bpb:4,bars:SONG_PYRAMID,drone:38}};
+let bgmSong='town',bgmLp=null;
 function scheduleBar(i,t){
-  const [ch,mel]=SONG[i],[bass,tri]=CH[ch];
-  bnote(t,bass,BEAT*1.6,'sine',.22,.01);bnote(t,bass+12,BEAT*.8,'triangle',.05,.01);
-  for(const b of [1,2])for(const n of tri)bnote(t+b*BEAT,n,BEAT*.55,'triangle',.035,.01);
-  if(i>=8)for(let k=0;k<6;k++)bnote(t+k*BEAT/2,tri[k%3]+(k>=3?24:12),BEAT*.9,'sine',.025,.005);
-  let bt=0;for(const [n,len] of mel){flute(t+bt*BEAT,n,len*BEAT);bt+=len}
+  const S2=SONGS[bgmSong],B=S2.beat,[ch,mel]=S2.bars[i],[bass,tri]=CH[ch];
+  if(S2.bpb===3){
+    bnote(t,bass,B*1.6,'sine',.22,.01);bnote(t,bass+12,B*.8,'triangle',.05,.01);
+    for(const b of [1,2])for(const n of tri)bnote(t+b*B,n,B*.55,'triangle',.035,.01);
+    if(i>=8)for(let k=0;k<6;k++)bnote(t+k*B/2,tri[k%3]+(k>=3?24:12),B*.9,'sine',.025,.005);
+  }else{
+    bnote(t,S2.drone,B*4.2,'sine',.08,.4);
+    for(const b of [0,2])bnote(t+b*B,bass,B*1.5,'triangle',.16,.01);
+    for(const b of [1,3])for(const n of tri)bnote(t+b*B,n,B*.4,'triangle',.03,.01);
+    for(const b of [0,.75,1.5,2,2.75,3.5])bnote(t+b*B,b%1?86:81,.07,'sine',b%1?.025:.04,.003);
+  }
+  let bt=0;for(const [n,len] of mel){flute(t+bt*B,n,len*B);bt+=len}
 }
-function bgmTick(){if(!AC||!bgmGain||!bgmTimer)return;while(bgmNext<AC.currentTime+1.5){scheduleBar(bgmBar,bgmNext);bgmNext+=BAR;bgmBar=(bgmBar+1)%SONG.length}}
+function bgmTick(){if(!AC||!bgmGain||!bgmTimer)return;const S2=SONGS[bgmSong];
+  while(bgmNext<AC.currentTime+1.5){scheduleBar(bgmBar,bgmNext);bgmNext+=S2.beat*S2.bpb;bgmBar=(bgmBar+1)%S2.bars.length}}
 function bgmStart(){
   if(!ac()||bgmTimer)return;
-  if(!bgmGain){bgmGain=AC.createGain();const lp=AC.createBiquadFilter();lp.type='lowpass';lp.frequency.value=4200;bgmGain.connect(lp);lp.connect(AC.destination)}
-  const now=AC.currentTime;bgmGain.gain.cancelScheduledValues(now);bgmGain.gain.setValueAtTime(.0001,now);bgmGain.gain.exponentialRampToValueAtTime(.5,now+1);
+  if(!bgmLp){bgmLp=AC.createBiquadFilter();bgmLp.type='lowpass';bgmLp.frequency.value=4200;bgmLp.connect(AC.destination)}
+  bgmGain=AC.createGain();bgmGain.connect(bgmLp);
+  const now=AC.currentTime;bgmGain.gain.setValueAtTime(.0001,now);bgmGain.gain.exponentialRampToValueAtTime(.5,now+1);
   bgmNext=now+.15;bgmBar=0;bgmTimer=setInterval(bgmTick,250);bgmTick();
 }
 function bgmStop(){if(bgmTimer){clearInterval(bgmTimer);bgmTimer=null}if(bgmGain&&AC){bgmGain.gain.cancelScheduledValues(AC.currentTime);bgmGain.gain.setTargetAtTime(0,AC.currentTime,.15)}}
+function bgmSwitch(name){if(bgmSong===name)return;bgmSong=name;if(bgmTimer){bgmStop();bgmStart()}}
 
 /* ---------- モンスター ---------- */
 function findSpawn(z){
@@ -558,7 +683,7 @@ function findSpawn(z){
     if(d>=z[0]&&d<=z[1]&&pass(x,y)&&!townXY(x+.5,y+.5)) return [x+.5,y+.5];}
   return [CX+12.5,CY+12.5];
 }
-function spawnMob(m){const [x,y]=findSpawn(m.def.zone);Object.assign(m,{x,y,hp:m.def.hp,state:'idle',wt:rnd()*3,wx:x,wy:y,atkT:1,flash:0,hpShow:0,face:1,moving:false,fade:0,loot:[],lootT:rnd(),lootTarget:null,emote:null,hinted:false,root:0})}
+function spawnMob(m){const [x,y]=curMap.spawn(m.def);Object.assign(m,{x,y,hp:m.def.hp,state:'idle',wt:rnd()*3,wx:x,wy:y,atkT:1,flash:0,hpShow:0,face:1,moving:false,fade:0,loot:[],lootT:rnd(),lootTarget:null,emote:null,hinted:false,root:0})}
 function initMobs(){
   mobs=[];for(const k in MOBS){const def=MOBS[k];for(let i=0;i<def.count;i++){const m={key:k,def,seed:rnd()*10};spawnMob(m);mobs.push(m)}}
   // ボスは最初は1体だけ。残りは1分ごとに1体ずつ湧く
@@ -598,9 +723,9 @@ function updateMobs(dt,s){
     if(m.emote){m.emote.t-=dt;if(m.emote.t<=0)m.emote=null}
     if(m.state==='dead'){m.fade+=dt;if(time>=m.respawnAt){spawnMob(m);if(m.def.boss)msg(`${m.def.n} がどこかに現れた…`,'warn')}continue}
     const dx=P.x-m.x,dy=P.y-m.y,d=Math.hypot(dx,dy),rooted=m.root>0;if(rooted)m.root-=dt;
-    const safe=P.dead||townXY(P.x,P.y);
+    const safe=P.dead||safeXY(P.x,P.y);
     if(m.state==='idle'){
-      if(m.def.aggro&&d<5&&!safe){aggro(m)}
+      if(m.def.aggro&&d<(m.def.aggroR||5)&&!safe){aggro(m)}
       else{
         m.hp=Math.min(m.def.hp,m.hp+m.def.hp*.03*dt);
         // プルンは落ちている物を拾う
@@ -619,7 +744,7 @@ function updateMobs(dt,s){
       }
     }
     if(m.state==='chase'){
-      if(d>13||safe){m.state='idle';m.wx=m.x;m.wy=m.y}
+      if(d>(m.def.chaseR||13)||safe){m.state='idle';m.wx=m.x;m.wy=m.y}
       else if(d>1.2*Math.max(1,m.def.size*.8)){if(!rooted)moveEnt(m,P.x,P.y,m.def.speed,dt,mobPass);m.atkT=Math.min(m.atkT,.5)}
       else{if(Math.abs(dx-dy)>.05)m.face=(dx-dy)>0?1:-1;m.atkT-=dt;if(m.atkT<=0){m.atkT=m.def.delay;mobAttack(m,s)}}
     }
@@ -628,7 +753,7 @@ function updateMobs(dt,s){
   bossTimer-=dt;
   if(bossTimer<=0){bossTimer=BOSS_INTERVAL;spawnRandomBoss(0)}
   const bossPending=mobs.some(m=>m.def.boss&&m.state==='dead'&&m.respawnAt!==Infinity);
-  if(!bossPending&&!mobs.some(m=>m.def.boss&&m.state!=='dead'))spawnRandomBoss(3);
+  if(curMap.id==='field'&&!bossPending&&!mobs.some(m=>m.def.boss&&m.state!=='dead'))spawnRandomBoss(3);
   // 重なり防止
   for(let i=0;i<mobs.length;i++){const a=mobs[i];if(a.state==='dead')continue;
     for(let j=i+1;j<mobs.length;j++){const b=mobs[j];if(b.state==='dead')continue;
@@ -716,6 +841,7 @@ function die(){
 }
 function revive(){
   const s=S();P.dead=false;P.hp=Math.max(1,Math.floor(s.mhp/2));P.sp=Math.floor(s.msp/2);
+  if(curMap.id!=='field')enterMap(FIELD,SPAWN[0],SPAWN[1]);
   P.x=SPAWN[0];P.y=SPAWN[1];camX=iso(P.x,P.y)[0];camY=iso(P.x,P.y)[1];$('dead').hidden=true;dirty=true;
 }
 
@@ -751,7 +877,7 @@ function useSkill(id){
   }
   if(P.casting)return;
   const trap=id==='ankle'||id==='mine',tx=Math.floor(P.x),ty=Math.floor(P.y);
-  if(trap&&townXY(P.x,P.y)){msg('町の中には罠を置けません','warn');return}
+  if(trap&&safeXY(P.x,P.y)){msg('安全地帯には罠を置けません','warn');return}
   if(trap&&traps.some(t=>t.x===tx&&t.y===ty)){msg('そこにはもう罠があります','warn');return}
   const cost=sk.sp(lv); if(P.sp<cost){msg('SPが足りません','warn');return}
   P.sp-=cost; const s=S();
@@ -991,6 +1117,8 @@ function openNpc(n){
   if(n.id==='shop'){shopTab='buy';toggleWin('shop',true);return}
   let html;
   if(n.id==='heal') html=`<p class="talk-t">神のご加護を。傷を癒やしてさしあげましょう。</p><div class="btns"><button class="btn" data-act="doheal">回復してもらう</button><button class="btn" data-close>また今度</button></div>`;
+  else if(n.id==='gate') html=`<p class="talk-t">……来たか。砂に埋もれたピラミッドへ案内しよう。<br>中の魔物は、お前の強さ（Base Lv ${P.lv}）に合わせて目を覚ます。数も多く、気づけばすぐ襲ってくるぞ。<br>安全なのは入口の光る9マスだけだ。</p><div class="btns"><button class="btn" data-act="warp-dg">ピラミッドへ行く</button><button class="btn" data-close>やめておく</button></div>`;
+  else if(n.id==='ret') html=`<p class="talk-t">帰りたいか？</p><div class="btns"><button class="btn" data-act="warp-home">ルーンの草原へ帰る</button><button class="btn" data-close>まだ残る</button></div>`;
   else html=`<p class="talk-t">${TIPS[Math.floor(rnd()*TIPS.length)]}</p><div class="btns"><button class="btn" data-act="tip">ほかには？</button><button class="btn" data-close>ありがとう</button></div>`;
   $('b-talk').innerHTML=html;toggleWin('talk',true);
 }
@@ -1014,8 +1142,10 @@ document.addEventListener('click',e=>{
   else if(act==='tab'){shopTab=a.dataset.k}
   else if(act==='doheal'){const s=S();P.hp=s.mhp;P.sp=s.msp;fx.push({type:'heal',t:0,life:1});msg('HPとSPが全回復した','item');$('w-talk').hidden=true}
   else if(act==='tip'){openNpc(talkNpc);return}
+  else if(act==='warp-dg'){$('w-talk').hidden=true;enterMap(getDungeon(),CX-.5,CY+1.5);return}
+  else if(act==='warp-home'){$('w-talk').hidden=true;enterMap(FIELD,CX-3.5,CY+3.5);return}
   else if(act==='reset'){if(!resetArm){resetArm=true;dirty=true;setTimeout(()=>{resetArm=false;dirty=true},4000);return}
-    resetArm=false;try{localStorage.removeItem(SAVE_KEY)}catch(_){}freshStart();initMobs();groundItems=[];traps=[];buildHotbar();msg('データを初期化しました','sys')}
+    resetArm=false;try{localStorage.removeItem(SAVE_KEY)}catch(_){}if(curMap.id!=='field'){useMap(FIELD);bgmSwitch('town')}freshStart();initMobs();groundItems=[];traps=[];buildHotbar();msg('データを初期化しました','sys')}
   dirty=true;
 });
 document.addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&e.target.matches&&e.target.matches('.it[data-act]')){e.preventDefault();e.target.click()}});
@@ -1049,8 +1179,9 @@ function hud(){
   $('hExp').textContent=`Exp ${be.toFixed(1)}% / Job ${je.toFixed(1)}%`;$('hZeny').textContent=P.zeny.toLocaleString()+' z';
   $('hBuff').innerHTML=BUFFS.filter(([k])=>P.buff[k]>0).map(([k,n])=>`<span>${n} ${Math.ceil(P.buff[k])}s</span>`).join('');
   const bAlive=mobs.filter(m=>m.def.boss&&m.state!=='dead').length,bt=Math.ceil(bossTimer);
-  $('mmTxt').textContent=`ルーンの草原 (${Math.floor(P.x)}, ${Math.floor(P.y)})`;
-  $('mmBoss').textContent=`ボス段階${bossTier()+1} ${bAlive}体　`+(bAlive<BOSS_MAX_ALIVE?`次 ${Math.floor(bt/60)}:${String(bt%60).padStart(2,'0')}`:'最大数');
+  $('mmTxt').textContent=`${curMap.name} (${Math.floor(P.x)}, ${Math.floor(P.y)})`;
+  $('mmBoss').textContent=curMap.id==='field'?`ボス段階${bossTier()+1} ${bAlive}体　`+(bAlive<BOSS_MAX_ALIVE?`次 ${Math.floor(bt/60)}:${String(bt%60).padStart(2,'0')}`:'最大数')
+    :`敵 ${mobs.filter(m=>m.state!=='dead').length}体　ファラオン${bAlive?'出現中':'不在'}`;
   HOT.forEach(([k,id],i)=>{const el=$('hn'+i),b=el.parentElement;
     if(k==='s'){const lv=P.skills[id];el.textContent=lv?'Lv'+lv:'';b.classList.toggle('off',!lv||P.sp<SK[id].sp(lv));b.classList.toggle('aim',aiming===id||(P.queued&&P.queued.id===id))}
     else{const n=count(id);el.textContent=n;b.classList.toggle('off',!n)}});
@@ -1090,7 +1221,12 @@ function drawHuman(x,y,o){
     ctx.beginPath();ctx.arc(-1,-41-b,10.5,Math.PI*.95,Math.PI*2.05);ctx.fill();
     ctx.beginPath();ctx.moveTo(-11,-40-b);ctx.lineTo(-12,-31-b);ctx.lineTo(-6,-38-b);ctx.fill();
   }
-  if(o.hat==='helm'){ctx.fillStyle='#6f7584';ctx.beginPath();ctx.arc(0,-40-b,11.5,Math.PI,0);ctx.lineTo(11.5,-36-b);ctx.lineTo(-11.5,-36-b);ctx.closePath();ctx.fill();
+  if(o.mummy){ctx.strokeStyle='rgba(110,90,60,.55)';ctx.lineWidth=1.2;ctx.beginPath();
+    for(let i=0;i<5;i++){ctx.moveTo(-10,-46-b+i*4);ctx.lineTo(10,-44-b+i*4)}for(let i=0;i<5;i++){ctx.moveTo(-9,-27-b+i*4);ctx.lineTo(9,-25-b+i*4)}ctx.stroke()}
+  if(o.hat==='pharaoh'){ctx.fillStyle='#e8c050';ctx.beginPath();ctx.moveTo(-11,-38-b);ctx.arc(0,-40-b,11.5,Math.PI,0);ctx.lineTo(13,-25-b);ctx.lineTo(8,-25-b);ctx.lineTo(8,-36-b);ctx.lineTo(-8,-36-b);ctx.lineTo(-8,-25-b);ctx.lineTo(-13,-25-b);ctx.closePath();ctx.fill();
+    ctx.strokeStyle='#2a4aa0';ctx.lineWidth=1.6;ctx.beginPath();for(let i=0;i<4;i++){ctx.moveTo(-11.5,-45-b+i*3.5);ctx.lineTo(11.5,-45-b+i*3.5)}for(let i=0;i<3;i++){ctx.moveTo(-12.5,-33-b+i*3);ctx.lineTo(-8,-33-b+i*3);ctx.moveTo(8,-33-b+i*3);ctx.lineTo(12.5,-33-b+i*3)}ctx.stroke();
+    ctx.fillStyle='#d83a2a';ctx.beginPath();ctx.arc(7,-50-b,2,0,7);ctx.fill()}
+  else if(o.hat==='helm'){ctx.fillStyle='#6f7584';ctx.beginPath();ctx.arc(0,-40-b,11.5,Math.PI,0);ctx.lineTo(11.5,-36-b);ctx.lineTo(-11.5,-36-b);ctx.closePath();ctx.fill();
     ctx.fillStyle='#4a4f5c';ctx.fillRect(-11.5,-38-b,23,2.5);ctx.fillStyle='#a8303a';ctx.beginPath();ctx.moveTo(-2,-51-b);ctx.quadraticCurveTo(-12,-60-b,-16,-50-b);ctx.lineTo(-2,-48-b);ctx.fill()}
   else if(o.hat==='witch'){ctx.fillStyle='#2e1a48';ctx.beginPath();ctx.ellipse(0,-44-b,16,4.5,0,0,7);ctx.fill();
     ctx.beginPath();ctx.moveTo(-10,-45-b);ctx.lineTo(10,-45-b);ctx.quadraticCurveTo(2,-58-b,-10,-72-b);ctx.quadraticCurveTo(-6,-58-b,-10,-45-b);ctx.fill();
@@ -1184,7 +1320,7 @@ function drawGhost(x,y,m){
   ctx.fillStyle='rgba(120,140,200,.35)';ctx.beginPath();ctx.ellipse(-5,-6,4,10,0,0,7);ctx.fill();
   ctx.fillStyle='#1a1c2a';ctx.beginPath();ctx.ellipse(1,-16,2.4,3.6,0,0,7);ctx.ellipse(7,-16,2.4,3.6,0,0,7);ctx.fill();
   ctx.beginPath();ctx.ellipse(4,-8,2.2,3,0,0,7);ctx.fill();
-  drawCrown(0,-26);ctx.restore();
+  if(m.def.boss)drawCrown(0,-26);ctx.restore();
 }
 function drawDragon(x,y,m){
   const s=m.def.size,fl=m.flash>0,c=fl?'#ffffff':m.def.col,t=time*4+m.seed,w=Math.sin(t)*.5;
@@ -1316,7 +1452,10 @@ function draw(){
   const sx=Math.max(0,Math.floor(x0)),sy=Math.max(0,Math.floor(y0)),ex=Math.min(GW,Math.ceil(x0+vw)),ey=Math.min(GH,Math.ceil(y0+vh));
   if(ex>sx&&ey>sy)ctx.drawImage(ground,sx,sy,ex-sx,ey-sy,sx,sy,ex-sx,ey-sy);
   // 地面エフェクト
-  drawTownFloor();
+  if(curMap.id==='field')drawTownFloor();
+  else{const [x,y]=iso(CX+.5,CY+.5);ctx.save();ctx.translate(x,y);ctx.scale(1,.5);ctx.rotate(time*.6);ctx.strokeStyle='rgba(120,230,255,.75)';ctx.lineWidth=2.5;
+    ctx.beginPath();ctx.arc(0,0,58,0,7);ctx.stroke();ctx.beginPath();ctx.arc(0,0,48,0,7);ctx.stroke();
+    ctx.beginPath();for(let i=0;i<=5;i++){const a=i*Math.PI*4/5;ctx.lineTo(Math.cos(a)*48,Math.sin(a)*48)}ctx.stroke();ctx.restore()}
   for(const tr of traps){const [x,y]=iso(tr.x+.5,tr.y+.5);
     if(tr.k==='ankle'){ctx.strokeStyle='#8a8f99';ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(x,y,10,5,0,0,7);ctx.stroke();ctx.fillStyle='#b9bec8';
       for(let i=0;i<8;i++){const a=i/8*Math.PI*2;ctx.beginPath();ctx.moveTo(x+Math.cos(a)*10,y+Math.sin(a)*5);ctx.lineTo(x+Math.cos(a)*6,y+Math.sin(a)*3-3);ctx.lineTo(x+Math.cos(a+.3)*10,y+Math.sin(a+.3)*5);ctx.fill()}}
@@ -1331,13 +1470,13 @@ function draw(){
   // 奥から順に
   const objs=[],m0=140;
   for(const t of trees){if(t.sx<x0-m0||t.sx>x0+vw+m0||t.sy<y0-20||t.sy>y0+vh+m0)continue;objs.push([t.d,()=>{
+    if(t.fn){t.fn(t.sx,t.sy);return}
     const [px,py]=iso(P.x,P.y),behind=t.d>P.x+P.y&&Math.abs(px-t.sx)<34&&py<t.sy&&py>t.sy-110;
-    if(behind)ctx.globalAlpha=.45;ctx.drawImage(treeImgs[t.v],t.sx-38,t.sy-96);ctx.globalAlpha=1}])}
+    if(behind)ctx.globalAlpha=.45;ctx.drawImage(t.img,t.sx-t.ox,t.sy-t.oy);ctx.globalAlpha=1}])}
   for(const g of groundItems)objs.push([g.x+g.y-.3,()=>drawItem(g)]);
   for(const m of mobs)objs.push([m.x+m.y,()=>drawMob(m)]);
-  objs.push([CX+CY,drawFountain]);
-  addTownDeco(objs);
-  for(const n of NPCS)objs.push([n.x+n.y,()=>{const [x,y]=iso(n.x,n.y);drawHuman(x,y,{face:n.face,body:n.body,hair:n.hair});label(n.n,x,y-56,'#ffe9a8',12)}]);
+  if(curMap.id==='field'){objs.push([CX+CY,drawFountain]);addTownDeco(objs)}
+  for(const n of NPCS)objs.push([n.x+n.y,()=>{const [x,y]=iso(n.x,n.y);drawHuman(x,y,{face:n.face,body:n.body,hair:n.hair,hat:n.hat});label(n.n,x,y-56,'#ffe9a8',12)}]);
   if(!P.dead||true)objs.push([P.x+P.y,()=>{const [x,y]=iso(P.x,P.y);
     if(P.dead)ctx.globalAlpha=.5;
     const H=P.job==='hunter',wi=P.eq.weapon&&ITEMS[P.eq.weapon.id],wOk=wi&&wi.cls===JOBS[P.job].w;
@@ -1353,7 +1492,7 @@ function draw(){
     if(P.casting){const c=P.casting;ctx.fillStyle='rgba(10,14,22,.8)';ctx.fillRect(x-24,y-64,48,7);ctx.fillStyle='#ffb04a';ctx.fillRect(x-23,y-63,46*clamp(c.t/c.dur,0,1),5);label(SK[c.id].n,x,y-68,'#ffffff',11)}
   }]);
   objs.sort((a,b)=>a[0]-b[0]);for(const o of objs)o[1]();
-  drawTownSky();
+  if(curMap.id==='field')drawTownSky();
   // エフェクト
   const [px,py]=iso(P.x,P.y);
   for(const f of fx){const p=f.t/f.life;
@@ -1397,7 +1536,7 @@ function draw(){
     if(m){const [x,y]=iso(m.x,m.y);if(!m.def.boss)label(`${m.def.n} Lv${m.def.lv}`,x,y+24,m.def.aggro?'#ffb3a8':'#ffffff',12);cur=aiming?'cell':CUR.atk}
     else if(!aiming){const g=pickItem(mouse.x,mouse.y);if(g){const [x,y]=iso(g.x,g.y);label(g.id==='zeny'?`${g.qty} Zeny`:ITEMS[g.id].n,x,y+14,'#c8ffd0',11);cur=CUR.grab}else if(pickNpc(mouse.x,mouse.y))cur=CUR.talk}
     if(cv.style.cursor!==cur)cv.style.cursor=cur}
-  drawMvp();drawLvBanner();
+  drawScreenFx();drawMvp();drawLvBanner();
   drawMini();
 }
 const svgCur=(svg,x,y,fb)=>`url("data:image/svg+xml;utf8,${encodeURIComponent(svg)}") ${x} ${y}, ${fb}`;
@@ -1424,6 +1563,12 @@ function drawMvp(){
     const g=ctx.createLinearGradient(0,-50,0,0);g.addColorStop(0,'#fff6b8');g.addColorStop(1,'#e6a21c');ctx.fillStyle=g;ctx.fillText('MVP',0,0);
     ctx.font='18px "DotGothic16",monospace';ctx.lineWidth=4;ctx.strokeStyle='#1a1410';ctx.strokeText('冒険者',0,28);ctx.fillStyle='#ffffff';ctx.fillText('冒険者',0,28);
     ctx.restore();ctx.globalAlpha=1}
+}
+function drawScreenFx(){
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  if(curMap.id!=='field'){const r=Math.max(VW,VH),g=ctx.createRadialGradient(VW/2,VH/2,r*.22,VW/2,VH/2,r*.72);
+    g.addColorStop(0,'rgba(20,10,0,0)');g.addColorStop(1,'rgba(20,10,0,.72)');ctx.fillStyle=g;ctx.fillRect(0,0,VW,VH)}
+  for(const f of fx)if(f.type==='fade'){ctx.fillStyle=`rgba(0,0,0,${Math.max(0,1-f.t/f.life)})`;ctx.fillRect(0,0,VW,VH)}
 }
 function drawLvBanner(){
   for(const f of fx){if(f.type!=='lvbig')continue;const p=f.t/f.life,t=f.t;
@@ -1459,7 +1604,7 @@ function update(dt){
   if(P.hp>s.mhp)P.hp=s.mhp;if(P.sp>s.msp)P.sp=s.msp;
   for(const [k,n] of BUFFS) if(P.buff[k]>0){P.buff[k]-=dt;if(P.buff[k]<=0){P.buff[k]=0;msg(`${n}の効果が切れました`,'sys');dirty=true}}
   if(!P.dead){
-    const fast=(townXY(P.x,P.y)?2:1)*(P.buff.magni>0?2:1)*(P.sit?2:1);
+    const fast=(safeXY(P.x,P.y)?2:1)*(P.buff.magni>0?2:1)*(P.sit?2:1);
     if(P.emote){P.emote.t-=dt;if(P.emote.t<=0)P.emote=null}P.rh=(P.rh||0)+dt*fast;P.rs=(P.rs||0)+dt*fast;
     if(P.rh>=6){P.rh=0;if(P.hp<s.mhp)P.hp=Math.min(s.mhp,P.hp+Math.max(1,Math.floor(s.mhp/40+s.vit/4)))}
     if(P.rs>=8){P.rs=0;if(P.sp<s.msp)P.sp=Math.min(s.msp,P.sp+1+Math.floor(s.msp/60)+Math.floor(s.int/6))}
@@ -1470,7 +1615,7 @@ function update(dt){
     if(mouse.down&&mouse.ground){mouse.holdT-=dt;if(mouse.holdT<=0){mouse.holdT=.25;const [wx,wy]=toWorld(mouse.x,mouse.y);moveTo(Math.floor(wx),Math.floor(wy))}}
   }
   if(P.bubble){P.bubble.t-=dt;if(P.bubble.t<=0)P.bubble=null}
-  for(const n of NPCS){if(n.bubble){n.bubble.t-=dt;if(n.bubble.t<=0)n.bubble=null}else if(rnd()<dt*.04){const L={shop:['ポーションあるよ〜','いらっしゃい！'],heal:['癒やしが必要な方は？'],guide:['困ったら話しかけてね']}[n.id];n.bubble={text:L[Math.floor(rnd()*L.length)],t:3}}}
+  for(const n of NPCS){if(n.bubble){n.bubble.t-=dt;if(n.bubble.t<=0)n.bubble=null}else if(rnd()<dt*.04){const L={shop:['ポーションあるよ〜','いらっしゃい！'],heal:['癒やしが必要な方は？'],guide:['困ったら話しかけてね'],gate:['砂の向こうで待っている…','ピラミッドへ行くかい？'],ret:['帰りたいか？','ここだけは安全だ']}[n.id]||['…'];n.bubble={text:L[Math.floor(rnd()*L.length)],t:3}}}
   updateMobs(dt,s);updateTraps(dt);
   for(const f of fx){f.t+=dt;
     if(f.cb&&!f.done&&f.t>=f.at){f.done=true;f.cb()}
