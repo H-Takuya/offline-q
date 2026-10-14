@@ -46,10 +46,13 @@ kbd{font-family:var(--f-display);font-size:10px;color:var(--muted);margin-left:2
 .bar.thin i{background:var(--exp)}
 .bar.thin.j i{background:var(--jexp)}
 .jobsw{display:flex;margin-top:5px;border:1px solid var(--line);border-radius:5px;overflow:hidden}
-.jobsw button{flex:1;font:12px var(--f-display);padding:3px 0;border:0;background:var(--win-2);color:var(--muted);cursor:pointer}
+.jobsw kbd{font-size:9px;margin-left:1px}
+.jobsw button{flex:1;font:11px var(--f-display);padding:3px 0;white-space:nowrap;border:0;background:var(--win-2);color:var(--muted);cursor:pointer}
 .jobsw button+button{border-left:1px solid var(--line)}
 .jobsw button[aria-pressed="true"]{background:var(--head);color:var(--head-ink);cursor:default}
 .jobsw button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.merc{position:relative;display:flex;justify-content:space-between;gap:6px;margin-top:5px;padding:2px 6px 5px;border-radius:4px;background:var(--win-2);font:11px var(--f-display);color:var(--ink);overflow:hidden;font-variant-numeric:tabular-nums}
+.merc i{position:absolute;left:0;bottom:0;height:3px;background:var(--hp)}
 .buffs{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px;min-height:0}
 .buffs span{font:11px var(--f-display);background:var(--sp);color:var(--head-ink);border-radius:3px;padding:0 5px}
 
@@ -146,7 +149,7 @@ kbd{font-family:var(--f-display);font-size:10px;color:var(--muted);margin-left:2
 
 <div class="hud panel" id="status">
   <div class="who"><b>冒険者</b><span id="hJob">アコライト</span></div>
-  <div class="jobsw" role="group" aria-label="職業の切り替え"><button data-job="aco" aria-pressed="true">アコライト<kbd>Q</kbd></button><button data-job="hunter" aria-pressed="false">ハンター<kbd>W</kbd></button></div>
+  <div class="jobsw" role="group" aria-label="職業の切り替え"><button data-job="aco" aria-pressed="true" title="Qキー">アコライト<kbd>Q</kbd></button><button data-job="hunter" aria-pressed="false" title="Wキー">ハンター<kbd>W</kbd></button><button data-job="mage" aria-pressed="false" title="Rキー">マジシャン<kbd>R</kbd></button></div>
   <div class="row"><span>Base Lv <b id="hLv">1</b></span><span>Job Lv <b id="hJlv">1</b></span></div>
   <div class="bar" id="hpWrap"><i id="hpBar"></i><em id="hpTxt"></em></div>
   <div class="bar sp"><i id="spBar"></i><em id="spTxt"></em></div>
@@ -154,6 +157,7 @@ kbd{font-family:var(--f-display);font-size:10px;color:var(--muted);margin-left:2
   <div class="bar thin j"><i id="jxBar"></i></div>
   <div class="row"><span id="hExp">Exp 0.0%</span><span id="hZeny">0 z</span></div>
   <div class="buffs" id="hBuff"></div>
+  <div class="merc" id="hMerc" hidden></div>
 </div>
 
 <div class="hud panel" id="mini"><canvas id="mm" width="168" height="88"></canvas><div class="coord" id="mmTxt">ルーンの草原</div><div class="coord boss" id="mmBoss"></div></div>
@@ -353,6 +357,9 @@ const ITEMS={
   bow:{n:'ボウ',t:'weapon',cls:'bow',atk:20,slots:2,price:150,g:'弓',c:'#8a6a3a',d:'ATK 20 / 弓（ハンター）'},
   cbow:{n:'コンポジットボウ',t:'weapon',cls:'bow',atk:42,slots:1,price:1300,g:'弓',c:'#5f7d3c',d:'ATK 42 / 弓（ハンター）'},
   hbow:{n:'ハンターボウ',t:'weapon',cls:'bow',atk:75,slots:0,sell:2000,g:'弓',c:'#a8862e',d:'ATK 75 / 弓（ハンター）'},
+  rod:{n:'ロッド',t:'weapon',cls:'staff',atk:15,matk:20,slots:2,price:150,g:'杖',c:'#7a5ab0',d:'ATK 15 / MATK+20 / 杖（マジシャン）'},
+  wstaff:{n:'ウィザードスタッフ',t:'weapon',cls:'staff',atk:25,matk:90,slots:1,price:1600,g:'杖',c:'#3a6ad0',d:'ATK 25 / MATK+90 / 杖（マジシャン）'},
+  scepter:{n:'砂漠の王笏',t:'weapon',cls:'staff',atk:40,matk:250,slots:0,sell:3000,g:'杖',c:'#d9a52c',d:'ATK 40 / MATK+250 / 杖（マジシャン）'},
   cloth:{n:'見習いの法衣',t:'armor',def:2,slots:0,price:40,g:'衣',c:'#3a4166',d:'DEF 2'},
   leather:{n:'シルクローブ',t:'armor',def:7,slots:1,price:720,g:'衣',c:'#6e2c44',d:'DEF 7'},
   c_prun:{n:'プルンカード',t:'card',b:{luk:2,mhp:60},sell:10,g:'札',c:'#e9869d',d:'LUK+2 / 最大HP+60'},
@@ -371,7 +378,7 @@ const ITEMS={
   c_gold:{n:'ゴールドプルンカード',t:'card',b:{str:2,agi:2,vit:2,int:2,dex:2,luk:2},sell:10,g:'札',c:'#d9a52c',d:'全ステータス+2'},
 };
 const sellPrice=id=>{const it=ITEMS[id];return it.sell!=null?it.sell:Math.floor((it.price||0)/2)};
-const SHOP=['red','yellow','sword','bow','cbow','leather'];
+const SHOP=['red','yellow','sword','bow','cbow','rod','wstaff','leather'];
 const stackable=id=>!['weapon','armor'].includes(ITEMS[id].t);
 
 const MOBS={
@@ -452,11 +459,18 @@ const SK={
   as:{job:'hunter',n:'アローシャワー',max:10,sp:l=>15,target:true,g:'雨',c:'#4f86c9',d:l=>`対象の周囲3×3に矢の雨。ATK ${75+5*l}%`},
   blitz:{job:'hunter',n:'ブリッツビート',max:5,sp:l=>10+3*l,target:true,g:'鷹',c:'#8a6a3a',d:l=>`鷹が${l}回攻撃（必中）。通常攻撃のたびに 10%＋LUK÷3% の確率で自動発動`},
   ankle:{job:'hunter',n:'アンクルスネア',max:5,sp:l=>12,target:false,g:'罠',c:'#6f7480',d:l=>`足元に罠を置く。踏んだ敵を${3+2*l}秒その場に縛る`},
+  fb:{job:'mage',n:'ファイアーボルト',max:10,sp:l=>10+2*l,cast:l=>.4+.2*l,range:9,target:true,el:'fire',g:'炎',c:'#e0582a',d:l=>`炎の矢を${l}本落とす。MATK×${l}`},
+  cb:{job:'mage',n:'コールドボルト',max:10,sp:l=>10+2*l,cast:l=>.4+.2*l,range:9,target:true,el:'cold',g:'氷',c:'#4aa8e0',d:l=>`氷の矢を${l}本落とす。MATK×${l}`},
+  lb:{job:'mage',n:'ライトニングボルト',max:10,sp:l=>10+2*l,cast:l=>.4+.2*l,range:9,target:true,el:'bolt',g:'雷',c:'#d8b020',d:l=>`雷を${l}回落とす。MATK×${l}`},
+  fball:{job:'mage',n:'ファイアーボール',max:10,sp:l=>20+2*l,cast:l=>1,range:9,target:true,el:'fire',g:'球',c:'#c8401a',d:l=>`火球が爆発し、周囲5×5の敵にMATK×${(.7+.1*l).toFixed(1)}`},
+  tstorm:{job:'mage',n:'サンダーストーム',max:10,sp:l=>25+4*l,cast:l=>1+.2*l,range:9,target:true,el:'bolt',g:'嵐',c:'#8a7ad8',d:l=>`対象の周囲に雷を${l}回。範囲内の敵すべてにMATK×0.8ずつ`},
+  frost:{job:'mage',n:'フロストダイバー',max:10,sp:l=>20+l,cast:l=>.8,range:9,target:true,el:'cold',g:'凍',c:'#7ad0f0',d:l=>`氷の刃でMATK×${(1.1+.1*l).toFixed(1)}。${3+l}秒間凍らせて動きと攻撃を止める`},
   mine:{job:'hunter',n:'ランドマイン',max:5,sp:l=>10,target:false,g:'爆',c:'#c94a3a',d:l=>`足元に地雷を置く。踏んだ敵にDEXとINT依存の大ダメージ`},
 };
 const JOBS={
   aco:{n:'アコライト',w:'mace',skills:{bless:1,agi:1,heal:1,angelus:0,magni:1,gx:1},hot:['bless','agi','heal','angelus','magni','gx']},
   hunter:{n:'ハンター',w:'bow',skills:{conc:1,ds:1,as:0,blitz:1,ankle:1,mine:0},hot:['conc','ds','as','blitz','ankle','mine']},
+  mage:{n:'マジシャン',w:'staff',skills:{fb:1,cb:1,lb:1,fball:1,tstorm:0,frost:0},hot:['fb','cb','lb','fball','tstorm','frost']},
 };
 let HOT=[];
 const BUFFS=[['bless','ブレッシング'],['agi','速度増加'],['angelus','エンジェラス'],['magni','マグニフィカート'],['conc','集中力向上']];
@@ -476,6 +490,7 @@ let NPCS=[
   {id:'heal',n:'シスター・エマ',x:CX+3.5,y:CY-3.5,body:'#2f3e66',hair:'#e9d9a8',face:-1},
   {id:'guide',n:'案内人 ロウ',x:CX-2.5,y:CY+4.5,body:'#8a4b3a',hair:'#2b2b33',face:1},
   {id:'gate',n:'待ち人 ネフェル',x:CX-3.5,y:CY+2.5,body:'#c9a24a',hair:'#1a1a2a',face:1,hat:'pharaoh'},
+  {id:'merc',n:'傭兵ギルド ガルド',x:CX-1.5,y:CY-3.5,body:'#5a4a3a',hair:'#3a2a1a',face:1,hat:'helm'},
 ];
 
 /* ---------- マップ切り替え ---------- */
@@ -494,6 +509,7 @@ function enterMap(M,x,y){
   useMap(M);
   if(M.id==='pyramid'){initDungeonMobs();groundItems=[];traps=[]}else{mobs=M.mobs||mobs;groundItems=M.items||[];traps=M.traps||[]}
   P.x=x;P.y=y;P.path=[];P.target=null;P.queued=null;P.casting=null;P.sit=false;aiming=null;
+  if(merc){[merc.x,merc.y]=nearFree(x+.8,y+.8);merc.path=[];merc.target=null;merc.cast=null}
   [camX,camY]=iso(x,y);fx=fx.filter(f=>f.type==='lvbig'||f.type==='mvp');fx.push({type:'fade',t:0,life:.9});
   for(const w of ['w-talk','w-shop'])$(w).hidden=true;
   msg(`${M.name} に到着した`,'sys');bgmSwitch(M.bgm);dirty=true;
@@ -506,7 +522,7 @@ function dungeonDefs(){
       aggro:true,aggroR:8,chaseR:18,col,size,count:o.count||10,respawn:10,look:o.look||{},drops:[['yellow',.15],['blue',.05],['relic',.04],['gold',.03]],zeny:[lv*2,lv*5]}};
   const ph=mk('砂塵の王ファラオン','human','#e0b040',1.6,60,{count:1,speed:2.2,delay:1,look:{hat:'pharaoh',body:'#e8c050',hair:'#1a1a2a',skin:'#c99a6a',eye:'#3af0ff'}});
   Object.assign(ph,{boss:true,tier:bossTier(),hp:Math.round(150*Math.pow(ph.lv,1.3)),def:30,exp:Math.round(Math.pow(ph.lv,1.6)),jexp:Math.round(Math.pow(ph.lv,1.6)*.7),
-    drops:[['relic',1],['relic',.6],['gold',1],['blue',.8]],zeny:[ph.lv*60,ph.lv*120],mvp:[['relic',1]]});
+    drops:[['relic',1],['relic',.6],['gold',1],['blue',.8],['scepter',.15]],zeny:[ph.lv*60,ph.lv*120],mvp:[['relic',1]]});
   return {
     mummy:mk('マミー','human','#d8cfb0',1,0,{count:14,speed:1.6,look:{body:'#d8cfb0',skin:'#e2dabf',hair:'#d8cfb0',eye:'#ff5a3a',mummy:true}}),
     scarab:mk('スカラベ','gtb','#2a6a7a',.8,-10,{count:12,speed:3,delay:1}),
@@ -540,7 +556,8 @@ function S(){
   return {str,agi,vit,int,dex,luk,b,agiB,
     atk:(hunter?dex*2+Math.floor(str/5):str*2+Math.floor(dex/5))+Math.floor(luk/5)+w+b.atk+P.lv,
     range:hunter?8.5:0,
-    matk:int*3+Math.floor(int*int/25)+P.lv,
+    matk:int*3+Math.floor(int*int/25)+P.lv+(wi&&wi.cls===JOBS[P.job].w&&wi.matk?wi.matk:0),
+    castMul:Math.max(.15,1-dex/150),
     def:a,vdef:Math.floor(vit*.6),hit:P.lv+dex,flee:P.lv+agi,crit:1+luk*.3,
     delay:Math.max(.16,.85-agi*.012-dex*.003)*(P.buff.agi>0?.9:1),
     mhp:Math.floor((38+P.lv*11)*(1+vit*.02))+b.mhp,
@@ -557,6 +574,7 @@ function serialize(){
   o.inv=P.inv.map(e=>({id:e.id,qty:e.qty,cards:e.cards.slice()}));
   o.eqW=P.inv.indexOf(P.eq.weapon); o.eqA=P.inv.indexOf(P.eq.armor);
   if(curMap.id!=='field'){o.x=SPAWN[0];o.y=SPAWN[1]}
+  o.merc=merc?{job:merc.job,remain:Math.max(0,merc.end-time)}:null;
   o.job=P.job; o.jobData={};
   for(const j in P.jobData) if(j!==P.job){const d=P.jobData[j];o.jobData[j]={...d,skills:{...d.skills},weapon:P.inv.indexOf(d.weapon)}}
   return o;
@@ -588,9 +606,9 @@ function freshStart(){
 const STATS=['str','agi','vit','int','dex','luk'];
 function stashJob(){const d={statPts:P.statPts,skillPts:P.skillPts,skills:{...P.skills},weapon:P.eq.weapon};for(const k of STATS)d[k]=P[k];P.jobData[P.job]=d}
 function createJob(j){
-  const base=j==='hunter'?{str:4,agi:7,vit:4,int:3,dex:8,luk:4}:{str:7,agi:6,vit:4,int:4,dex:5,luk:3};
+  const base={hunter:{str:4,agi:7,vit:4,int:3,dex:8,luk:4},mage:{str:3,agi:4,vit:4,int:9,dex:8,luk:3}}[j]||{str:7,agi:6,vit:4,int:4,dex:5,luk:3};
   P.jobData[j]={...base,statPts:earnedStatPts(P.lv),skillPts:Math.max(0,P.jlv-1),skills:{...JOBS[j].skills},weapon:null};
-  if(!P.inv.some(e=>ITEMS[e.id].cls===JOBS[j].w)){const id=j==='hunter'?'bow':'knife';addItem(id);msg(`${ITEMS[id].n} を手に入れた`,'item')}
+  if(!P.inv.some(e=>ITEMS[e.id].cls===JOBS[j].w)){const id={hunter:'bow',mage:'rod'}[j]||'knife';addItem(id);msg(`${ITEMS[id].n} を手に入れた`,'item')}
 }
 function switchJob(j){
   if(j===P.job||!JOBS[j])return;
@@ -744,9 +762,13 @@ function updateMobs(dt,s){
       }
     }
     if(m.state==='chase'){
+      // プレイヤーと傭兵のうち近いほうを狙う
+      let tx=P.x,ty=P.y,td=d,onMerc=false;
+      if(merc&&!(merc.down>0)){const dm=Math.hypot(merc.x-m.x,merc.y-m.y);if(dm<td){tx=merc.x;ty=merc.y;td=dm;onMerc=true}}
+      const ex=tx-m.x,ey=ty-m.y;
       if(d>(m.def.chaseR||13)||safe){m.state='idle';m.wx=m.x;m.wy=m.y}
-      else if(d>1.2*Math.max(1,m.def.size*.8)){if(!rooted)moveEnt(m,P.x,P.y,m.def.speed,dt,mobPass);m.atkT=Math.min(m.atkT,.5)}
-      else{if(Math.abs(dx-dy)>.05)m.face=(dx-dy)>0?1:-1;m.atkT-=dt;if(m.atkT<=0){m.atkT=m.def.delay;mobAttack(m,s)}}
+      else if(td>1.2*Math.max(1,m.def.size*.8)){if(!rooted)moveEnt(m,tx,ty,m.def.speed,dt,mobPass);m.atkT=Math.min(m.atkT,.5)}
+      else if(!(m.iceT>time)){if(Math.abs(ex-ey)>.05)m.face=(ex-ey)>0?1:-1;m.atkT-=dt;if(m.atkT<=0){m.atkT=m.def.delay;if(onMerc)mobHitMerc(m);else mobAttack(m,s)}}
     }
   }
   // ボスは必ず1体いる。さらに1分ごとに1体ずつ増える
@@ -783,10 +805,10 @@ function playerAttack(m,s,mult,hitBonus,skill){
   hurtMob(m,dmg,crit?'#ffe14a':'#ffffff',crit?24:skill?22:18,crit);sfx(crit?'crit':'hit');
 }
 function aggro(m){if(m.state==='dead')return;if(m.state==='idle')emote(m,'!',1.4);m.state='chase'}
-function hurtMob(m,dmg,col,size,crit){
+function hurtMob(m,dmg,col,size,crit,srcJob){
   if(m.state==='dead')return;
-  if(m.def.resist===P.job){dmg=Math.max(1,Math.round(dmg*.1));col='#9aa0aa';crit=false;
-    if(!m.hinted){m.hinted=true;const other=P.job==='aco'?'W でハンター':'Q でアコライト';msg(`${m.def.n} は${JOBS[P.job].n}耐性！ ダメージが1/10になる。${other}に切り替えよう`,'warn')}}
+  if(m.def.resist===(srcJob||P.job)){dmg=Math.max(1,Math.round(dmg*.1));col='#9aa0aa';crit=false;
+    if(!m.hinted&&!srcJob){m.hinted=true;const other=Object.keys(JOBS).filter(j=>j!==P.job).map(j=>`${{aco:'Q',hunter:'W',mage:'R'}[j]}で${JOBS[j].n}`).join('・');msg(`${m.def.n} は${JOBS[P.job].n}耐性！ ダメージが1/10になる。${other}に切り替えよう`,'warn')}}
   m.hp-=dmg;m.flash=.12;m.hpShow=8;float(m.x,m.y,dmg,col,size,1,true,crit);aggro(m);
   if(m.hp<=0) killMob(m);
 }
@@ -885,7 +907,7 @@ function useSkill(id){
   if(id==='conc'){P.buff.conc=40+20*lv;P.buff.concLv=lv;fx.push({type:'heal',t:0,life:1,col:'#a8f0b8'});msg(`集中力向上！ AGI・DEX+${2+lv}`,'sys')}
   if(sk.cast){P.path=[];
     if(id==='gx'){const c=Math.floor(P.hp*.2);if(c>0){P.hp-=c;float(P.x,P.y,c,'#ff6a5c',16)}}
-    P.casting={id,t:0,dur:sk.cast(lv)};dirty=true;return}
+    P.casting={id,t:0,dur:sk.cast(lv)*s.castMul};dirty=true;return}
   if(id==='heal'){const a=healAmt(lv);P.hp=Math.min(s.mhp,P.hp+a);float(P.x,P.y,a,'#7dff8a',20);fx.push({type:'heal',t:0,life:1});sfx('heal')}
   if(id!=='heal')sfx('buff');
   if(id==='agi'){P.buff.agi=60;P.buff.agiLv=lv;fx.push({type:'heal',t:0,life:1,col:'#9cd0ff'});msg('速度増加！ 足が軽くなった','sys')}
@@ -905,13 +927,110 @@ function updateCast(dt){
   const c=P.casting;if(!c)return;c.t+=dt;
   if(c.t<c.dur)return;
   P.casting=null;const lv=P.skills[c.id];P.bubble={text:SK[c.id].n+'!!',t:1.2};
+  if(SK[c.id].job==='mage'){castSpell(c,lv);return}
   if(c.id==='magni'){P.buff.magni=30*lv;fx.push({type:'lv',t:0,life:1.6,rgb:'170,205,255'});msg('マグニフィカート！ 自然回復が2倍になった','sys');dirty=true;sfx('buff')}
   else if(c.id==='gx'){sfx('gx');fx.push({type:'gx',x:Math.floor(P.x),y:Math.floor(P.y),t:0,life:1.1,lv,hits:0})}
 }
+/* ---------- マジシャンの魔法 ---------- */
+const mdmg=(m,mult)=>Math.max(1,Math.round(S().matk*mult*(.9+rnd()*.2)-m.def.def*.3));
+const EL_COL={fire:'#ffb36b',cold:'#a8e4ff',bolt:'#fff27a'};
+function aoe(x,y,r,fn){for(const o of mobs)if(o.state!=='dead'&&Math.hypot(o.x-x,o.y-y)<=r)fn(o)}
+function castSpell(c,lv){
+  const m=c.m,sk=SK[c.id];if(m.state!=='dead'){c.x=m.x;c.y=m.y}
+  const hits=Math.min(lv,10),mul=lv/hits;
+  if(['fb','cb','lb'].includes(c.id)){
+    if(m.state==='dead')return;
+    for(let i=0;i<hits;i++)fx.push({type:'spell',el:sk.el,m,x:c.x,y:c.y,t:-i*.12,at:.22,life:.5,cb:()=>{if(m.state!=='dead'){hurtMob(m,mdmg(m,mul),EL_COL[sk.el],20);sfx('hit')}}});
+  }else if(c.id==='fball'){
+    fx.push({type:'fball',sx:P.x,sy:P.y,x:c.x,y:c.y,t:0,at:.3,life:.32,cb:()=>{fx.push({type:'boom',x:c.x,y:c.y,t:0,life:.6,big:true});sfx('gx');
+      aoe(c.x,c.y,2.5,o=>hurtMob(o,mdmg(o,.7+.1*lv),'#ffb36b',22))}});
+  }else if(c.id==='tstorm'){
+    for(let i=0;i<hits;i++){const x=c.x+(rnd()-.5)*3,y=c.y+(rnd()-.5)*3;
+      fx.push({type:'spell',el:'bolt',x,y,t:-i*.15,at:.22,life:.5,cb:()=>{sfx('hit');aoe(x,y,2.2,o=>hurtMob(o,mdmg(o,.8*mul),'#fff27a',20))}})}
+  }else if(c.id==='frost'){
+    if(m.state==='dead')return;
+    fx.push({type:'spell',el:'cold',m,x:c.x,y:c.y,t:0,at:.22,life:.5,cb:()=>{if(m.state==='dead')return;hurtMob(m,mdmg(m,1.1+.1*lv),'#a8e4ff',22);
+      if(m.state!=='dead'){m.root=Math.max(m.root||0,3+lv);m.iceT=time+3+lv}}});
+  }
+  if(m.state!=='dead')P.target={kind:'mob',ref:m,stay:true};
+}
+/* ---------- 傭兵（仲間） ---------- */
+const MERC_PRICE=5000,MERC_TIME=600;
+const MERC_LOOK={
+  aco:{name:'クレア',body:'#7a2a3a',hair:'#f0d878',robe:true,mace:true,weapon:'#a9b0bc'},
+  hunter:{name:'リオ',body:'#3a6a5a',hair:'#f0d878',bow:true,quiver:true,weapon:'#8a5a2c'},
+  mage:{name:'ミナ',body:'#2a5a7a',hair:'#f0d878',robe:true,staff:true,weapon:'#c08aff'},
+};
+let merc=null;
+const fmtTime=s=>{s=Math.max(0,Math.ceil(s));return `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`};
+function mercStats(){const L=P.lv;return {atk:30+L*5,matk:40+L*6,mhp:200+L*30,heal:60+L*8}}
+function hireMerc(job,dur=MERC_TIME,silent){
+  const st=mercStats(),[x,y]=nearFree(P.x+.8,P.y+.8);
+  merc={job,x,y,face:1,hp:st.mhp,end:time+dur,atkT:1,healT:0,buffT:0,repath:0,path:[],target:null,down:0,cast:null,castN:0,walk:0,moving:false,swing:0,bubble:null};
+  if(!silent){msg(`傭兵 ${MERC_LOOK[job].name}（${JOBS[job].n}）を雇いました。契約は10分間です`,'item');merc.bubble={text:'よろしくね！',t:2.5};fx.push({type:'heal',t:0,life:1,col:'#ffe08a'})}
+  dirty=true;
+}
+function nearFree(x,y){if(pass(Math.floor(x),Math.floor(y)))return [x,y];return [P.x,P.y]}
+function mercMove(tx,ty,dt){
+  merc.repath-=dt;
+  if(merc.repath<=0){merc.repath=.5;merc.path=astar(Math.floor(merc.x),Math.floor(merc.y),Math.floor(tx),Math.floor(ty))||[]}
+  const spd=4.4;
+  if(merc.path.length){const [px,py]=merc.path[0],r=moveEnt(merc,px,py,spd,dt);if(r===true||r==='blocked')merc.path.shift()}
+  else moveEnt(merc,tx,ty,spd,dt);
+}
+function mercDmg(m,base){return Math.max(1,Math.round(base*(.9+rnd()*.2)*(1-m.def.def/100)-m.def.def*.5))}
+function updateMerc(dt){
+  if(!merc)return;
+  if(merc.bubble){merc.bubble.t-=dt;if(merc.bubble.t<=0)merc.bubble=null}
+  if(time>=merc.end){msg(`傭兵 ${MERC_LOOK[merc.job].name} との契約が切れました`,'sys');merc=null;dirty=true;return}
+  if(merc.down>0){merc.down-=dt;if(merc.down<=0){merc.hp=mercStats().mhp;[merc.x,merc.y]=nearFree(P.x+.8,P.y+.8);merc.bubble={text:'お待たせ！',t:2};msg('傭兵が戦線に復帰しました','sys')}return}
+  const st=mercStats(),job=merc.job;merc.moving=false;merc.atkT-=dt;merc.healT-=dt;merc.buffT-=dt;merc.swing=Math.max(0,merc.swing-dt);
+  merc.hp=Math.min(st.mhp,merc.hp+st.mhp*.01*dt);
+  const dP=Math.hypot(P.x-merc.x,P.y-merc.y);
+  if(dP>14){[merc.x,merc.y]=nearFree(P.x+.8,P.y+.8);merc.path=[]}
+  // アコライトは回復と支援
+  if(job==='aco'&&!P.dead){const s=S();
+    if(merc.healT<=0&&P.hp<s.mhp*.7){const a=st.heal;P.hp=Math.min(s.mhp,P.hp+a);float(P.x,P.y,a,'#7dff8a',18);fx.push({type:'heal',t:0,life:.8});merc.bubble={text:'ヒール！',t:1};merc.healT=2.5;sfx('heal')}
+    else if(merc.buffT<=0){const lv=Math.min(10,1+Math.floor(P.lv/50));P.buff.bless=60;P.buff.blessLv=Math.max(P.buff.blessLv,lv);P.buff.agi=60;P.buff.agiLv=Math.max(P.buff.agiLv,lv);
+      merc.bubble={text:'ブレッシング！ 速度増加！',t:1.5};merc.buffT=55;dirty=true;sfx('buff')}}
+  // 詠唱中
+  if(merc.cast){merc.cast.t-=dt;if(merc.cast.t<=0){const m=merc.cast.m,big=merc.cast.big;merc.cast=null;
+      if(m.state!=='dead'){if(big){fx.push({type:'fball',sx:merc.x,sy:merc.y,x:m.x,y:m.y,t:0,at:.3,life:.32,cb:()=>{const cx=m.x,cy=m.y;fx.push({type:'boom',x:cx,y:cy,t:0,life:.6,big:true});sfx('gx');aoe(cx,cy,2.5,o=>hurtMob(o,mercDmg(o,st.matk*1.2),'#ffb36b',20,false,'mage'))}});merc.bubble={text:'ファイアーボール！',t:1}}
+        else{const el=['fire','cold','bolt'][merc.castN%3];for(let i=0;i<3;i++)fx.push({type:'spell',el,m,x:m.x,y:m.y,t:-i*.12,at:.22,life:.5,cb:()=>{if(m.state!=='dead')hurtMob(m,mercDmg(m,st.matk*.7),EL_COL[el],18,false,'mage')}})}}
+      merc.atkT=.5}
+    return}
+  // 攻撃対象を選ぶ
+  let t=merc.target;if(!t||t.state==='dead'||Math.hypot(t.x-P.x,t.y-P.y)>12)t=null;
+  if(!t&&P.target&&P.target.kind==='mob'&&P.target.ref.state!=='dead')t=P.target.ref;
+  if(!t){let bd=81;for(const m of mobs){if(m.state!=='chase')continue;const dd=(m.x-P.x)**2+(m.y-P.y)**2;if(dd<bd){bd=dd;t=m}}}
+  merc.target=t;
+  const range=job==='aco'?1.4:job==='hunter'?8:8.5;
+  if(t){const d=Math.hypot(t.x-merc.x,t.y-merc.y);
+    if(d>range)mercMove(t.x,t.y,dt);
+    else{const dx=t.x-merc.x,dy=t.y-merc.y;if(Math.abs(dx-dy)>.05)merc.face=(dx-dy)>0?1:-1;merc.path=[];
+      if(merc.atkT<=0){merc.swing=.2;
+        if(job==='aco'){hurtMob(t,mercDmg(t,st.atk),'#d0e8ff',17,false,'aco');sfx('hit');merc.atkT=.6}
+        else if(job==='hunter'){const m=t,n=rnd()<.25?2:1;for(let i=0;i<n;i++)shoot(m,()=>hurtMob(m,mercDmg(m,st.atk*(n>1?1.3:1)),'#d0e8ff',17,false,'hunter'),i*.12,merc);if(n>1)merc.bubble={text:'ダブルストレイフィング！',t:.8};merc.atkT=.7}
+        else{merc.castN++;merc.cast={t:1,m:t,big:merc.castN%4===0}}}}}
+  else if(dP>2.5)mercMove(P.x,P.y,dt);
+  if(merc.moving)merc.walk+=dt;
+}
+function mobHitMerc(m){
+  m.lunge=.2;if(rnd()<.15){float(merc.x,merc.y,'Miss','#bfe3ff',14);return}
+  const dmg=Math.max(1,Math.round(irand(m.def.atk[0],m.def.atk[1])*.8-P.lv*.3));merc.hp-=dmg;float(merc.x,merc.y,dmg,'#ff9a8c',15,1,true);
+  if(merc.hp<=0){merc.down=20;merc.cast=null;merc.target=null;msg(`傭兵 ${MERC_LOOK[merc.job].name} が倒れた…（20秒後に復帰）`,'warn')}
+}
+function drawMerc(){
+  if(!merc||merc.down>0)return;const L=MERC_LOOK[merc.job],[x,y]=iso(merc.x,merc.y);
+  drawHuman(x,y,{...L,face:merc.face,walk:merc.walk,moving:merc.moving,swing:merc.swing});
+  if(merc.cast){ctx.save();ctx.translate(x,y);ctx.scale(1,.5);ctx.rotate(time*2);ctx.strokeStyle='rgba(180,160,255,.85)';ctx.lineWidth=2;ctx.beginPath();ctx.arc(0,0,22,0,7);ctx.stroke();ctx.restore()}
+  const st=mercStats();ctx.fillStyle='rgba(10,14,22,.75)';ctx.fillRect(x-16,y+6,32,5);ctx.fillStyle='#5ad0a0';ctx.fillRect(x-15,y+7,30*clamp(merc.hp/st.mhp,0,1),3);
+  label(`傭兵 ${L.name}`,x,y+24,'#bff0d8',11);
+}
 function later(at,cb){fx.push({type:'delay',t:0,at,life:at+.01,cb})}
-function shoot(m,cb,delay=0){
-  const dur=clamp(Math.hypot(m.x-P.x,m.y-P.y)/22,.06,.4);
-  fx.push({type:'arrow',m,sx:P.x,sy:P.y,t:-delay,at:dur,life:dur+.02,cb:()=>{if(m.state!=='dead')cb()}});
+function shoot(m,cb,delay=0,src=P){
+  const dur=clamp(Math.hypot(m.x-src.x,m.y-src.y)/22,.06,.4);
+  fx.push({type:'arrow',m,sx:src.x,sy:src.y,t:-delay,at:dur,life:dur+.02,cb:()=>{if(m.state!=='dead')cb()}});
 }
 function blitz(m,lv){
   fx.push({type:'falcon',m,t:0,life:.75});
@@ -925,7 +1044,8 @@ function hunterShot(m){
 }
 function doSkill(id,m){
   const lv=P.skills[id],sk=SK[id],cost=sk.sp(lv);
-  if(P.sp<cost){msg('SPが足りません','warn');hunterShot(m);return}
+  if(P.sp<cost){msg('SPが足りません','warn');if(P.job==='hunter')hunterShot(m);return}
+  if(sk.cast){P.sp-=cost;P.casting={id,t:0,dur:sk.cast(lv)*S().castMul,m,x:m.x,y:m.y};return}
   P.sp-=cost;P.bubble={text:sk.n+'!!',t:1};
   if(id==='ds'){for(let i=0;i<2;i++)shoot(m,()=>playerAttack(m,S(),1+.1*lv,10,true),i*.12)}
   else if(id==='as'){const cx=m.x,cy=m.y;fx.push({type:'rain',x:cx,y:cy,t:0,life:.6});
@@ -962,9 +1082,10 @@ function toggleSit(){
 function updateTarget(dt,s){
   const T=P.target;if(!T)return;
   if(T.kind==='mob'&&T.ref.state==='dead'){P.target=null;P.queued=null;return}
+  if(T.stay&&!P.queued)return;
   if(T.kind==='item'&&!groundItems.includes(T.ref)){P.target=null;return}
   const e=T.ref,d=Math.hypot(e.x-P.x,e.y-P.y);
-  const range=T.kind==='mob'?(s.range||1.3+.25*e.def.size):T.kind==='npc'?1.8:.6;
+  const range=T.kind==='mob'?(s.range||(P.queued&&SK[P.queued.id].range)||1.3+.25*e.def.size):T.kind==='npc'?1.8:.6;
   if(d<=range){
     P.path=[];
     if(T.kind==='mob'){
@@ -1043,6 +1164,7 @@ addEventListener('keydown',e=>{
   const k=e.key.toLowerCase();
   if(k==='q'){switchJob('aco');return}
   if(k==='w'){switchJob('hunter');return}
+  if(k==='r'){switchJob('mage');return}
   if(k==='a')toggleWin('status');else if(k==='e')toggleWin('inv');else if(k==='s')toggleWin('skill');
   else if(e.key==='Escape'){aiming=null;for(const w of document.querySelectorAll('.win'))w.hidden=true;dirty=true}
 });
@@ -1118,6 +1240,14 @@ function openNpc(n){
   let html;
   if(n.id==='heal') html=`<p class="talk-t">神のご加護を。傷を癒やしてさしあげましょう。</p><div class="btns"><button class="btn" data-act="doheal">回復してもらう</button><button class="btn" data-close>また今度</button></div>`;
   else if(n.id==='gate') html=`<p class="talk-t">……来たか。砂に埋もれたピラミッドへ案内しよう。<br>中の魔物は、お前の強さ（Base Lv ${P.lv}）に合わせて目を覚ます。数も多く、気づけばすぐ襲ってくるぞ。<br>安全なのは入口の光る9マスだけだ。</p><div class="btns"><button class="btn" data-act="warp-dg">ピラミッドへ行く</button><button class="btn" data-close>やめておく</button></div>`;
+  else if(n.id==='merc'){
+    const cur=merc?`<p class="note">契約中：${MERC_LOOK[merc.job].name}（${JOBS[merc.job].n}）残り ${fmtTime(merc.end-time)}。同じ職業を選ぶと10分延長、別の職業を選ぶと入れ替えになります。</p>`:'';
+    const desc={aco:'回復とブレッシング・速度増加で支えつつ、メイスで殴る',hunter:'離れた位置から矢で攻撃。ときどき2連射',mage:'3種類のボルトとファイアーボールで攻撃'};
+    html=`<p class="talk-t">腕利きの傭兵がそろってるぜ。1人 ${MERC_PRICE.toLocaleString()}z で10分間、一緒に戦ってくれる。</p>${cur}<div class="list">`+
+      Object.keys(JOBS).map(j=>{const L=MERC_LOOK[j],same=merc&&merc.job===j;
+        return `<div class="it">${icon(j==='aco'?'聖':j==='hunter'?'弓':'魔',L.body)}<div class="tx"><div class="nm">${L.name}（${JOBS[j].n}）</div><div class="ds">${desc[j]}</div></div><button class="btn" data-act="hire" data-job="${j}" ${P.zeny<MERC_PRICE?'disabled':''}>${same?'延長':'雇う'}</button></div>`}).join('')+
+      `</div><div class="foot"><span>所持金 <b class="price">${P.zeny.toLocaleString()} z</b></span>${merc?'<button class="btn warn" data-act="fire-merc">契約を解除</button>':'<button class="btn" data-close>やめておく</button>'}</div>`;
+  }
   else if(n.id==='ret') html=`<p class="talk-t">帰りたいか？</p><div class="btns"><button class="btn" data-act="warp-home">ルーンの草原へ帰る</button><button class="btn" data-close>まだ残る</button></div>`;
   else html=`<p class="talk-t">${TIPS[Math.floor(rnd()*TIPS.length)]}</p><div class="btns"><button class="btn" data-act="tip">ほかには？</button><button class="btn" data-close>ありがとう</button></div>`;
   $('b-talk').innerHTML=html;toggleWin('talk',true);
@@ -1143,9 +1273,13 @@ document.addEventListener('click',e=>{
   else if(act==='doheal'){const s=S();P.hp=s.mhp;P.sp=s.msp;fx.push({type:'heal',t:0,life:1});msg('HPとSPが全回復した','item');$('w-talk').hidden=true}
   else if(act==='tip'){openNpc(talkNpc);return}
   else if(act==='warp-dg'){$('w-talk').hidden=true;enterMap(getDungeon(),CX-.5,CY+1.5);return}
+  else if(act==='hire'){const j=a.dataset.job;if(P.zeny<MERC_PRICE){msg('Zenyが足りません','warn');return}
+    P.zeny-=MERC_PRICE;if(merc&&merc.job===j){merc.end+=MERC_TIME;msg(`契約を10分延長しました（-${MERC_PRICE}z）`,'item')}else hireMerc(j);
+    openNpc(talkNpc);dirty=true;return}
+  else if(act==='fire-merc'){if(merc){msg(`傭兵 ${MERC_LOOK[merc.job].name} との契約を解除しました`,'sys');merc=null}openNpc(talkNpc);dirty=true;return}
   else if(act==='warp-home'){$('w-talk').hidden=true;enterMap(FIELD,CX-3.5,CY+3.5);return}
   else if(act==='reset'){if(!resetArm){resetArm=true;dirty=true;setTimeout(()=>{resetArm=false;dirty=true},4000);return}
-    resetArm=false;try{localStorage.removeItem(SAVE_KEY)}catch(_){}if(curMap.id!=='field'){useMap(FIELD);bgmSwitch('town')}freshStart();initMobs();groundItems=[];traps=[];buildHotbar();msg('データを初期化しました','sys')}
+    resetArm=false;try{localStorage.removeItem(SAVE_KEY)}catch(_){}if(curMap.id!=='field'){useMap(FIELD);bgmSwitch('town')}merc=null;freshStart();initMobs();groundItems=[];traps=[];buildHotbar();msg('データを初期化しました','sys')}
   dirty=true;
 });
 document.addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&e.target.matches&&e.target.matches('.it[data-act]')){e.preventDefault();e.target.click()}});
@@ -1177,6 +1311,9 @@ function hud(){
   const be=P.exp/needBase(P.lv)*100,je=P.jexp/needJob(P.jlv)*100;
   $('exBar').style.width=be+'%';$('jxBar').style.width=je+'%';
   $('hExp').textContent=`Exp ${be.toFixed(1)}% / Job ${je.toFixed(1)}%`;$('hZeny').textContent=P.zeny.toLocaleString()+' z';
+  const hm=$('hMerc');hm.hidden=!merc;
+  if(merc){const st=mercStats(),L=MERC_LOOK[merc.job];
+    hm.innerHTML=`<span>傭兵 ${L.name}（${JOBS[merc.job].n}）</span><span>${merc.down>0?`復帰まで ${Math.ceil(merc.down)}秒`:`残り ${fmtTime(merc.end-time)}`}</span><i style="width:${merc.down>0?0:clamp(merc.hp/st.mhp,0,1)*100}%"></i>`}
   $('hBuff').innerHTML=BUFFS.filter(([k])=>P.buff[k]>0).map(([k,n])=>`<span>${n} ${Math.ceil(P.buff[k])}s</span>`).join('');
   const bAlive=mobs.filter(m=>m.def.boss&&m.state!=='dead').length,bt=Math.ceil(bossTimer);
   $('mmTxt').textContent=`${curMap.name} (${Math.floor(P.x)}, ${Math.floor(P.y)})`;
@@ -1235,6 +1372,10 @@ function drawHuman(x,y,o){
   if(o.weapon&&o.bow){ctx.save();ctx.translate(11,-20-b);const pull=o.swing>0?(o.swing/.22)*7:0;
     ctx.strokeStyle=o.weapon;ctx.lineWidth=2.8;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(-3,-15);ctx.quadraticCurveTo(9,0,-3,15);ctx.stroke();
     ctx.strokeStyle='rgba(245,242,230,.95)';ctx.lineWidth=.9;ctx.beginPath();ctx.moveTo(-3,-15);ctx.lineTo(-3-pull,0);ctx.lineTo(-3,15);ctx.stroke();ctx.restore()}
+  else if(o.weapon&&o.staff){ctx.save();ctx.translate(10,-17-b);ctx.rotate(o.swing>0?-.9+(1-o.swing/.22)*1.1:.12);
+    ctx.fillStyle='#6a4a2c';ctx.fillRect(-1.5,-30,3,42);ctx.fillStyle='#c9a24a';ctx.fillRect(-3,-31,6,3);
+    const g=ctx.createRadialGradient(0,-35,1,0,-35,10);g.addColorStop(0,'#ffffff');g.addColorStop(.35,o.weapon);g.addColorStop(1,'rgba(255,255,255,0)');
+    ctx.fillStyle=g;ctx.beginPath();ctx.arc(0,-35,10,0,7);ctx.fill();ctx.restore()}
   else if(o.weapon){ctx.save();ctx.translate(8,-20-b);ctx.rotate(o.swing>0?-1.6+(1-o.swing/.22)*2.4:.5);
     if(o.mace){ctx.fillStyle='#6a4a2c';ctx.fillRect(-1.5,-17,3.5,19);ctx.fillStyle=o.weapon;ctx.beginPath();
       for(let i=0;i<8;i++){const a=i/8*Math.PI*2,r=i%2?4.5:8;ctx.lineTo(.25+Math.cos(a)*r,-20+Math.sin(a)*r)}ctx.closePath();ctx.fill();
@@ -1355,7 +1496,9 @@ function drawMob(m){
   else if(k==='dragon')drawDragon(x,y,m);
   else drawPrun(x,y,m);
   ctx.globalAlpha=1;
-  if(m.state!=='dead'&&m.root>0){ctx.strokeStyle='#9aa0aa';ctx.lineWidth=2.5;ctx.beginPath();ctx.ellipse(x,y,12,5,0,0,7);ctx.stroke();
+  if(m.state!=='dead'&&m.iceT>time){const sz=m.def.size,a=Math.min(1,(m.iceT-time)*2);ctx.globalAlpha=.55*a;ctx.fillStyle='#bfe8ff';ctx.strokeStyle='#ffffff';ctx.lineWidth=1.5;
+    ctx.beginPath();ctx.moveTo(x-16*sz,y);ctx.lineTo(x-12*sz,y-38*sz);ctx.lineTo(x,y-46*sz);ctx.lineTo(x+13*sz,y-36*sz);ctx.lineTo(x+16*sz,y);ctx.closePath();ctx.fill();ctx.stroke();ctx.globalAlpha=1}
+  else if(m.state!=='dead'&&m.root>0){ctx.strokeStyle='#9aa0aa';ctx.lineWidth=2.5;ctx.beginPath();ctx.ellipse(x,y,12,5,0,0,7);ctx.stroke();
     ctx.fillStyle='#c5cad3';for(let i=0;i<6;i++){const a=i/6*Math.PI*2;ctx.fillRect(x+Math.cos(a)*12-1,y+Math.sin(a)*5-4,2,4)}}
   if(m.state!=='dead'&&(m.hpShow>0||m.def.boss)){const w=34*Math.max(1,m.def.size*.8);ctx.fillStyle='rgba(10,14,22,.7)';ctx.fillRect(x-w/2-1,y+5,w+2,5);ctx.fillStyle=m.hp/m.def.hp<.3?'#e9493f':'#4ecb5a';ctx.fillRect(x-w/2,y+6,w*Math.max(0,m.hp/m.def.hp),3)}
   if(m.def.boss&&m.state!=='dead'){label(`${m.def.n} Lv${m.def.lv}`,x,y+22,'#ffe27a',12);
@@ -1465,7 +1608,7 @@ function draw(){
   for(const f of fx){if(f.type!=='gx')continue;const p=f.t/f.life,a=p<.12?p/.12:Math.max(0,1-(p-.12)/.88);
     for(const [dx,dy] of GXS){const [x,y]=iso(f.x+dx,f.y+dy);ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x+32,y+16);ctx.lineTo(x,y+32);ctx.lineTo(x-32,y+16);ctx.closePath();
       ctx.fillStyle=`rgba(255,236,150,${.55*a})`;ctx.fill();ctx.strokeStyle=`rgba(255,255,255,${.8*a})`;ctx.lineWidth=1.5;ctx.stroke()}}
-  if(P.casting){const [x,y]=iso(P.x,P.y);ctx.save();ctx.translate(x,y);ctx.scale(1,.5);ctx.rotate(time*2);ctx.strokeStyle=`rgba(${{magni:'150,195,255',gx:'255,225,120'}[P.casting.id]},.9)`;ctx.lineWidth=2;ctx.beginPath();ctx.arc(0,0,26,0,7);ctx.stroke();
+  if(P.casting){const [x,y]=iso(P.x,P.y);ctx.save();ctx.translate(x,y);ctx.scale(1,.5);ctx.rotate(time*2);ctx.strokeStyle=`rgba(${{magni:'150,195,255',gx:'255,225,120',fb:'255,120,60',fball:'255,90,40',cb:'120,200,255',frost:'150,220,255',lb:'255,235,90',tstorm:'180,150,255'}[P.casting.id]||'255,255,255'},.9)`;ctx.lineWidth=2;ctx.beginPath();ctx.arc(0,0,26,0,7);ctx.stroke();
     ctx.beginPath();for(let i=0;i<6;i++){const a=i/6*Math.PI*2;ctx.lineTo(Math.cos(a)*26,Math.sin(a)*26);ctx.lineTo(Math.cos(a+Math.PI/3*2)*26,Math.sin(a+Math.PI/3*2)*26)}ctx.stroke();ctx.restore()}
   // 奥から順に
   const objs=[],m0=140;
@@ -1476,10 +1619,13 @@ function draw(){
   for(const g of groundItems)objs.push([g.x+g.y-.3,()=>drawItem(g)]);
   for(const m of mobs)objs.push([m.x+m.y,()=>drawMob(m)]);
   if(curMap.id==='field'){objs.push([CX+CY,drawFountain]);addTownDeco(objs)}
+  if(merc&&!(merc.down>0))objs.push([merc.x+merc.y,drawMerc]);
   for(const n of NPCS)objs.push([n.x+n.y,()=>{const [x,y]=iso(n.x,n.y);drawHuman(x,y,{face:n.face,body:n.body,hair:n.hair,hat:n.hat});label(n.n,x,y-56,'#ffe9a8',12)}]);
   if(!P.dead||true)objs.push([P.x+P.y,()=>{const [x,y]=iso(P.x,P.y);
     if(P.dead)ctx.globalAlpha=.5;
-    const H=P.job==='hunter',wi=P.eq.weapon&&ITEMS[P.eq.weapon.id],wOk=wi&&wi.cls===JOBS[P.job].w;
+    const H=P.job==='hunter',M=P.job==='mage',wi=P.eq.weapon&&ITEMS[P.eq.weapon.id],wOk=wi&&wi.cls===JOBS[P.job].w;
+    if(M){drawHuman(x,y,{face:P.face,walk:P.walk,moving:P.moving,swing:P.swingT,sit:P.sit,hair:'#8a4a1f',spiky:true,robe:true,staff:true,
+      body:P.eq.armor&&P.eq.armor.id==='leather'?'#5a2a6a':'#3e3a7a',weapon:wOk?{rod:'#c08aff',wstaff:'#6ab8ff',scepter:'#ffd84a'}[P.eq.weapon.id]:null})}else
     drawHuman(x,y,{face:P.face,walk:P.walk,moving:P.moving,swing:P.swingT,sit:P.sit,hair:'#8a4a1f',spiky:true,
       body:H?(P.eq.armor&&P.eq.armor.id==='leather'?'#4b5f2e':'#5f7d3c'):(P.eq.armor?(P.eq.armor.id==='leather'?'#6e2c44':'#2f3658'):'#55525e'),
       robe:!H,mace:!H,bow:H,quiver:H,
@@ -1516,7 +1662,18 @@ function draw(){
       ctx.fillStyle='#f2ead4';ctx.fillRect(-14,-2.2,3.5,4.4);ctx.restore()}
     else if(f.type==='rain'){const [x,y]=iso(f.x,f.y);ctx.strokeStyle=`rgba(90,60,30,${1-p})`;ctx.lineWidth=1.5;
       for(let i=0;i<14;i++){const ox=((i*37)%60)-30,oy=((i*23)%30)-15,fall=clamp(p*1.6-(i%5)*.1,0,1),yy=y+oy-120*(1-fall);ctx.beginPath();ctx.moveTo(x+ox+6,yy-14);ctx.lineTo(x+ox,yy);ctx.stroke()}}
-    else if(f.type==='boom'){const [x,y]=iso(f.x,f.y);ctx.fillStyle=`rgba(255,${140+p*90|0},50,${1-p})`;ctx.beginPath();ctx.arc(x,y-10,10+p*30,0,7);ctx.fill()}
+    else if(f.type==='boom'){const [x,y]=iso(f.x,f.y),R=f.big?2.6:1;ctx.fillStyle=`rgba(255,${140+p*90|0},50,${1-p})`;ctx.beginPath();ctx.ellipse(x,y-10,(10+p*30)*R,(10+p*30)*R*(f.big?.6:1),0,0,7);ctx.fill()
+      if(f.big){ctx.fillStyle=`rgba(255,240,180,${(1-p)*.8})`;ctx.beginPath();ctx.arc(x,y-14,(6+p*20)*1.4,0,7);ctx.fill()}}
+    else if(f.type==='fball'&&f.t<f.at){const q=f.t/f.at,[ax,ay]=iso(f.sx,f.sy),[bx,by]=iso(f.x,f.y),x=ax+(bx-ax)*q,y=ay-30+(by-14-ay+30)*q-Math.sin(q*Math.PI)*40;
+      const g=ctx.createRadialGradient(x,y,1,x,y,14);g.addColorStop(0,'#fff6c0');g.addColorStop(.4,'#ff9a3a');g.addColorStop(1,'rgba(255,80,20,0)');ctx.fillStyle=g;ctx.beginPath();ctx.arc(x,y,14,0,7);ctx.fill()}
+    else if(f.type==='spell'&&f.t>=0){const tx=f.m&&f.m.state!=='dead'?f.m.x:f.x,ty=f.m&&f.m.state!=='dead'?f.m.y:f.y,[x,y]=iso(tx,ty),fall=clamp(f.t/.22,0,1);
+      if(f.el==='bolt'){if(f.t>=.18&&f.t<.36){ctx.strokeStyle='#fffbe0';ctx.lineWidth=3;ctx.shadowColor='#ffe84a';ctx.shadowBlur=12;ctx.beginPath();let yy=y-220,xx=x+(rnd()-.5)*10;ctx.moveTo(xx,yy);
+          while(yy<y-12){yy+=22;xx=x+(rnd()-.5)*22;ctx.lineTo(xx,Math.min(yy,y-12))}ctx.stroke();ctx.shadowBlur=0}
+        if(f.t>=.22){const q=(f.t-.22)/.28;ctx.strokeStyle=`rgba(255,240,120,${1-q})`;ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(x,y,10+q*24,5+q*12,0,0,7);ctx.stroke()}}
+      else if(fall<1){const yy=y-14-(1-fall)*170;
+        if(f.el==='fire'){const g=ctx.createLinearGradient(x,yy-40,x,yy);g.addColorStop(0,'rgba(255,120,30,0)');g.addColorStop(1,'rgba(255,200,80,1)');ctx.strokeStyle=g;ctx.lineWidth=6;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(x+12,yy-40);ctx.lineTo(x,yy);ctx.stroke()}
+        else{ctx.fillStyle='#d8f2ff';ctx.strokeStyle='#4aa8e0';ctx.lineWidth=1.2;ctx.beginPath();ctx.moveTo(x,yy+6);ctx.lineTo(x-4,yy-8);ctx.lineTo(x+1,yy-26);ctx.lineTo(x+5,yy-8);ctx.closePath();ctx.fill();ctx.stroke()}}
+      else{const q=(f.t-.22)/.28;ctx.fillStyle=f.el==='fire'?`rgba(255,${150+q*80|0},60,${1-q})`:`rgba(190,235,255,${1-q})`;ctx.beginPath();ctx.arc(x,y-14,8+q*16,0,7);ctx.fill()}}
     else if(f.type==='falcon'){const [ax,ay]=iso(P.x,P.y),[bx,by]=iso(f.m.x,f.m.y),q=p<.5?p*2:2-p*2,e=q*q*(3-2*q);
       drawFalcon(ax-15+(bx-ax+15)*e,ay-60+(by-24-ay+60)*e-Math.sin(e*Math.PI)*30,bx>ax?1:-1,true)}
     else if(f.type==='gx'){const a=Math.max(0,1-p),hgt=50+Math.sin(p*Math.PI)*90;
@@ -1529,7 +1686,7 @@ function draw(){
       ctx.closePath();ctx.fillStyle='#d8322a';ctx.fill();ctx.strokeStyle='#ffd23f';ctx.lineWidth=2;ctx.stroke();ctx.restore()}
     label(String(f.text),qx,qy,f.col,Math.round(f.size*pop));ctx.globalAlpha=1}
   for(const e of [P,...mobs])if(e.emote&&e.state!=='dead')drawEmote(e,e===P?(P.sit?62:72):40*e.def.size+14);
-  for(const n of [...NPCS,P]){if(n.bubble&&n.bubble.t>0){const [x,y]=iso(n.x,n.y);ctx.font='12px "Zen Maru Gothic",sans-serif';const w=Math.min(220,ctx.measureText(n.bubble.text).width+14);
+  for(const n of [...NPCS,P,...(merc&&!(merc.down>0)?[merc]:[])]){if(n.bubble&&n.bubble.t>0){const [x,y]=iso(n.x,n.y);ctx.font='12px "Zen Maru Gothic",sans-serif';const w=Math.min(220,ctx.measureText(n.bubble.text).width+14);
     ctx.fillStyle='rgba(255,255,255,.95)';ctx.beginPath();ctx.roundRect(x-w/2,y-84,w,20,6);ctx.fill();ctx.fillStyle='#232f47';ctx.textAlign='center';ctx.fillText(n.bubble.text,x,y-70,w-10)}}
   // ホバー表示
   if(mouse.x>=0&&!mouse.down){const m=pickMob(mouse.x,mouse.y);let cur=aiming?'cell':CUR.def;
@@ -1594,6 +1751,7 @@ function drawMini(){
   const sc=W/GW,dot=(x,y,c,r)=>{const [ix,iy]=iso(x,y);mctx.fillStyle=c;mctx.beginPath();mctx.arc(ix*sc,iy*(H/GH),r*DPR,0,7);mctx.fill()};
   for(const m of mobs)if(m.state!=='dead')dot(m.x,m.y,m.def.boss?'#ffd84a':m.def.aggro?'#ff5d4f':'#ff9fb3',m.def.boss?2.6:1.3);
   for(const n of NPCS)dot(n.x,n.y,'#ffe27a',1.6);
+  if(merc&&!(merc.down>0))dot(merc.x,merc.y,'#5af0c0',2);
   dot(P.x,P.y,'#ffffff',2.4);
 }
 
@@ -1615,8 +1773,8 @@ function update(dt){
     if(mouse.down&&mouse.ground){mouse.holdT-=dt;if(mouse.holdT<=0){mouse.holdT=.25;const [wx,wy]=toWorld(mouse.x,mouse.y);moveTo(Math.floor(wx),Math.floor(wy))}}
   }
   if(P.bubble){P.bubble.t-=dt;if(P.bubble.t<=0)P.bubble=null}
-  for(const n of NPCS){if(n.bubble){n.bubble.t-=dt;if(n.bubble.t<=0)n.bubble=null}else if(rnd()<dt*.04){const L={shop:['ポーションあるよ〜','いらっしゃい！'],heal:['癒やしが必要な方は？'],guide:['困ったら話しかけてね'],gate:['砂の向こうで待っている…','ピラミッドへ行くかい？'],ret:['帰りたいか？','ここだけは安全だ']}[n.id]||['…'];n.bubble={text:L[Math.floor(rnd()*L.length)],t:3}}}
-  updateMobs(dt,s);updateTraps(dt);
+  for(const n of NPCS){if(n.bubble){n.bubble.t-=dt;if(n.bubble.t<=0)n.bubble=null}else if(rnd()<dt*.04){const L={shop:['ポーションあるよ〜','いらっしゃい！'],heal:['癒やしが必要な方は？'],guide:['困ったら話しかけてね'],gate:['砂の向こうで待っている…','ピラミッドへ行くかい？'],ret:['帰りたいか？','ここだけは安全だ'],merc:['腕利きの傭兵、いるぜ','5000zで10分だ！']}[n.id]||['…'];n.bubble={text:L[Math.floor(rnd()*L.length)],t:3}}}
+  updateMobs(dt,s);updateTraps(dt);updateMerc(dt);
   for(const f of fx){f.t+=dt;
     if(f.cb&&!f.done&&f.t>=f.at){f.done=true;f.cb()}
     if(f.type==='gx'){const n=f.t>=.1?Math.min(3,Math.floor((f.t-.1)/.3)+1):0;while(f.hits<n){f.hits++;gxHit(f)}}
@@ -1649,7 +1807,8 @@ function start(data){
   msg(`【経験値 ${EXP_RATE}倍】 Zキーで座る / チャットで /! /? /ho /lv /thx のエモーション`,'sys');
   cv.style.cursor=CUR.def;
   if(d)msg('前回の続きから再開しました','item');
-  msg('Qでアコライト、Wでハンターに切り替え（左上のボタンでも可）','sys');
+  if(d&&d.merc&&d.merc.remain>1&&MERC_LOOK[d.merc.job]){hireMerc(d.merc.job,d.merc.remain,true);msg(`傭兵 ${MERC_LOOK[merc.job].name} が合流しました（残り ${fmtTime(merc.end-time)}）`,'item')}
+  msg('Qでアコライト、Wでハンター、Rでマジシャンに切り替え（左上のボタンでも可）','sys');
   buildHotbar();hud();requestAnimationFrame(t=>{last=t;requestAnimationFrame(frame)});
 }
 const hot=window.claude&&window.claude.hot;
