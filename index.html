@@ -378,6 +378,8 @@ const ITEMS={
   c_prun:{n:'プルンカード',t:'card',b:{luk:2,mhp:60},sell:10,g:'札',c:'#e9869d',d:'LUK+2 / 最大HP+60'},
   c_kino:{n:'キノコンカード',t:'card',b:{vit:3},sell:10,g:'札',c:'#b05c3b',d:'VIT+3'},
   c_wolf:{n:'ウルフカード',t:'card',b:{atk:20},sell:10,g:'札',c:'#7f889b',d:'ATK+20'},
+  c_barbaro:{n:'海賊王バルバロカード',t:'card',b:{str:10,luk:10,atk:30},sell:10,g:'札',c:'#5a1a1a',d:'STR+10 / LUK+10 / ATK+30'},
+  lamp:{n:'ルーンの灯',t:'key',g:'灯',c:'#f0c040',d:'港町マリナの灯台に灯っていた光。海賊王が奪っていた。だいじな物'},
   c_glacia:{n:'氷竜グレイシアカード',t:'card',b:{agi:12,dex:12,mhp:400},sell:10,g:'札',c:'#6ab8f0',d:'AGI+12 / DEX+12 / 最大HP+400'},
   c_gtb:{n:'黄金ゴキカード',t:'card',b:{def:15,mhp:300},sell:10,g:'札',c:'#b8901e',d:'DEF+15 / 最大HP+300'},
   relic:{n:'古代の秘宝',t:'etc',sell:3000,g:'宝',c:'#c9a23a',d:'ピラミッドで見つかる秘宝。高く売れる'},
@@ -510,6 +512,7 @@ let NPCS=[
   {id:'guide',n:'案内人 ロウ',x:CX-2.5,y:CY+4.5,body:'#8a4b3a',hair:'#2b2b33',face:1},
   {id:'gate',n:'待ち人 ネフェル',x:CX-3.5,y:CY+2.5,body:'#c9a24a',hair:'#1a1a2a',face:1,hat:'pharaoh'},
   {id:'merc',n:'傭兵ギルド ガルド',x:CX-1.5,y:CY-3.5,body:'#5a4a3a',hair:'#3a2a1a',face:1,hat:'helm'},
+  {id:'sailor',n:'船乗り ガスパル',x:CX+5.5,y:CY-4.5,body:'#2a3a6a',hair:'#3a2a1a',face:-1},
   {id:'ice',n:'氷窟の案内人 ユキ',x:CX-4.5,y:CY+.5,body:'#4a7ab0',hair:'#f2f6ff',face:1},
   {id:'chrono',n:'時の番人 クロノ',x:CX+3.5,y:CY+4.5,body:'#2a2a4a',hair:'#e8e8ff',face:-1,hat:'witch'},
 ];
@@ -519,7 +522,7 @@ const FIELD={id:'field',name:'ルーンの草原',tiles:map,shade,ground,objs:tr
 let curMap=FIELD,DG=null;
 function getDungeon(){
   if(DG)return DG;const D=genDungeon();
-  DG={id:'pyramid',name:'ピラミッド',initMobs:()=>initDungeonMobs(),tiles:D.tiles,shade:D.shade,ground:renderDungeonGround(D),objs:dungeonObjs(D),safe:DG_SAFE,bgm:'pyramid',
+  DG={id:'pyramid',name:'ピラミッド',initMobs:()=>initDungeonMobs(),tiles:D.tiles,shade:D.shade,ground:renderDungeonGround(D),objs:dungeonObjs(D),safe:DG_SAFE,bgm:'pyramid',dark:true,
     npcs:[{id:'ret',n:'帰還の神官 アニ',x:CX+1.5,y:CY-.5,body:'#efe6cc',hair:'#1a1a2a',face:-1}],
     spawn:()=>{for(let i=0;i<600;i++){const x=irand(2,MW-3),y=irand(2,MH-3);if(D.tiles[y*MW+x]===SA&&Math.hypot(x+.5-CX,y+.5-CY)>6)return [x+.5,y+.5]}return [CX+.5,CY+8.5]}};
   return DG;
@@ -530,7 +533,7 @@ let FD=null;
 const ICE_LV=300;let IC=null;
 function getIce(){
   if(IC)return IC;const D=genDungeon(4242),imgs=[makeWall(false,PAL_ICE),makeWall(true,PAL_ICE)];
-  IC={id:'ice',name:'凍てつく氷窟',tiles:D.tiles,shade:D.shade,ground:renderDungeonGround(D,PAL_ICE),objs:dungeonObjs(D,imgs,PAL_ICE),safe:DG_SAFE,bgm:'ice',vig:'0,12,30',initMobs:()=>initIceMobs(),
+  IC={id:'ice',name:'凍てつく氷窟',tiles:D.tiles,shade:D.shade,ground:renderDungeonGround(D,PAL_ICE),objs:dungeonObjs(D,imgs,PAL_ICE),safe:DG_SAFE,bgm:'ice',vig:'0,12,30',dark:true,initMobs:()=>initIceMobs(),
     npcs:[{id:'ret',n:'帰還の神官 アニ',x:CX+1.5,y:CY-.5,body:'#efe6cc',hair:'#1a1a2a',face:-1}],
     spawn:()=>{for(let i=0;i<600;i++){const x=irand(2,MW-3),y=irand(2,MH-3);if(D.tiles[y*MW+x]===SA&&Math.hypot(x+.5-CX,y+.5-CY)>6)return [x+.5,y+.5]}return [CX+.5,CY+8.5]},
     bossSpawn:()=>{let best=null,bd=0;for(let i=0;i<800;i++){const x=irand(2,MW-3),y=irand(2,MH-3),dd=Math.hypot(x+.5-CX,y+.5-CY);if(D.tiles[y*MW+x]===SA&&dd>bd){bd=dd;best=[x+.5,y+.5]}}return best||[CX+.5,CY+12.5]}};
@@ -560,7 +563,7 @@ function iceDefs(){
 function initIceMobs(){const defs=iceDefs();mobs=[];for(const k in defs){const def=defs[k];for(let i=0;i<def.count;i++){const m={key:k,def,seed:rnd()*10};spawnMob(m);mobs.push(m)}}}
 function getFinal(){
   if(FD)return FD;const D=genDungeon(9999),imgs=[makeWall(false,PAL_VOID),makeWall(true,PAL_VOID)];
-  FD={id:'final',name:'終焉の神殿',tiles:D.tiles,shade:D.shade,ground:renderDungeonGround(D,PAL_VOID),objs:dungeonObjs(D,imgs,PAL_VOID),safe:DG_SAFE,bgm:'final',vig:'10,0,22',initMobs:()=>initFinalMobs(),
+  FD={id:'final',name:'終焉の神殿',tiles:D.tiles,shade:D.shade,ground:renderDungeonGround(D,PAL_VOID),objs:dungeonObjs(D,imgs,PAL_VOID),safe:DG_SAFE,bgm:'final',vig:'10,0,22',dark:true,initMobs:()=>initFinalMobs(),
     npcs:[{id:'ret',n:'帰還の神官 アニ',x:CX+1.5,y:CY-.5,body:'#efe6cc',hair:'#1a1a2a',face:-1}],
     spawn:()=>{for(let i=0;i<600;i++){const x=irand(2,MW-3),y=irand(2,MH-3);if(D.tiles[y*MW+x]===SA&&Math.hypot(x+.5-CX,y+.5-CY)>7)return [x+.5,y+.5]}return [CX+.5,CY+9.5]},
     bossSpawn:()=>{let best=null,bd=0;for(let i=0;i<800;i++){const x=irand(2,MW-3),y=irand(2,MH-3),dd=Math.hypot(x+.5-CX,y+.5-CY);if(D.tiles[y*MW+x]===SA&&dd>bd){bd=dd;best=[x+.5,y+.5]}}return best||[CX+.5,CY+12.5]}};
@@ -586,6 +589,101 @@ function finalDefs(){
   };
 }
 function initFinalMobs(){const defs=finalDefs();mobs=[];for(const k in defs){const def=defs[k];for(let i=0;i<def.count;i++){const m={key:k,def,seed:rnd()*10};spawnMob(m);mobs.push(m)}}}
+/* ---------- 港町マリナと潮風の海岸（第2部） ---------- */
+const WOOD=8,PORT_ARR=[CX+.5,CY-4.5];let PT=null;
+function genPort(){
+  const R3=mulberry(31337),t=new Uint8Array(MW*MH),sh=new Float32Array(MW*MH);
+  for(let i=0;i<MW*MH;i++)sh[i]=R3();
+  for(let y=0;y<MH;y++)for(let x=0;x<MW;x++){
+    const i=y*MW+x,coast=12+Math.sin(x*.3)*1.5+Math.sin(x*.11)*1.2,d=cheb(x+.5,y+.5);
+    let v=R3()<.06?FL:G;
+    if(y<coast)v=WA;else if(y<coast+3.5)v=SA;
+    if(x<2||x>=MW-2||y>=MH-2)v=TR;
+    if(townXY(x+.5,y+.5))v=ST;
+    else if((x===CX-1||x===CX)&&y>=3&&y<CY-7)v=WOOD;
+    else if(v!==WA&&v!==TR&&(x===CX-1||x===CX||y===CY-1||y===CY))v=DI;
+    else if(v!==WA&&v!==TR&&d>9&&R3()<.045)v=TR;
+    t[i]=v;
+  }
+  const seen=new Uint8Array(MW*MH),q=[[CX,CY+3]];seen[(CY+3)*MW+CX]=1;
+  const ok=(x,y)=>x>=0&&y>=0&&x<MW&&y<MH&&t[y*MW+x]!==WA&&t[y*MW+x]!==TR;
+  while(q.length){const [x,y]=q.pop();for(const [dx,dy] of DIRS.slice(0,4)){const nx=x+dx,ny=y+dy,k=ny*MW+nx;if(ok(nx,ny)&&!seen[k]){seen[k]=1;q.push([nx,ny])}}}
+  for(let i=0;i<MW*MH;i++)if(!seen[i]&&t[i]!==WA&&t[i]!==TR)t[i]=TR;
+  return {tiles:t,shade:sh};
+}
+function renderPortGround(D){
+  const c=document.createElement('canvas');c.width=GW;c.height=GH;const g=c.getContext('2d');
+  g.fillStyle='#2a6a8a';g.fillRect(0,0,GW,GH);
+  for(let y=0;y<MH;y++)for(let x=0;x<MW;x++){const i=y*MW+x,v=D.tiles[i],s=D.shade[i],[px,py]=iso(x,y);
+    g.beginPath();g.moveTo(px,py);g.lineTo(px+32,py+16);g.lineTo(px,py+32);g.lineTo(px-32,py+16);g.closePath();
+    g.fillStyle=v===WA?`hsl(${195+s*8},62%,${42+s*5}%)`:v===SA?`hsl(${42+s*5},${52+s*8}%,${72+s*6}%)`:v===ST?`hsl(30,${12+s*6}%,${70+s*6}%)`:v===DI?`hsl(${36+s*6},34%,${58+s*5}%)`:v===WOOD?`hsl(${26+s*4},42%,${40+s*6}%)`:`hsl(${92+s*14},${42+s*8}%,${v===TR?36+s*4:44+s*6}%)`;
+    g.fill();g.strokeStyle='rgba(0,0,0,.07)';g.lineWidth=1;g.stroke();
+    if(v===WA){g.strokeStyle='rgba(255,255,255,.25)';g.beginPath();g.moveTo(px-12,py+13);g.quadraticCurveTo(px-4,py+10,px+4,py+13);g.moveTo(px-2,py+20);g.quadraticCurveTo(px+6,py+17,px+14,py+20);g.stroke()}
+    if(v===WOOD){g.strokeStyle='rgba(50,25,10,.45)';g.beginPath();for(let k=1;k<4;k++){g.moveTo(px-32+k*16,py+16-k*8);g.lineTo(px+k*16,py+32-k*8)}g.stroke()}
+    if(v===SA&&s>.8){g.fillStyle='rgba(255,255,255,.6)';g.beginPath();g.arc(px-6+s*12,py+16,1.6,0,7);g.fill()}
+    if(v===ST){g.beginPath();g.moveTo(px,py+5);g.lineTo(px+22,py+16);g.lineTo(px,py+27);g.lineTo(px-22,py+16);g.closePath();g.strokeStyle='rgba(255,255,255,.3)';g.stroke()}
+    if(v===FL){for(let k=0;k<3;k++){g.fillStyle=['#ffd3e6','#fff2a3','#ffffff'][k];g.beginPath();g.arc(px-10+k*10,py+12+(k%2)*6,1.8,0,7);g.fill()}}
+  }
+  return c;
+}
+function makePalm(h){
+  const c=document.createElement('canvas');c.width=90;c.height=118;const g=c.getContext('2d');
+  g.fillStyle='rgba(0,0,0,.22)';g.beginPath();g.ellipse(45,108,20,7,0,0,7);g.fill();
+  g.strokeStyle='#8a6a42';g.lineWidth=7;g.lineCap='round';g.beginPath();g.moveTo(45,108);g.quadraticCurveTo(38+h,70,48+h*2,34);g.stroke();
+  g.strokeStyle='rgba(60,40,20,.5)';g.lineWidth=1.5;for(let k=0;k<6;k++){const y=100-k*12;g.beginPath();g.moveTo(40+h*.4*k/6,y);g.lineTo(50+h*.4*k/6,y-2);g.stroke()}
+  const tx=48+h*2,ty=34;
+  for(let k=0;k<7;k++){const a=-Math.PI+k*Math.PI/6+.1;g.strokeStyle=k%2?'#3a8a3a':'#4aa04a';g.lineWidth=7;g.beginPath();g.moveTo(tx,ty);
+    g.quadraticCurveTo(tx+Math.cos(a)*22,ty+Math.sin(a)*22-10,tx+Math.cos(a)*38,ty+Math.sin(a)*30+10);g.stroke()}
+  g.fillStyle='#6a4a2a';for(const [dx,dy] of [[-4,4],[3,5],[0,8]]){g.beginPath();g.arc(tx+dx,ty+dy,3.5,0,7);g.fill()}
+  return c;
+}
+const palmImgs=[makePalm(-4),makePalm(2),makePalm(6)];
+function lighthouseLit(){const s=P.story;return !!(s&&(s.done||s.ch>8||(s.ch===8&&s.step>=1)))}
+function drawLighthouse(x,y){
+  shadow(x,y,24,9);ctx.fillStyle='#8a8070';ctx.beginPath();ctx.ellipse(x,y-2,22,9,0,0,7);ctx.fill();
+  for(let k=0;k<5;k++){const y0=y-4-k*22,w0=17-k*1.6,w1=17-(k+1)*1.6;ctx.fillStyle=k%2?'#d8443a':'#f4f0e8';ctx.beginPath();ctx.moveTo(x-w0,y0);ctx.lineTo(x+w0,y0);ctx.lineTo(x+w1,y0-22);ctx.lineTo(x-w1,y0-22);ctx.closePath();ctx.fill()}
+  const ty=y-114;ctx.fillStyle='#3a3a44';ctx.fillRect(x-12,ty-4,24,4);
+  const lit=lighthouseLit();ctx.fillStyle=lit?'#fff2a0':'#556070';ctx.fillRect(x-8,ty-18,16,14);
+  ctx.fillStyle='#3a3a44';ctx.beginPath();ctx.moveTo(x-11,ty-18);ctx.lineTo(x,ty-30);ctx.lineTo(x+11,ty-18);ctx.closePath();ctx.fill();
+  if(lit){const a=time*1.2,g=ctx.createRadialGradient(x,ty-11,2,x,ty-11,46);g.addColorStop(0,'rgba(255,240,170,.75)');g.addColorStop(1,'rgba(255,240,170,0)');ctx.fillStyle=g;ctx.beginPath();ctx.arc(x,ty-11,46,0,7);ctx.fill();
+    ctx.fillStyle='rgba(255,245,190,.18)';ctx.beginPath();ctx.moveTo(x,ty-11);ctx.lineTo(x+Math.cos(a)*260,ty-11+Math.sin(a)*90-18);ctx.lineTo(x+Math.cos(a)*260,ty-11+Math.sin(a)*90+18);ctx.closePath();ctx.fill()}
+}
+function getPort(){
+  if(PT)return PT;const D=genPort(),objs=[];
+  for(let y=0;y<MH;y++)for(let x=0;x<MW;x++)if(D.tiles[y*MW+x]===TR){const [sx,sy]=iso(x+.5,y+.5);objs.push({d:x+y+1,sx,sy,img:palmImgs[Math.floor(D.shade[y*MW+x]*3)],ox:45,oy:108})}
+  {const lx=CX+4.5,ly=16.5,[sx,sy]=iso(lx,ly);D.tiles[Math.floor(ly)*MW+Math.floor(lx)]=TR;objs.push({d:lx+ly,sx,sy,fn:drawLighthouse})}
+  PT={id:'port',name:'港町マリナ',tiles:D.tiles,shade:D.shade,ground:renderPortGround(D),objs,safe:townXY,bgm:'port',initMobs:()=>initPortMobs(),
+    npcs:[
+      {id:'mayor',n:'町長 シーラ',x:CX-3.5,y:CY-2.5,body:'#2a6a8a',hair:'#c86a3a',face:1},
+      {id:'orca',n:'灯台守 オルカ',x:CX+2.5,y:CY-6.5,body:'#3a4a6a',hair:'#e8e8e8',face:-1},
+      {id:'sailor',n:'船乗り ガスパル',x:CX-2.5,y:CY-6.5,body:'#2a3a6a',hair:'#3a2a1a',face:1},
+      {id:'shop2',n:'道具屋 マーリン',x:CX-4.5,y:CY+2.5,body:'#3a8a7a',hair:'#f0d080',face:1,shop:true},
+      {id:'heal2',n:'修道士 ルカ',x:CX+4.5,y:CY+2.5,body:'#e8e4d8',hair:'#5a3a2a',face:-1,heal:true},
+    ],
+    spawn:()=>{for(let i=0;i<600;i++){const x=irand(2,MW-3),y=irand(2,MH-3),v=D.tiles[y*MW+x];if(v!==WA&&v!==TR&&v!==WOOD&&!townXY(x+.5,y+.5)&&cheb(x+.5,y+.5)>9)return [x+.5,y+.5]}return [CX+.5,CY+12.5]},
+    bossSpawn:()=>{for(let i=0;i<600;i++){const x=irand(2,MW-3),y=irand(14,19),v=D.tiles[y*MW+x];if(v===SA&&Math.abs(x-CX)>10)return [x+.5,y+.5]}return [CX+14.5,16.5]}};
+  return PT;
+}
+function portDefs(){
+  const L=Math.max(40,Math.round(effLv()*.9));
+  const mk=(n,kind,col,size,off,o={})=>{const lv=Math.max(5,L+off);
+    return {n,kind,lv,hp:Math.round(8*Math.pow(lv,1.35)+60),atk:[Math.round(lv*1.5),Math.round(lv*2.1)],def:Math.min(40,5+Math.floor(lv/25)),hit:lv+20,flee:Math.round(lv*.6),
+      exp:Math.round(Math.pow(lv,1.25)),jexp:Math.round(Math.pow(lv,1.25)*.7),speed:o.speed||2,delay:o.delay||1.3,aggro:!!o.aggro,aggroR:6,col,size,
+      count:o.count||10,respawn:10,look:o.look||{},drops:[['yellow',.15],['blue',.05],['relic',.03]],zeny:[lv*2,lv*5]}};
+  const lv=L+70;
+  const boss={n:'海賊王 バルバロ',kind:'human',lv,hp:Math.round(150*Math.pow(lv,1.3)*1.5),atk:[Math.round(lv*2.4),Math.round(lv*3.1)],def:40,hit:lv+40,flee:Math.round(lv*.8),
+    exp:Math.round(Math.pow(lv,1.6)*1.5),jexp:Math.round(Math.pow(lv,1.6)),speed:2.4,delay:1.1,aggro:true,aggroR:8,chaseR:20,boss:true,tier:bossTier(),col:'#5a1a1a',size:1.7,
+    look:{hat:'helm',body:'#5a1a1a',hair:'#1a1a1a',skin:'#c99a6a',eye:'#ffd23f'},special:{every:9,r:3.2,mult:1.2,col:'255,150,40',msg:'海賊王が大砲を構えた！ オレンジの円から離れろ！'},
+    count:1,respawn:0,drops:[['relic',1],['gold',1],['blue',1],['c_barbaro',.12]],zeny:[lv*100,lv*200],mvp:[['c_barbaro',.08],['relic',1]]};
+  return {
+    crab:mk('ハサミガニ','gtb','#d8503a',.9,-20,{count:14,speed:2.4}),
+    sprun:mk('海プルン','prun','#5ab8e0',1,-30,{count:12}),
+    pskel:mk('海賊骸骨','human','#6a1a1a',1.05,10,{count:12,aggro:true,look:{hat:'helm',body:'#6a1a1a',hair:'#d8d2c0',skin:'#e8e4d8',eye:'#ffcc33'}}),
+    sghost:mk('シーゴースト','ghost','#7ad8d0',1,20,{count:8,aggro:true,speed:2.3}),
+    barbaro:boss,
+  };
+}
+function initPortMobs(){const defs=portDefs();mobs=[];for(const k in defs){const def=defs[k];for(let i=0;i<def.count;i++){const m={key:k,def,seed:rnd()*10};spawnMob(m);mobs.push(m)}}}
 function useMap(M){curMap=M;map=M.tiles;shade=M.shade;ground=M.ground;trees=M.objs;NPCS=M.npcs;safeXY=M.safe}
 function enterMap(M,x,y){
   curMap.mobs=mobs;curMap.items=groundItems;curMap.traps=traps;
@@ -762,15 +860,43 @@ const SONG_ICE=[
   ['Am',[[76,1],[72,1],[69,2]]],['F',[[72,1],[74,1],[76,2]]],['C',[[79,1.5],[76,.5],[72,2]]],['G',[[74,2],[71,2]]],
   ['Am',[[69,1],[71,1],[72,1],[76,1]]],['F',[[77,2],[76,1],[74,1]]],['E',[[71,1],[68,1],[71,1],[74,1]]],['E',[[76,4]]],
 ];
-CH.G=CH.G||[43,[55,59,62]];CH.E=[40,[52,56,59]];
-const SONGS={ice:{beat:60/96,bpb:4,bars:SONG_ICE,drone:45},town:{beat:60/112,bpb:3,bars:SONG},pyramid:{beat:60/88,bpb:4,bars:SONG_PYRAMID,drone:38},final:{beat:60/76,bpb:4,bars:SONG_FINAL,drone:40}};
+CH.G=CH.G||[43,[55,59,62]];CH.E=[40,[52,56,59]];CH.A7=[45,[49,52,55]];CH.Bm=[47,[50,54,59]];
+// 町の曲の後半（壮大に盛り上がるBセクション）
+SONG.push(
+  ['C',[[79,2],[76,1]]],['G',[[74,2],[71,1]]],['Am',[[72,1],[74,1],[76,1]]],['Em',[[79,3]]],
+  ['F',[[81,2],[77,1]]],['C',[[79,2],[76,1]]],['D',[[78,1],[79,1],[81,1]]],['D7',[[78,3]]],
+  ['G',[[83,2],[79,1]]],['Em',[[81,2],[79,1]]],['C',[[76,1],[79,1],[84,1]]],['D',[[83,2],[81,1]]],
+  ['G',[[79,1],[83,1],[86,1]]],['C',[[84,2],[79,1]]],['D7',[[81,1],[78,1],[74,1]]],['G',[[79,3]]]);
+const SONG_PORT=[
+  ['D',[[74,1],[73,1],[74,1]]],['G',[[71,2],[74,1]]],['A7',[[73,1],[76,1],[73,1]]],['D',[[74,3]]],
+  ['Bm',[[78,1],[76,1],[74,1]]],['G',[[71,1],[74,1],[79,1]]],['A7',[[76,1],[73,1],[69,1]]],['D',[[74,3]]],
+];
+function timp(t,n,vol=.3){const o=AC.createOscillator(),g=AC.createGain();o.type='sine';o.frequency.setValueAtTime(mf(n),t);o.frequency.exponentialRampToValueAtTime(mf(n)*.7,t+.35);
+  g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(.001,t+.7);o.connect(g);g.connect(bgmGain);o.start(t);o.stop(t+.75)}
+function swell(t,dur=1.2,vol=.07){const n=Math.floor(AC.sampleRate*dur),buf=AC.createBuffer(1,n,AC.sampleRate),d=buf.getChannelData(0);for(let i=0;i<n;i++)d[i]=(rnd()*2-1)*Math.sin(i/n*Math.PI);
+  const s=AC.createBufferSource(),f=AC.createBiquadFilter(),g=AC.createGain();s.buffer=buf;f.type='highpass';f.frequency.value=5000;g.gain.value=vol;s.connect(f);f.connect(g);g.connect(bgmGain);s.start(t)}
+const SONGS={ice:{beat:60/96,bpb:4,bars:SONG_ICE,drone:45},town:{beat:60/100,bpb:3,bars:SONG,grand:true},port:{beat:60/126,bpb:3,bars:SONG_PORT},pyramid:{beat:60/88,bpb:4,bars:SONG_PYRAMID,drone:38},final:{beat:60/76,bpb:4,bars:SONG_FINAL,drone:40}};
 let bgmSong='town',bgmLp=null;
 function scheduleBar(i,t){
   const S2=SONGS[bgmSong],B=S2.beat,[ch,mel]=S2.bars[i],[bass,tri]=CH[ch];
   if(S2.bpb===3){
     bnote(t,bass,B*1.6,'sine',.22,.01);bnote(t,bass+12,B*.8,'triangle',.05,.01);
     for(const b of [1,2])for(const n of tri)bnote(t+b*B,n,B*.55,'triangle',.035,.01);
-    if(i>=8)for(let k=0;k<6;k++)bnote(t+k*B/2,tri[k%3]+(k>=3?24:12),B*.9,'sine',.025,.005);
+    if(i>=8&&!S2.grand)for(let k=0;k<6;k++)bnote(t+k*B/2,tri[k%3]+(k>=3?24:12),B*.9,'sine',.025,.005);
+    if(S2.grand){
+      const big=i>=16;
+      // ストリングスの白玉（和音を伸ばす）
+      for(const n of tri){bnote(t,n+12,B*3.1,'sawtooth',big?.016:.01,.35);bnote(t,n,B*3.1,'triangle',.03,.3)}
+      // ハープの分散和音（8小節目から）
+      if(i>=8)for(let k=0;k<6;k++)bnote(t+k*B/2,tri[k%3]+(k>=3?24:12),B*.9,'sine',.022,.005);
+      // ティンパニ：前半は4小節ごと、後半は毎小節
+      if(big||i%4===0)timp(t,bass-12+12,big?.32:.22);
+      if(big&&i%4===3)for(const b of [1,1.5,2,2.5])timp(t+b*B,bass,.14);
+      // 区切りでシンバルのうねり
+      if(i===0||i===16)swell(t,1.6,.08);
+      // 後半は金管がメロディを1オクターブ下で重ねる
+      if(big){let bt=0;for(const [n,len] of mel){bnote(t+bt*B,n-12,len*B*.95,'sawtooth',.03,.04);bnote(t+bt*B,n-12,len*B*.95,'square',.012,.04);bt+=len}}
+    }
   }else{
     bnote(t,S2.drone,B*4.2,'sine',.08,.4);
     for(const b of [0,2])bnote(t+b*B,bass,B*1.5,'triangle',.16,.01);
@@ -1394,11 +1520,20 @@ const TIPS=['左クリックで移動、モンスターをクリックで攻撃�
 let talkNpc=null;
 function openNpc(n){
   talkNpc=n;
-  const st=storyStep();if(st&&st.type==='talk'&&st.npc===n.id){showStoryTalk(st.lines,()=>{storyAdvance();if(st.after==='rebirth')openRebirth()});return}
+  const st=storyStep();if(st&&st.type==='talk'&&st.npc===n.id){showStoryTalk(st.lines,()=>{storyAdvance();storyAfter(st.after)});return}
   $('talkName').textContent=n.n;
-  if(n.id==='shop'){shopTab='buy';toggleWin('shop',true);return}
+  if(n.id==='shop'||n.shop){shopTab='buy';toggleWin('shop',true);return}
   let html;
-  if(n.id==='heal') html=`<p class="talk-t">神のご加護を。傷を癒やしてさしあげましょう。</p><div class="btns"><button class="btn" data-act="doheal">回復してもらう</button><button class="btn" data-close>また今度</button></div>`;
+  if(n.id==='sailor'){
+    const open=P.reb>=1||(P.story&&P.story.ch>=6);
+    html=curMap.id==='port'
+      ?`<p class="talk-t">よう、ルーンの草原に戻るかい？ 潮の具合はばっちりだ。</p><div class="btns"><button class="btn" data-act="warp-rune">ルーンの草原へ帰る</button><button class="btn" data-close>まだ港にいる</button></div>`
+      :open?`<p class="talk-t">東の港町マリナ行きの船だ。転生を越えた強者なら、荒れた海も怖くねぇだろ？</p><div class="btns"><button class="btn" data-act="warp-port">港町マリナへ出航</button><button class="btn" data-close>また今度</button></div>`
+      :`<p class="talk-t">海が荒れてて、今は船を出せねぇ。……時の果てを越えた強者なら、話は別だがな。<br><span class="note">（転生すると港町マリナへ行けるようになります）</span></p><div class="btns"><button class="btn" data-close>わかった</button></div>`;
+  }
+  else if(n.id==='mayor') html=`<p class="talk-t">港町マリナへようこそ。海の幸と潮風だけが自慢の町よ。<br>浜辺の魔物には気をつけて。海賊骸骨とシーゴーストは、近づくと襲ってくるわ。</p><div class="btns"><button class="btn" data-close>ありがとう</button></div>`;
+  else if(n.id==='orca') html=`<p class="talk-t">${lighthouseLit()?'灯台の灯は今日も海を照らしておる。お前さんのおかげじゃ。':'灯台の灯が消えてから、海がざわついてならん……。'}</p><div class="btns"><button class="btn" data-close>それじゃ</button></div>`;
+  else if(n.id==='heal'||n.heal) html=`<p class="talk-t">神のご加護を。傷を癒やしてさしあげましょう。</p><div class="btns"><button class="btn" data-act="doheal">回復してもらう</button><button class="btn" data-close>また今度</button></div>`;
   else if(n.id==='gate') html=`<p class="talk-t">……来たか。砂に埋もれたピラミッドへ案内しよう。<br>中の魔物は、お前の強さ（Base Lv ${P.lv}）に合わせて目を覚ます。数も多く、気づけばすぐ襲ってくるぞ。<br>安全なのは入口の光る9マスだけだ。</p><div class="btns"><button class="btn" data-act="warp-dg">ピラミッドへ行く</button><button class="btn" data-close>やめておく</button></div>`;
   else if(n.id==='merc'){
     const cur=merc?`<p class="note">契約中：${MERC_LOOK[merc.job].name}（${JOBS[merc.job].n}）残り ${fmtTime(merc.end-time)}。同じ職業を選ぶと10分延長、別の職業を選ぶと入れ替えになります。</p>`:'';
@@ -1497,29 +1632,68 @@ const STORY=[
       [CHR,'案ずるな。お前の体は、その強さを覚えている。'],
       [CHR,'もう一度、始まりの草原から歩き出すがいい。——それが「転生」じゃ。']]},
   ]},
-  {t:'めぐる時',steps:[
+  {t:'めぐる時',end:true,steps:[
     {type:'reb',goal:'転生して、新たな旅を始めよう'},
+  ]},
+  // ===== 第2部「潮騒の章」 =====
+  {t:'海からの便り',part:'第2部「潮騒の章」',steps:[
+    {type:'talk',npc:'chrono',goal:'時の番人 クロノに話しかけよう',lines:[
+      [CHR,'……転生してなお、時の歪みは消えておらんようじゃ。'],
+      [CHR,'遥か東の港町マリナから便りが届いた。夜ごと海が光り、灯台の灯が消えたという。'],
+      [CHR,'灯が消えたのと同じころ、海の魔物が浜へ這い上がってくるようになったそうじゃ。偶然とは思えん。'],
+      [CHR,'噴水の北東で、船乗りのガスパルが待っておる。マリナへ渡ってみよ。']]},
+    {type:'talk',npc:'sailor',after:'port',goal:'船乗り ガスパルに話しかけよう',lines:[
+      ['船乗り ガスパル','あんたが噂の冒険者か！ クロノのじいさんから話は聞いてるぜ。'],
+      ['船乗り ガスパル','最近の海は荒れててな、夜になると沖が青白く光りやがる。'],
+      ['船乗り ガスパル','マリナまでひとっ飛びだ。しっかりつかまってな！']]},
+  ]},
+  {t:'港町マリナ',steps:[
+    {type:'talk',npc:'mayor',goal:'町長 シーラに話しかけよう',lines:[
+      ['町長 シーラ','ようこそマリナへ……と言いたいところだけど、町は大変なの。'],
+      ['町長 シーラ','海から魔物が這い上がってきて、漁にも出られない。子どもたちも浜で遊べないわ。'],
+      ['町長 シーラ','お願い、浜辺の魔物を15体追い払ってくれない？']]},
+    {type:'kill',count:15,map:'port',goal:'マリナの浜辺の魔物を倒そう'},
+    {type:'talk',npc:'mayor',goal:'町長 シーラに報告しよう',lines:[
+      ['町長 シーラ','助かったわ！ 浜に笑い声が戻ってきた。'],
+      ['町長 シーラ','でも、魔物を呼び寄せているのは……海賊王バルバロ。灯台の〈ルーンの灯〉を盗んでから、海がおかしくなったの。'],
+      ['町長 シーラ','やつは海岸の砂浜に陣取って、大砲で近づく者を追い払っているわ。'],
+      ['町長 シーラ','どうか、灯を取り返して！']]},
+    {type:'boss',boss:'barbaro',give:'lamp',goal:'海賊王 バルバロを倒そう'},
+    {type:'talk',npc:'mayor',goal:'町長 シーラに灯を見せよう',lines:[
+      ['町長 シーラ','その光……間違いない、ルーンの灯よ！'],
+      ['町長 シーラ','灯台守のオルカおじいさんに届けてあげて。町の北、桟橋のそばにいるわ。']]},
+  ]},
+  {t:'灯台守の秘密',steps:[
+    {type:'talk',npc:'orca',goal:'灯台守 オルカに灯を届けよう',lines:[
+      ['灯台守 オルカ','おお……灯が戻った。ありがとう、旅の人。'],
+      ['灯台守 オルカ','実はな、この灯はただの明かりではない。ルーンの欠片から生まれた、もうひとつの光なんじゃ。'],
+      ['灯台守 オルカ','灯は海の底に沈んだ神殿の扉を照らす鍵。海賊王は、あの神殿の力を狙っておった。'],
+      ['灯台守 オルカ','だが本当に恐ろしいのは、神殿の奥で眠る“何か”じゃ。灯が消えていたあいだに、そやつは目を覚ましかけておる。'],
+      ['灯台守 オルカ','扉が開くには、まだ潮が満ちておらん……。時が来たら、また訪ねておいで。']]},
+    {type:'wait',goal:'海底神殿の扉が開くのを待とう（続きは次回のアップデートで）'},
   ]},
 ];
 let storyTalk=null;
 function storyStep(){const s=P.story;if(!s||s.done)return null;const c=STORY[s.ch];return c?c.steps[s.step]:null}
 function initStory(){P.story={ch:0,step:0,kills:0,done:false};setTimeout(()=>showStoryTalk(PROLOGUE,()=>chapterBanner(0)),700)}
-function chapterBanner(i){fx.push({type:'lvbig',t:0,life:3,title:`第${i+1}章`,lines:[`「${STORY[i].t}」`]});msg(`第${i+1}章「${STORY[i].t}」`,'item');sfx('buff')}
+function chapterBanner(i){const c=STORY[i];fx.push({type:'lvbig',t:0,life:3.4,title:c.part?'第2部':`第${i+1}章`,lines:c.part?[c.part.replace('第2部',''),`第${i+1}章「${c.t}」`]:[`「${c.t}」`]});msg(`${c.part?c.part+' ':''}第${i+1}章「${c.t}」`,'item');sfx('buff')}
+function storyAfter(a){if(a==='rebirth')openRebirth();else if(a==='port')enterMap(getPort(),PORT_ARR[0],PORT_ARR[1])}
 function storyAdvance(){
   const s=P.story,st=storyStep();if(!st)return;
   if(st.give&&!count(st.give)){addItem(st.give);msg(`${ITEMS[st.give].n} を手に入れた！`,'item')}
   s.step++;s.kills=0;
-  if(s.step>=STORY[s.ch].steps.length){s.ch++;s.step=0;
+  if(s.step>=STORY[s.ch].steps.length){const fin=STORY[s.ch];s.ch++;s.step=0;
     if(s.ch>=STORY.length){s.done=true;setTimeout(()=>showStoryTalk(ENDING,()=>msg('物語は完結しました。冒険はこれからも続く','item')),2500)}
+    else if(fin.end){const nc=s.ch;setTimeout(()=>showStoryTalk(ENDING,()=>{msg('第1部 完。……そして物語は、海の向こうへ','item');chapterBanner(nc)}),2500)}
     else chapterBanner(s.ch)}
   const nx=storyStep();
-  if(nx&&nx.auto)setTimeout(()=>showStoryTalk(nx.lines,()=>{storyAdvance();if(nx.after==='rebirth')openRebirth()}),1800);
+  if(nx&&nx.auto)setTimeout(()=>showStoryTalk(nx.lines,()=>{storyAdvance();storyAfter(nx.after)}),1800);
   dirty=true;save();
 }
 function storyEvent(type,arg){
   const st=storyStep();if(!st||st.type!==type)return;
-  if(type==='kill'){P.story.kills++;if(P.story.kills>=st.count)storyAdvance()}
-  else if(type==='boss'){const m=arg,ok=st.boss==='field'?curMap.id==='field':st.boss==='pharaoh'?m.key==='pharaoh':!!m.def.final;if(ok)storyAdvance()}
+  if(type==='kill'){if(st.map&&curMap.id!==st.map)return;P.story.kills++;if(P.story.kills>=st.count)storyAdvance()}
+  else if(type==='boss'){const m=arg,ok=st.boss==='field'?curMap.id==='field':st.boss==='final'?!!m.def.final:m.key===st.boss;if(ok)storyAdvance()}
   else if(type==='enter'&&arg===st.map)storyAdvance();
 }
 function storyCheck(){const st=storyStep();if(!st)return;if((st.type==='lv'&&P.lv>=st.lv)||(st.type==='reb'&&P.reb>=1))storyAdvance()}
@@ -1583,6 +1757,8 @@ document.addEventListener('click',e=>{
     openNpc(talkNpc);dirty=true;return}
   else if(act==='fire-hv'){if(harvest){for(const u of harvest.units)if(u.carry)hvDeliver(u.carry);harvest=null;msg('ハーヴェストとの契約を解除しました','sys')}openNpc(talkNpc);dirty=true;return}
   else if(act==='fire-merc'){if(merc){msg(`傭兵 ${MERC_LOOK[merc.job].name} との契約を解除しました`,'sys');merc=null}openNpc(talkNpc);dirty=true;return}
+  else if(act==='warp-port'){$('w-talk').hidden=true;enterMap(getPort(),PORT_ARR[0],PORT_ARR[1]);return}
+  else if(act==='warp-rune'){$('w-talk').hidden=true;enterMap(FIELD,CX+5.5,CY-3.5);return}
   else if(act==='warp-ice'){$('w-talk').hidden=true;if(P.lv<ICE_LV)return;enterMap(getIce(),CX-.5,CY+1.5);return}
   else if(act==='warp-final'){$('w-talk').hidden=true;if(P.lv<MAX_LV)return;enterMap(getFinal(),CX-.5,CY+1.5);return}
   else if(act==='story-next'){const T=storyTalk;if(!T)return;T.i++;if(T.i>=T.lines.length){storyTalk=null;$('w-talk').hidden=true;T.done&&T.done()}else renderStoryTalk();return}
@@ -1919,7 +2095,7 @@ function draw(){
   if(ex>sx&&ey>sy)ctx.drawImage(ground,sx,sy,ex-sx,ey-sy,sx,sy,ex-sx,ey-sy);
   // 地面エフェクト
   if(curMap.id==='field')drawTownFloor();
-  else{const [x,y]=iso(CX+.5,CY+.5);ctx.save();ctx.translate(x,y);ctx.scale(1,.5);ctx.rotate(time*.6);ctx.strokeStyle='rgba(120,230,255,.75)';ctx.lineWidth=2.5;
+  else if(curMap.dark){const [x,y]=iso(CX+.5,CY+.5);ctx.save();ctx.translate(x,y);ctx.scale(1,.5);ctx.rotate(time*.6);ctx.strokeStyle='rgba(120,230,255,.75)';ctx.lineWidth=2.5;
     ctx.beginPath();ctx.arc(0,0,58,0,7);ctx.stroke();ctx.beginPath();ctx.arc(0,0,48,0,7);ctx.stroke();
     ctx.beginPath();for(let i=0;i<=5;i++){const a=i*Math.PI*4/5;ctx.lineTo(Math.cos(a)*48,Math.sin(a)*48)}ctx.stroke();ctx.restore()}
   for(const tr of traps){const [x,y]=iso(tr.x+.5,tr.y+.5);
@@ -2069,7 +2245,7 @@ function drawCombo(){
 }
 function drawScreenFx(){
   ctx.setTransform(DPR,0,0,DPR,0,0);
-  if(curMap.id!=='field'){const r=Math.max(VW,VH),g=ctx.createRadialGradient(VW/2,VH/2,r*.22,VW/2,VH/2,r*.72);
+  if(curMap.dark){const r=Math.max(VW,VH),g=ctx.createRadialGradient(VW/2,VH/2,r*.22,VW/2,VH/2,r*.72);
     const vg=curMap.vig||'20,10,0';g.addColorStop(0,`rgba(${vg},0)`);g.addColorStop(1,`rgba(${vg},.72)`);ctx.fillStyle=g;ctx.fillRect(0,0,VW,VH)}
   for(const f of fx)if(f.type==='fade'){ctx.fillStyle=`rgba(0,0,0,${Math.max(0,1-f.t/f.life)})`;ctx.fillRect(0,0,VW,VH)}
 }
@@ -2120,7 +2296,7 @@ function update(dt){
     if(mouse.down&&mouse.ground){mouse.holdT-=dt;if(mouse.holdT<=0){mouse.holdT=.25;const [wx,wy]=toWorld(mouse.x,mouse.y);moveTo(Math.floor(wx),Math.floor(wy))}}
   }
   if(P.bubble){P.bubble.t-=dt;if(P.bubble.t<=0)P.bubble=null}
-  for(const n of NPCS){if(n.bubble){n.bubble.t-=dt;if(n.bubble.t<=0)n.bubble=null}else if(rnd()<dt*.04){const L={shop:['ポーションあるよ〜','いらっしゃい！'],heal:['癒やしが必要な方は？'],guide:['困ったら話しかけてね'],gate:['砂の向こうで待っている…','ピラミッドへ行くかい？'],ret:['帰りたいか？','ここだけは安全だ'],merc:['腕利きの傭兵、いるぜ','5000zで10分だ！'],chrono:['時の果てを目指す者よ…','Lv999で会おう'],ice:['北の氷窟、行ってみる？','寒いのは平気？']}[n.id]||['…'];n.bubble={text:L[Math.floor(rnd()*L.length)],t:3}}}
+  for(const n of NPCS){if(n.bubble){n.bubble.t-=dt;if(n.bubble.t<=0)n.bubble=null}else if(rnd()<dt*.04){const L={shop:['ポーションあるよ〜','いらっしゃい！'],heal:['癒やしが必要な方は？'],guide:['困ったら話しかけてね'],gate:['砂の向こうで待っている…','ピラミッドへ行くかい？'],ret:['帰りたいか？','ここだけは安全だ'],merc:['腕利きの傭兵、いるぜ','5000zで10分だ！'],chrono:['時の果てを目指す者よ…','Lv999で会おう'],ice:['北の氷窟、行ってみる？','寒いのは平気？'],sailor:['海はいいぞぉ','マリナ行きの船だ！'],mayor:['ようこそマリナへ','今日もいい潮風ね'],orca:['灯台の灯は海の道しるべ…'],shop2:['新鮮な薬、あるよ'],heal2:['潮風に癒やしを']}[n.id]||['…'];n.bubble={text:L[Math.floor(rnd()*L.length)],t:3}}}
   updateMobs(dt,s);updateTraps(dt);updateMerc(dt);updateHarvest(dt);
   for(const f of fx){f.t+=dt;
     if(f.cb&&!f.done&&f.t>=f.at){f.done=true;f.cb()}
@@ -2155,6 +2331,8 @@ function start(data){
   cv.style.cursor=CUR.def;
   if(d)msg('前回の続きから再開しました','item');
   if(!P.story)initStory();
+  // 第1部を完結済みのデータは、第2部から再開する
+  else if(P.story.done&&P.story.ch<STORY.length){P.story.done=false;setTimeout(()=>chapterBanner(P.story.ch),1200)}
   if(d&&d.harvest&&d.harvest.remain>1){hireHarvest(d.harvest.remain,true);msg(`ハーヴェストが合流しました（残り ${fmtTime(harvest.end-time)}）`,'item')}
   if(d&&d.merc&&d.merc.remain>1&&MERC_LOOK[d.merc.job]){hireMerc(d.merc.job,d.merc.remain,true);msg(`傭兵 ${MERC_LOOK[merc.job].name} が合流しました（残り ${fmtTime(merc.end-time)}）`,'item')}
   msg('Qでアコライト、Wでハンター、Rでマジシャンに切り替え（左上のボタンでも可）','sys');
