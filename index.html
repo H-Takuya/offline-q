@@ -379,6 +379,9 @@ const ITEMS={
   c_kino:{n:'キノコンカード',t:'card',b:{vit:3},sell:10,g:'札',c:'#b05c3b',d:'VIT+3'},
   c_wolf:{n:'ウルフカード',t:'card',b:{atk:20},sell:10,g:'札',c:'#7f889b',d:'ATK+20'},
   c_barbaro:{n:'海賊王バルバロカード',t:'card',b:{str:10,luk:10,atk:30},sell:10,g:'札',c:'#5a1a1a',d:'STR+10 / LUK+10 / ATK+30'},
+  tidekey:{n:'潮の鍵',t:'key',g:'鍵',c:'#3a9ab0',d:'深海の番人が守っていた鍵。海底神殿の最奥の扉を開く。だいじな物'},
+  pearl:{n:'潮騒の真珠',t:'key',g:'珠',c:'#c8f0f0',d:'時喰らいの海竜が抱えていた真珠。耳を当てると波の音がする。だいじな物'},
+  c_thalassa:{n:'時喰らいの海竜カード',t:'card',b:{int:15,dex:15,mhp:600},sell:10,g:'札',c:'#1a6a7a',d:'INT+15 / DEX+15 / 最大HP+600'},
   lamp:{n:'ルーンの灯',t:'key',g:'灯',c:'#f0c040',d:'港町マリナの灯台に灯っていた光。海賊王が奪っていた。だいじな物'},
   c_glacia:{n:'氷竜グレイシアカード',t:'card',b:{agi:12,dex:12,mhp:400},sell:10,g:'札',c:'#6ab8f0',d:'AGI+12 / DEX+12 / 最大HP+400'},
   c_gtb:{n:'黄金ゴキカード',t:'card',b:{def:15,mhp:300},sell:10,g:'札',c:'#b8901e',d:'DEF+15 / 最大HP+300'},
@@ -684,6 +687,53 @@ function portDefs(){
   };
 }
 function initPortMobs(){const defs=portDefs();mobs=[];for(const k in defs){const def=defs[k];for(let i=0;i<def.count;i++){const m={key:k,def,seed:rnd()*10};spawnMob(m);mobs.push(m)}}}
+/* ---------- 海底神殿（第2部後編） ---------- */
+const PAL_SEA={left:'#1a4a5a',right:'#2a6a7a',top:'#4aa0a8',line:'rgba(160,255,240,.25)',glyph:'rgba(120,255,220,.85)',hi:'rgba(200,255,250,.5)',
+  bg:'#03121a',wall:'#082430',floor:s=>`hsl(${182+s*12},${34+s*10}%,${28+s*9}%)`,fline:'rgba(120,220,220,.3)',crack:'rgba(180,255,240,.6)',flame:['120,255,230','#3af0d0','#e0fffa']};
+let AB=null;
+function getAbyss(){
+  if(AB)return AB;const D=genDungeon(2468),imgs=[makeWall(false,PAL_SEA),makeWall(true,PAL_SEA)];
+  AB={id:'abyss',name:'海底神殿',tiles:D.tiles,shade:D.shade,ground:renderDungeonGround(D,PAL_SEA),objs:dungeonObjs(D,imgs,PAL_SEA),safe:DG_SAFE,bgm:'abyss',
+    vig:'0,22,34',dark:true,bubbles:true,home:'port',initMobs:()=>initAbyssMobs(),
+    npcs:[{id:'ret',n:'帰還の神官 アニ',x:CX+1.5,y:CY-.5,body:'#efe6cc',hair:'#1a1a2a',face:-1}],
+    spawn:()=>{for(let i=0;i<600;i++){const x=irand(2,MW-3),y=irand(2,MH-3);if(D.tiles[y*MW+x]===SA&&Math.hypot(x+.5-CX,y+.5-CY)>6)return [x+.5,y+.5]}return [CX+.5,CY+8.5]},
+    bossSpawn:()=>{let best=null,bd=0;for(let i=0;i<800;i++){const x=irand(2,MW-3),y=irand(2,MH-3),dd=Math.hypot(x+.5-CX,y+.5-CY);if(D.tiles[y*MW+x]===SA&&dd>bd){bd=dd;best=[x+.5,y+.5]}}return best||[CX+.5,CY+12.5]}};
+  return AB;
+}
+// タラッサは番人を倒したあと（第11章以降）に目を覚ます
+function thalassaAwake(){const s=P.story;return !!(s&&(s.done||s.ch>=10))}
+function abyssDefs(){
+  const L=Math.round(Math.max(60,effLv())*1.05+60);
+  const mk=(n,kind,col,size,off,o={})=>{const lv=Math.max(5,L+off);
+    return {n,kind,lv,hp:Math.round(10*Math.pow(lv,1.35)+80),atk:[Math.round(lv*1.7),Math.round(lv*2.4)],def:Math.min(45,10+Math.floor(lv/25)),hit:lv+30,flee:Math.round(lv*.7),
+      exp:Math.round(Math.pow(lv,1.27)),jexp:Math.round(Math.pow(lv,1.27)*.7),speed:o.speed||2.3,delay:o.delay||1.15,aggro:true,aggroR:9,chaseR:20,col,size,
+      count:o.count||10,respawn:10,look:o.look||{},drops:[['blue',.12],['relic',.08],['gold',.05]],zeny:[lv*3,lv*7]}};
+  const blv=L+80,tlv=L+250;
+  return {
+    dprun:mk('深海プルン','prun','#2a7a9a',1.15,-20,{count:12}),
+    dcrab:mk('ディープクラブ','gtb','#a83a2a',1.1,0,{count:12,speed:2.6}),
+    merman:mk('半魚人','human','#2a6a5a',1.1,20,{count:12,look:{body:'#2a6a5a',hair:'#1a4a3a',skin:'#7ac0a0',eye:'#ffee55'}}),
+    dghost2:mk('溺れた亡霊','ghost','#5ab0c0',1.05,30,{count:8,speed:2.5}),
+    serpent:mk('シーサーペント','dragon','#2a8a7a',1,50,{count:6}),
+    leviath:{n:'深海の番人 リヴァイア',kind:'dragon',lv:blv,hp:Math.round(150*Math.pow(blv,1.3)*2),atk:[Math.round(blv*2.5),Math.round(blv*3.3)],def:45,hit:blv+50,flee:Math.round(blv*.85),
+      exp:Math.round(Math.pow(blv,1.6)*2),jexp:Math.round(Math.pow(blv,1.6)*1.4),speed:2.3,delay:1.1,aggro:true,aggroR:10,chaseR:26,boss:true,tier:bossTier(),
+      col:'#2a6aa0',size:2.6,aura:'80,200,255',special:{every:9,r:3.6,mult:1.1,col:'60,220,255',freeze:1.5,msg:'番人が激流を放とうとしている！ 水色の円から離れろ！'},
+      count:1,respawn:0,look:{},drops:[['relic',1],['gold',1],['blue',1]],zeny:[blv*120,blv*240],mvp:[['relic',1]]},
+    ...(thalassaAwake()?{thalassa:thalassaDef(tlv)}:{}),
+  };
+}
+function thalassaDef(lv){
+  return {n:'時喰らいの海竜 タラッサ',kind:'dragon',lv,hp:Math.round(150*Math.pow(lv,1.3)*4),atk:[Math.round(lv*3),Math.round(lv*4)],def:55,hit:lv+60,flee:Math.round(lv*.9),
+    exp:Math.round(Math.pow(lv,1.6)*3),jexp:Math.round(Math.pow(lv,1.6)*2),speed:2.4,delay:1.1,aggro:true,aggroR:10,chaseR:30,boss:true,far:true,tier:bossTier(),
+    col:'#123a4a',size:3.4,aura:'60,255,220',special:{every:7,r:4.6,mult:1.6,col:'40,255,200',msg:'大渦が来る！ 緑の円の外へ逃げろ！'},
+    count:1,respawn:0,look:{},drops:[['relic',1],['relic',1],['gold',1],['blue',1],['c_thalassa',.1]],zeny:[lv*200,lv*400],mvp:[['c_thalassa',.06],['relic',1]]};
+}
+function initAbyssMobs(){const defs=abyssDefs();mobs=[];for(const k in defs){const def=defs[k];for(let i=0;i<def.count;i++){const m={key:k,def,seed:rnd()*10};spawnMob(m);mobs.push(m)}}}
+function wakeThalassa(){
+  if(curMap.id!=='abyss'||mobs.some(m=>m.key==='thalassa'))return;
+  const m={key:'thalassa',def:thalassaDef(Math.round(Math.max(60,effLv())*1.05+60)+250),seed:rnd()*10};spawnMob(m);mobs.push(m);
+  msg('神殿の最奥で、何かが目を覚ました……','warn');fx.push({type:'shock',t:0,life:1.2,rgb:'60,255,220'});sfx('gx');
+}
 function useMap(M){curMap=M;map=M.tiles;shade=M.shade;ground=M.ground;trees=M.objs;NPCS=M.npcs;safeXY=M.safe}
 function enterMap(M,x,y){
   curMap.mobs=mobs;curMap.items=groundItems;curMap.traps=traps;
@@ -875,7 +925,12 @@ function timp(t,n,vol=.3){const o=AC.createOscillator(),g=AC.createGain();o.type
   g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(.001,t+.7);o.connect(g);g.connect(bgmGain);o.start(t);o.stop(t+.75)}
 function swell(t,dur=1.2,vol=.07){const n=Math.floor(AC.sampleRate*dur),buf=AC.createBuffer(1,n,AC.sampleRate),d=buf.getChannelData(0);for(let i=0;i<n;i++)d[i]=(rnd()*2-1)*Math.sin(i/n*Math.PI);
   const s=AC.createBufferSource(),f=AC.createBiquadFilter(),g=AC.createGain();s.buffer=buf;f.type='highpass';f.frequency.value=5000;g.gain.value=vol;s.connect(f);f.connect(g);g.connect(bgmGain);s.start(t)}
-const SONGS={ice:{beat:60/96,bpb:4,bars:SONG_ICE,drone:45},town:{beat:60/100,bpb:3,bars:SONG,grand:true},port:{beat:60/126,bpb:3,bars:SONG_PORT},pyramid:{beat:60/88,bpb:4,bars:SONG_PYRAMID,drone:38},final:{beat:60/76,bpb:4,bars:SONG_FINAL,drone:40}};
+CH.Bb=[46,[50,53,58]];
+const SONG_ABYSS=[
+  ['Dm',[[69,2],[72,1],[74,1]]],['Bb',[[74,1],[72,1],[70,2]]],['F',[[69,1],[72,1],[77,2]]],['A',[[76,3],[73,1]]],
+  ['Dm',[[74,1.5],[76,.5],[77,2]]],['Bb',[[79,2],[77,1],[74,1]]],['Gm',[[74,1],[70,1],[67,2]]],['A',[[69,4]]],
+];
+const SONGS={abyss:{beat:60/70,bpb:4,bars:SONG_ABYSS,drone:38},ice:{beat:60/96,bpb:4,bars:SONG_ICE,drone:45},town:{beat:60/100,bpb:3,bars:SONG,grand:true},port:{beat:60/126,bpb:3,bars:SONG_PORT},pyramid:{beat:60/88,bpb:4,bars:SONG_PYRAMID,drone:38},final:{beat:60/76,bpb:4,bars:SONG_FINAL,drone:40}};
 let bgmSong='town',bgmLp=null;
 function scheduleBar(i,t){
   const S2=SONGS[bgmSong],B=S2.beat,[ch,mel]=S2.bars[i],[bass,tri]=CH[ch];
@@ -923,7 +978,7 @@ function findSpawn(z){
     if(d>=z[0]&&d<=z[1]&&pass(x,y)&&!townXY(x+.5,y+.5)) return [x+.5,y+.5];}
   return [CX+12.5,CY+12.5];
 }
-function spawnMob(m){const [x,y]=(m.def.final&&curMap.bossSpawn?curMap.bossSpawn:curMap.spawn)(m.def);Object.assign(m,{x,y,hp:m.def.hp,state:'idle',wt:rnd()*3,wx:x,wy:y,atkT:1,flash:0,hpShow:0,face:1,moving:false,fade:0,loot:[],lootT:rnd(),lootTarget:null,emote:null,hinted:false,root:0})}
+function spawnMob(m){const [x,y]=((m.def.final||m.def.far)&&curMap.bossSpawn?curMap.bossSpawn:curMap.spawn)(m.def);Object.assign(m,{x,y,hp:m.def.hp,state:'idle',wt:rnd()*3,wx:x,wy:y,atkT:1,flash:0,hpShow:0,face:1,moving:false,fade:0,loot:[],lootT:rnd(),lootTarget:null,emote:null,hinted:false,root:0})}
 function initMobs(){
   mobs=[];for(const k in MOBS){const def=MOBS[k];for(let i=0;i<def.count;i++){const m={key:k,def,seed:rnd()*10};spawnMob(m);mobs.push(m)}}
   // ボスは最初は1体だけ。残りは1分ごとに1体ずつ湧く
@@ -1532,7 +1587,9 @@ function openNpc(n){
       :`<p class="talk-t">海が荒れてて、今は船を出せねぇ。……時の果てを越えた強者なら、話は別だがな。<br><span class="note">（転生すると港町マリナへ行けるようになります）</span></p><div class="btns"><button class="btn" data-close>わかった</button></div>`;
   }
   else if(n.id==='mayor') html=`<p class="talk-t">港町マリナへようこそ。海の幸と潮風だけが自慢の町よ。<br>浜辺の魔物には気をつけて。海賊骸骨とシーゴーストは、近づくと襲ってくるわ。</p><div class="btns"><button class="btn" data-close>ありがとう</button></div>`;
-  else if(n.id==='orca') html=`<p class="talk-t">${lighthouseLit()?'灯台の灯は今日も海を照らしておる。お前さんのおかげじゃ。':'灯台の灯が消えてから、海がざわついてならん……。'}</p><div class="btns"><button class="btn" data-close>それじゃ</button></div>`;
+  else if(n.id==='orca') html=lighthouseLit()
+    ?`<p class="talk-t">灯台の灯は今日も海を照らしておる。お前さんのおかげじゃ。<br>海底神殿へ行くなら、光で道を開いてやろう。</p><div class="btns"><button class="btn" data-act="warp-abyss">海底神殿へ行く</button><button class="btn" data-close>それじゃ</button></div>`
+    :`<p class="talk-t">灯台の灯が消えてから、海がざわついてならん……。</p><div class="btns"><button class="btn" data-close>それじゃ</button></div>`;
   else if(n.id==='heal'||n.heal) html=`<p class="talk-t">神のご加護を。傷を癒やしてさしあげましょう。</p><div class="btns"><button class="btn" data-act="doheal">回復してもらう</button><button class="btn" data-close>また今度</button></div>`;
   else if(n.id==='gate') html=`<p class="talk-t">……来たか。砂に埋もれたピラミッドへ案内しよう。<br>中の魔物は、お前の強さ（Base Lv ${P.lv}）に合わせて目を覚ます。数も多く、気づけばすぐ襲ってくるぞ。<br>安全なのは入口の光る9マスだけだ。</p><div class="btns"><button class="btn" data-act="warp-dg">ピラミッドへ行く</button><button class="btn" data-close>やめておく</button></div>`;
   else if(n.id==='merc'){
@@ -1669,21 +1726,59 @@ const STORY=[
       ['灯台守 オルカ','実はな、この灯はただの明かりではない。ルーンの欠片から生まれた、もうひとつの光なんじゃ。'],
       ['灯台守 オルカ','灯は海の底に沈んだ神殿の扉を照らす鍵。海賊王は、あの神殿の力を狙っておった。'],
       ['灯台守 オルカ','だが本当に恐ろしいのは、神殿の奥で眠る“何か”じゃ。灯が消えていたあいだに、そやつは目を覚ましかけておる。'],
-      ['灯台守 オルカ','扉が開くには、まだ潮が満ちておらん……。時が来たら、また訪ねておいで。']]},
-    {type:'wait',goal:'海底神殿の扉が開くのを待とう（続きは次回のアップデートで）'},
+      ['灯台守 オルカ','灯がともった今なら、光が海を割って神殿への道を照らしてくれる。準備ができたら、もう一度声をかけておくれ。']]},
+    {type:'talk',npc:'orca',after:'abyss',goal:'灯台守 オルカに頼んで海底神殿へ行こう',lines:[
+      ['灯台守 オルカ','行くのじゃな。灯台の光を海へ向けるぞ……しっかり息を止めておれ！'],
+      ['灯台守 オルカ','神殿の中では、その〈ルーンの灯〉が空気の泡を作ってくれる。灯を手放すでないぞ。']]},
+    {type:'enter',map:'abyss',goal:'海底神殿へ向かおう'},
   ]},
+  {t:'海底神殿',steps:[
+    {type:'kill',count:20,map:'abyss',goal:'海底神殿の魔物を倒そう'},
+    {type:'boss',boss:'leviath',give:'tidekey',goal:'深海の番人 リヴァイアを倒そう'},
+    {type:'talk',npc:'orca',auto:true,after:'thalassa',goal:'灯から響く声を聞こう',lines:[
+      ['灯台守 オルカ','（灯から、オルカの声が響いてくる）……聞こえるか？ 番人を倒したようじゃな。'],
+      ['灯台守 オルカ','その〈潮の鍵〉で、神殿の最奥の扉が開く。だが気をつけるのじゃ……海がうなっておる。'],
+      ['灯台守 オルカ','奥で目を覚ましたのは、時喰らいの海竜タラッサ。アポカリオンが喰らった時の残りかすが、海の底で形を成したものじゃ。'],
+      ['灯台守 オルカ','あやつを放っておけば、マリナどころか、海そのものの時が止まってしまう。頼んだぞ！']]},
+  ]},
+  {t:'目覚めるもの',steps:[
+    {type:'boss',boss:'thalassa',give:'pearl',goal:'神殿の最奥で、時喰らいの海竜 タラッサを倒そう'},
+    {type:'talk',npc:'orca',auto:true,goal:'竜の最期の声を聞こう',lines:[
+      ['時喰らいの海竜 タラッサ','（崩れゆく竜の声が、頭の中に響く）……愚かな。時を喰らう者は、我ひとりではない……。'],
+      ['時喰らいの海竜 タラッサ','……北の雪原に、東の砂の海に……我らは、時のほころびから生まれ続ける……。'],
+      ['灯台守 オルカ','……竜の気配が消えた。よくやった！ 神殿の神官に頼んで、マリナへ戻っておいで。']]},
+  ]},
+  {t:'潮騒の果て',end:true,ending:'ENDING2',steps:[
+    {type:'talk',npc:'mayor',reward:{zeny:50000,items:[['relic',3]]},goal:'マリナへ戻り、町長 シーラに報告しよう',lines:[
+      ['町長 シーラ','おかえりなさい！ 見て、灯台の光があんなに力強く海を照らしてる。'],
+      ['町長 シーラ','漁師たちも海へ戻ったわ。浜には子どもたちの笑い声。マリナを救ってくれて、本当にありがとう。'],
+      ['町長 シーラ','これは町からのお礼よ。……また、いつでも遊びに来てね。']]},
+  ]},
+];
+const ENDING2=[
+  [NARR,'海の底で、時を喰らう竜は静かに崩れ、泡となって消えた。'],
+  [NARR,'灯台の光は再び夜の海を照らし、マリナの浜には潮騒と笑い声が戻った。'],
+  [NARR,'けれど竜が最後に残した言葉——「時を喰らう者は、まだ他にもいる」。'],
+  [NARR,'〜 第2部「潮騒の章」・完 〜<br>（冒険はまだまだ続く）'],
 ];
 let storyTalk=null;
 function storyStep(){const s=P.story;if(!s||s.done)return null;const c=STORY[s.ch];return c?c.steps[s.step]:null}
 function initStory(){P.story={ch:0,step:0,kills:0,done:false};setTimeout(()=>showStoryTalk(PROLOGUE,()=>chapterBanner(0)),700)}
 function chapterBanner(i){const c=STORY[i];fx.push({type:'lvbig',t:0,life:3.4,title:c.part?'第2部':`第${i+1}章`,lines:c.part?[c.part.replace('第2部',''),`第${i+1}章「${c.t}」`]:[`「${c.t}」`]});msg(`${c.part?c.part+' ':''}第${i+1}章「${c.t}」`,'item');sfx('buff')}
-function storyAfter(a){if(a==='rebirth')openRebirth();else if(a==='port')enterMap(getPort(),PORT_ARR[0],PORT_ARR[1])}
+function storyAfter(a){
+  if(a==='rebirth')openRebirth();
+  else if(a==='port')enterMap(getPort(),PORT_ARR[0],PORT_ARR[1]);
+  else if(a==='abyss')enterMap(getAbyss(),CX-.5,CY+1.5);
+  else if(a==='thalassa')wakeThalassa();
+}
 function storyAdvance(){
   const s=P.story,st=storyStep();if(!st)return;
   if(st.give&&!count(st.give)){addItem(st.give);msg(`${ITEMS[st.give].n} を手に入れた！`,'item')}
+  if(st.reward){if(st.reward.zeny){P.zeny+=st.reward.zeny;msg(`お礼に ${st.reward.zeny.toLocaleString()} Zeny をもらった！`,'item')}
+    for(const [id,q] of st.reward.items||[]){addItem(id,q);msg(`${ITEMS[id].n} ×${q} をもらった！`,'item')}}
   s.step++;s.kills=0;
   if(s.step>=STORY[s.ch].steps.length){const fin=STORY[s.ch];s.ch++;s.step=0;
-    if(s.ch>=STORY.length){s.done=true;setTimeout(()=>showStoryTalk(ENDING,()=>msg('物語は完結しました。冒険はこれからも続く','item')),2500)}
+    if(s.ch>=STORY.length){s.done=true;const E=fin.ending==='ENDING2'?ENDING2:ENDING;setTimeout(()=>showStoryTalk(E,()=>{msg('物語は完結しました。冒険はこれからも続く','item');fx.push({type:'lvbig',t:0,life:3.4,title:'COMPLETE!',lines:['第2部「潮騒の章」 完']});sfx('mvp')}),2500)}
     else if(fin.end){const nc=s.ch;setTimeout(()=>showStoryTalk(ENDING,()=>{msg('第1部 完。……そして物語は、海の向こうへ','item');chapterBanner(nc)}),2500)}
     else chapterBanner(s.ch)}
   const nx=storyStep();
@@ -1763,7 +1858,8 @@ document.addEventListener('click',e=>{
   else if(act==='warp-final'){$('w-talk').hidden=true;if(P.lv<MAX_LV)return;enterMap(getFinal(),CX-.5,CY+1.5);return}
   else if(act==='story-next'){const T=storyTalk;if(!T)return;T.i++;if(T.i>=T.lines.length){storyTalk=null;$('w-talk').hidden=true;T.done&&T.done()}else renderStoryTalk();return}
   else if(act==='rebirth'){$('w-talk').hidden=true;doRebirth();return}
-  else if(act==='warp-home'){$('w-talk').hidden=true;enterMap(FIELD,CX-3.5,CY+3.5);return}
+  else if(act==='warp-home'){$('w-talk').hidden=true;if(curMap.home==='port')enterMap(getPort(),PORT_ARR[0],PORT_ARR[1]);else enterMap(FIELD,CX-3.5,CY+3.5);return}
+  else if(act==='warp-abyss'){$('w-talk').hidden=true;enterMap(getAbyss(),CX-.5,CY+1.5);return}
   else if(act==='reset'){if(!resetArm){resetArm=true;dirty=true;setTimeout(()=>{resetArm=false;dirty=true},4000);return}
     resetArm=false;try{localStorage.removeItem(SAVE_KEY)}catch(_){}if(curMap.id!=='field'){useMap(FIELD);bgmSwitch('town')}merc=null;harvest=null;freshStart();initMobs();groundItems=[];traps=[];buildHotbar();msg('データを初期化しました','sys');initStory()}
   dirty=true;
@@ -2247,6 +2343,8 @@ function drawScreenFx(){
   ctx.setTransform(DPR,0,0,DPR,0,0);
   if(curMap.dark){const r=Math.max(VW,VH),g=ctx.createRadialGradient(VW/2,VH/2,r*.22,VW/2,VH/2,r*.72);
     const vg=curMap.vig||'20,10,0';g.addColorStop(0,`rgba(${vg},0)`);g.addColorStop(1,`rgba(${vg},.72)`);ctx.fillStyle=g;ctx.fillRect(0,0,VW,VH)}
+  if(curMap.bubbles){for(let i=0;i<28;i++){const bx=(i*97+13)%VW+Math.sin(time*1.3+i)*12,by=VH+20-((time*(28+i%5*6)+i*53)%(VH+60)),r=2+i%4;
+    ctx.strokeStyle='rgba(210,255,250,.35)';ctx.lineWidth=1.2;ctx.beginPath();ctx.arc(bx,by,r,0,7);ctx.stroke();ctx.fillStyle='rgba(255,255,255,.35)';ctx.beginPath();ctx.arc(bx-r*.35,by-r*.35,r*.3,0,7);ctx.fill()}}
   for(const f of fx)if(f.type==='fade'){ctx.fillStyle=`rgba(0,0,0,${Math.max(0,1-f.t/f.life)})`;ctx.fillRect(0,0,VW,VH)}
 }
 function drawLvBanner(){
