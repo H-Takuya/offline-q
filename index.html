@@ -143,6 +143,27 @@ kbd{font-family:var(--f-display);font-size:10px;color:var(--muted);margin-left:2
 @media (max-height:480px){#log{display:none}#chatIn{margin-top:0}}
 @media (max-width:520px){.slot{width:36px;height:36px}.hotbar{gap:3px;padding:4px}.ic{width:24px;height:24px;font-size:14px}}
 @media (max-width:420px){.slot{width:33px;height:33px}.ic{width:22px;height:22px;font-size:13px}.slot .k{font-size:9px}.slot .n{font-size:9px}}
+/* 各パネルの「閉じる／小さくする」 */
+.hud-tg{position:absolute;top:5px;right:5px;z-index:2;min-width:22px;height:20px;padding:0 5px;border:1px solid var(--line);border-radius:4px;background:var(--win-2);color:var(--ink);font:12px/18px var(--f-display);cursor:pointer}
+.hud-tg:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+#status .who{padding-right:28px}
+#status.min{width:168px;padding:6px 8px 7px}
+#status.min .jobsw,#status.min .bar.thin,#status.min .exprow,#status.min #hBuff,#status.min #hMerc,#status.min #hQuest{display:none!important}
+#status.min .who b{font-size:13px}#status.min .who span{font-size:11px}
+#mini.min{padding:4px 30px 4px 8px}#mini.min canvas,#mini.min .coord.boss{display:none}#mini.min .coord{margin:0;line-height:20px}
+#chat .hud-tg{background:transparent;color:var(--chat-ink);border-color:var(--chat-line)}
+#chat.min{width:auto;padding:0;background:transparent}
+#chat.min #log,#chat.min #chatIn{display:none}
+#chat.min .hud-tg{position:static;height:28px;padding:0 10px;background:var(--chat-bg);border-color:var(--chat-line);font-size:12px}
+#chat.min .hud-tg.new{border-color:var(--c-sys);color:var(--c-sys)}
+#chat:not(.min) #log{margin-right:26px}
+.menu.min .btn:not(.menu-tg){display:none}
+@media (max-width:520px){
+  .win .body{max-height:46vh;padding:6px 8px 8px;font-size:11.5px}
+  .win header{font-size:13px;padding:4px 6px 4px 8px}
+  #w-status .grid2{grid-template-columns:1fr;gap:4px}
+  .it{gap:6px;padding:3px 4px}
+}
 #hLv,#hJlv{display:inline-block}
 .pop{animation:lvpop .9s cubic-bezier(.3,1.6,.5,1)}
 @keyframes lvpop{0%{transform:scale(1)}25%{transform:scale(1.9);color:var(--exp)}100%{transform:scale(1)}}
@@ -154,6 +175,7 @@ kbd{font-family:var(--f-display);font-size:10px;color:var(--muted);margin-left:2
 <canvas id="game" aria-label="ゲーム画面。クリックで移動と攻撃"></canvas>
 
 <div class="hud panel" id="status">
+  <button class="hud-tg" data-ui="status" aria-label="ステータス表示を小さくする">－</button>
   <div class="who"><b>冒険者</b><span id="hJob">アコライト</span></div>
   <div class="jobsw" role="group" aria-label="職業の切り替え"><button data-job="aco" aria-pressed="true" title="Qキー">アコライト<kbd>Q</kbd></button><button data-job="hunter" aria-pressed="false" title="Wキー">ハンター<kbd>W</kbd></button><button data-job="mage" aria-pressed="false" title="Rキー">マジシャン<kbd>R</kbd></button></div>
   <div class="row"><span>Base Lv <b id="hLv">1</b></span><span>Job Lv <b id="hJlv">1</b></span></div>
@@ -161,18 +183,19 @@ kbd{font-family:var(--f-display);font-size:10px;color:var(--muted);margin-left:2
   <div class="bar sp"><i id="spBar"></i><em id="spTxt"></em></div>
   <div class="bar thin"><i id="exBar"></i></div>
   <div class="bar thin j"><i id="jxBar"></i></div>
-  <div class="row"><span id="hExp">Exp 0.0%</span><span id="hZeny">0 z</span></div>
+  <div class="row exprow"><span id="hExp">Exp 0.0%</span><span id="hZeny">0 z</span></div>
   <div class="buffs" id="hBuff"></div>
   <div class="merc" id="hMerc" hidden></div>
   <div class="quest" id="hQuest" hidden></div>
 </div>
 
-<div class="hud panel" id="mini"><canvas id="mm" width="168" height="88"></canvas><div class="coord" id="mmTxt">ルーンの草原</div><div class="coord boss" id="mmBoss"></div></div>
+<div class="hud panel" id="mini"><button class="hud-tg" data-ui="mini" aria-label="ミニマップを閉じる">－</button><canvas id="mm" width="168" height="88"></canvas><div class="coord" id="mmTxt">ルーンの草原</div><div class="coord boss" id="mmBoss"></div></div>
 
-<div class="hud" id="chat"><div id="log" aria-live="polite"></div><input id="chatIn" placeholder="Enterでチャット" maxlength="60" autocomplete="off"></div>
+<div class="hud" id="chat"><button class="hud-tg" data-ui="chat" aria-label="チャットを閉じる">－</button><div id="log" aria-live="polite"></div><input id="chatIn" placeholder="Enterでチャット" maxlength="60" autocomplete="off"></div>
 
 <div class="hud" id="dock">
-  <div class="menu">
+  <div class="menu" id="menu">
+    <button class="btn menu-tg" data-ui="menu" aria-label="メニューを閉じる">メニュー ▾</button>
     <button class="btn" data-open="status">ステータス<kbd>A</kbd></button>
     <button class="btn" data-open="inv">アイテム<kbd>E</kbd></button>
     <button class="btn" data-open="skill">スキル<kbd>S</kbd></button>
@@ -867,7 +890,8 @@ function switchJob(j){
 
 /* ---------- メッセージ ---------- */
 const logEl=$('log');
-function msg(t,cls='sys'){const p=document.createElement('p');p.className=cls;p.textContent=t;logEl.appendChild(p);while(logEl.children.length>80)logEl.firstChild.remove();logEl.scrollTop=logEl.scrollHeight}
+function msg(t,cls='sys'){const p=document.createElement('p');p.className=cls;p.textContent=t;logEl.appendChild(p);while(logEl.children.length>80)logEl.firstChild.remove();logEl.scrollTop=logEl.scrollHeight;
+  const ct=document.querySelector('#chat .hud-tg');if(ct&&$('chat').classList.contains('min'))ct.classList.add('new')}
 function float(x,y,text,col,size=18,rise=1,arc=false,crit=false){floats.push({x,y,text,col,size,t:0,life:arc?1:1.1,rise,dx:(rnd()-.5)*10,arc,crit,dir:rnd()<.5?-1:1})}
 const EMO={'!':['!','#e0342a'],'?':['?','#3b78dc'],'♪':['♪','#a04fd0'],'♥':['♥','#e0457a'],'…':['…','#555566'],'怒':['怒','#d23a2a'],thx:['Thx','#2c8a4a']};
 const EMO_CMD={'/!':'!','/?':'?','/ho':'♪','/lv':'♥','/...':'…','/an':'怒','/thx':'thx'};
@@ -1633,7 +1657,7 @@ addEventListener('keydown',e=>{
     return;
   }
   if(e.target&&e.target.tagName==='INPUT')return;
-  if(e.key==='Enter'){chatIn.focus();e.preventDefault();return}
+  if(e.key==='Enter'){if(ui.chat){ui.chat=false;applyUI()}chatIn.focus();e.preventDefault();return}
   if(e.key==='Insert'||e.key.toLowerCase()==='z'){toggleSit();return}
   if(/^[1-9]$/.test(e.key)){useSlot(+e.key-1);return}
   const k=e.key.toLowerCase();
@@ -2004,6 +2028,21 @@ document.addEventListener('click',e=>{
 document.addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&e.target.matches&&e.target.matches('.it[data-act]')){e.preventDefault();e.target.click()}});
 $('revive').addEventListener('click',revive);
 $('sitBtn').addEventListener('click',toggleSit);
+/* ---------- 画面のパネルを閉じる／小さくする（スマホでは最初から小さく） ---------- */
+const UI_KEY='rune-meadow-ui';
+let ui=null;try{ui=JSON.parse(localStorage.getItem(UI_KEY)||'null')}catch(_){}
+if(!ui){const sp=innerWidth<760;ui={status:sp,mini:false,chat:sp,menu:sp}}
+function applyUI(){
+  const set=(id,on,label,openTxt,closeTxt)=>{const el=$(id);el.classList.toggle('min',!!on);const b=el.querySelector('[data-ui]');b.textContent=on?openTxt:closeTxt;b.setAttribute('aria-label',on?`${label}を開く`:`${label}を閉じる`);b.setAttribute('aria-expanded',String(!on))};
+  set('status',ui.status,'ステータス表示','＋','－');
+  set('mini',ui.mini,'ミニマップ','＋','－');
+  set('chat',ui.chat,'チャット','ログ','－');
+  set('menu',ui.menu,'メニュー','メニュー ▸','メニュー ▾');
+  if(!ui.chat){document.querySelector('#chat .hud-tg').classList.remove('new');logEl.scrollTop=logEl.scrollHeight}
+  resize();
+}
+document.addEventListener('click',e=>{const b=e.target.closest('[data-ui]');if(!b)return;const k=b.dataset.ui;ui[k]=!ui[k];applyUI();try{localStorage.setItem(UI_KEY,JSON.stringify(ui))}catch(_){}});
+applyUI();
 const muteBtn=$('muteBtn');muteBtn.textContent=muted?'音 OFF':'音 ON';
 muteBtn.addEventListener('click',()=>{muted=!muted;muteBtn.textContent=muted?'音 OFF':'音 ON';try{localStorage.setItem('rune-meadow-mute',muted?'1':'0')}catch(_){}if(!muted){ac();sfx('pick')}});
 const firstTouch=()=>{ac();if(bgmOn)bgmStart()};
