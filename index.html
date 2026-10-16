@@ -484,7 +484,7 @@ const SK={
   fb:{job:'mage',n:'ファイアーボルト',max:10,sp:l=>10+2*l,cast:l=>.4+.2*l,range:9,target:true,el:'fire',g:'炎',c:'#e0582a',d:l=>`炎の矢を${l}本落とす（単体）。1本 MATK×0.9`},
   fball:{job:'mage',n:'ファイアーボール',max:10,sp:l=>20+2*l,cast:l=>.8,range:9,target:true,el:'fire',g:'球',c:'#c8401a',d:l=>`火球が爆発し、周囲5×5の敵すべてに MATK×${(1+.15*l).toFixed(2)}`},
   tstorm:{job:'mage',n:'サンダーストーム',max:10,sp:l=>25+4*l,cast:l=>1+.2*l,range:9,target:true,el:'bolt',g:'雷',c:'#8a7ad8',d:l=>`対象の周囲5×5に雷を${l}回。範囲内の敵すべてに1回 MATK×0.9`},
-  sgust:{job:'mage',n:'ストームガスト',max:10,sp:l=>50+5*l,cast:l=>2+.3*l,range:9,target:true,el:'cold',g:'嵐',c:'#5ab8f0',d:l=>`対象の周囲7×7に吹雪を10回。1回 MATK×${(.4+.06*l).toFixed(2)}。3回目で敵を3秒凍らせる`},
+  sgust:{job:'mage',n:'ストームガスト',max:10,sp:l=>50+5*l,cast:l=>2+.3*l,range:9,ground:true,r:3.5,el:'cold',g:'嵐',c:'#5ab8f0',d:l=>`クリックした場所の周囲7×7に吹雪を10回（射程9）。1回 MATK×${(.4+.06*l).toFixed(2)}。3回目で敵を3秒凍らせる`},
   fwall:{job:'mage',n:'ファイアーウォール',max:10,sp:l=>30+2*l,cast:l=>.4,target:false,g:'壁',c:'#e86a2a',d:l=>`マウスの方向に炎の壁（3マス）。触れた敵に MATK×0.6 と押し返し。1マスあたり${2+l}回 / ${5+l}秒`},
   swall:{job:'mage',n:'セーフティウォール',max:10,sp:l=>30+3*l,cast:l=>.5,target:false,g:'護',c:'#e88ab8',d:l=>`足元に光の柱。その上にいる間、敵の攻撃を${l+1}回まで防ぐ（30秒）`},
   mine:{job:'hunter',n:'ランドマイン',max:5,sp:l=>10,target:false,g:'爆',c:'#c94a3a',d:l=>`足元に地雷を置く。踏んだ敵にDEXとINT依存の大ダメージ`},
@@ -740,7 +740,7 @@ function enterMap(M,x,y){
   useMap(M);
   fwalls=[];P.swall=null;
   if(M.initMobs){M.initMobs();groundItems=[];traps=[]}else{mobs=M.mobs||mobs;groundItems=M.items||[];traps=M.traps||[]}
-  P.x=x;P.y=y;P.path=[];P.target=null;P.queued=null;P.casting=null;P.sit=false;aiming=null;
+  P.x=x;P.y=y;P.path=[];P.target=null;P.queued=null;P.casting=null;P.gcast=null;P.sit=false;aiming=null;
   if(merc){[merc.x,merc.y]=nearFree(x+.8,y+.8);merc.path=[];merc.target=null;merc.cast=null}
   if(harvest)for(const u of harvest.units){if(u.carry)hvDeliver(u.carry);Object.assign(u,{x:x+(rnd()-.5)*1.5,y:y+(rnd()-.5)*1.5,st:'idle',it:null,carry:null})}
   [camX,camY]=iso(x,y);fx=fx.filter(f=>f.type==='lvbig'||f.type==='mvp');fx.push({type:'fade',t:0,life:.9});
@@ -1270,6 +1270,7 @@ function moveTo(tx,ty){
 function useSkill(id){
   if(P.dead)return; const lv=P.skills[id],sk=SK[id]; P.sit=false;
   if(!lv){msg(`${sk.n} はまだ習得していません (S)`,'warn');return}
+  if(sk.ground){aiming=id;msg(`${sk.n}：使いたい場所をクリック（射程${sk.range}マス）`,'sys');dirty=true;return}
   if(sk.target){
     const t=P.target&&P.target.kind==='mob'&&P.target.ref.state!=='dead'?P.target.ref:null;
     if(t){P.queued={id};msg(`${sk.n}！`,'talk')}else{aiming=id;msg(`${sk.n}：対象のモンスターをクリック`,'sys')}
@@ -1317,6 +1318,7 @@ function castSpell(c,lv){
   // 自分のまわりに置く魔法（対象なし）
   if(c.id==='swall'){P.swall={x:Math.floor(P.x),y:Math.floor(P.y),hits:lv+1,t:30};msg(`セーフティウォール！ ${lv+1}回まで攻撃を防ぐ`,'sys');sfx('buff');return}
   if(c.id==='fwall'){placeFireWall(lv);return}
+  if(c.ground&&c.id==='sgust'){stormGust(c.x,c.y,lv);return}
   const m=c.m;if(m.state!=='dead'){c.x=m.x;c.y=m.y}
   const hits=Math.min(lv,10),mul=lv/hits;
   if(c.id==='fb'){
@@ -1328,13 +1330,29 @@ function castSpell(c,lv){
   }else if(c.id==='tstorm'){
     for(let i=0;i<hits;i++){const x=c.x+(rnd()-.5)*3,y=c.y+(rnd()-.5)*3;
       fx.push({type:'spell',el:'bolt',x,y,t:-i*.15,at:.22,life:.5,cb:()=>{sfx('hit');aoe(x,y,2.5,o=>hurtMob(o,mdmg(o,.9*mul),'#fff27a',20))}})}
-  }else if(c.id==='sgust'){
-    // ストームガスト：広い範囲に吹雪を10回。3回目で凍結
-    const cx=c.x,cy=c.y;fx.push({type:'sgust',x:cx,y:cy,r:3.5,t:0,life:4.8});sfx('gx');
-    for(let k=0;k<10;k++)later(.15+k*.45,()=>{aoe(cx,cy,3.5,o=>{hurtMob(o,mdmg(o,.4+.06*lv),'#a8e4ff',18);
-      if(k===2&&o.state!=='dead'&&!o.def.boss){o.root=Math.max(o.root||0,3);o.iceT=time+3}});if(k%3===0)sfx('hit')});
   }
   if(m.state!=='dead')P.target={kind:'mob',ref:m,stay:true};
+}
+// ストームガスト：指定した場所に吹雪を10回。3回目で凍結
+function stormGust(cx,cy,lv){
+  fx.push({type:'sgust',x:cx,y:cy,r:3.5,t:0,life:4.8});sfx('gx');
+  for(let k=0;k<10;k++)later(.15+k*.45,()=>{aoe(cx,cy,3.5,o=>{hurtMob(o,mdmg(o,.4+.06*lv),'#a8e4ff',18);
+    if(k===2&&o.state!=='dead'&&!o.def.boss){o.root=Math.max(o.root||0,3);o.iceT=time+3}});if(k%3===0)sfx('hit')});
+}
+// 位置指定の魔法：射程外なら歩いて近づき、届いたら詠唱を始める
+function startGroundCast(id,x,y){
+  const lv=P.skills[id],sk=SK[id];if(!lv)return;
+  if(!pass(Math.floor(x),Math.floor(y))&&tile(Math.floor(x),Math.floor(y))!==WA){msg('そこには使えません','warn');return}
+  P.target=null;P.queued=null;P.sit=false;P.gcast={id,x,y};
+  if(Math.hypot(x-P.x,y-P.y)>sk.range)moveTo(Math.floor(x),Math.floor(y));
+}
+function updateGroundCast(){
+  const g=P.gcast;if(!g||P.casting)return;const sk=SK[g.id],lv=P.skills[g.id];
+  if(Math.hypot(g.x-P.x,g.y-P.y)>sk.range){if(!P.path.length)P.gcast=null;return}
+  P.path=[];P.gcast=null;const cost=sk.sp(lv);
+  if(P.sp<cost){msg('SPが足りません','warn');return}
+  P.sp-=cost;P.face=(g.x-P.x)-(g.y-P.y)>0?1:-1;
+  P.casting={id:g.id,t:0,dur:sk.cast(lv)*S().castMul,ground:true,x:g.x,y:g.y};dirty=true;
 }
 // ファイアーウォール：マウスの方向（なければ狙っている敵の方向）に、向きと直交する3マスの炎の壁
 let fwalls=[];
@@ -1583,12 +1601,14 @@ cv.addEventListener('pointerdown',e=>{
   if(P.dead)return;
   P.sit=false;
   const m=pickMob(e.clientX,e.clientY);
-  if(aiming){const id=aiming;aiming=null;dirty=true;if(m){P.target={kind:'mob',ref:m};P.queued={id};}return}
+  if(aiming){const id=aiming;aiming=null;dirty=true;
+    if(SK[id].ground){const [wx,wy]=toWorld(e.clientX,e.clientY);startGroundCast(id,wx,wy);return}
+    if(m){P.target={kind:'mob',ref:m};P.queued={id};}return}
   if(m){P.target={kind:'mob',ref:m};P.queued=null;return}
   const n=pickNpc(e.clientX,e.clientY);if(n){P.target={kind:'npc',ref:n};return}
   const g=pickItem(e.clientX,e.clientY);if(g){P.target={kind:'item',ref:g};return}
   if(P.casting){P.casting=null;msg('詠唱を中断しました','warn')}
-  P.target=null;P.queued=null;
+  P.target=null;P.queued=null;P.gcast=null;
   const [wx,wy]=toWorld(e.clientX,e.clientY);moveTo(Math.floor(wx),Math.floor(wy));
   fx.push({type:'click',x:Math.floor(wx)+.5,y:Math.floor(wy)+.5,t:0,life:.5});
   mouse.down=true;mouse.ground=true;mouse.holdT=.35;
@@ -2337,6 +2357,15 @@ function draw(){
   for(const f of fx){if(f.type!=='gx')continue;const p=f.t/f.life,a=p<.12?p/.12:Math.max(0,1-(p-.12)/.88);
     for(const [dx,dy] of GXS){const [x,y]=iso(f.x+dx,f.y+dy);ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x+32,y+16);ctx.lineTo(x,y+32);ctx.lineTo(x-32,y+16);ctx.closePath();
       ctx.fillStyle=`rgba(255,236,150,${.55*a})`;ctx.fill();ctx.strokeStyle=`rgba(255,255,255,${.8*a})`;ctx.lineWidth=1.5;ctx.stroke()}}
+  // 位置指定魔法の範囲表示（狙っている間はマウス位置、詠唱中は確定した場所）
+  {let gx=null,gy=null,r=0,ok=true;
+    if(aiming&&SK[aiming].ground&&mouse.x>=0){[gx,gy]=toWorld(mouse.x,mouse.y);r=SK[aiming].r;ok=Math.hypot(gx-P.x,gy-P.y)<=SK[aiming].range}
+    else if(P.casting&&P.casting.ground){gx=P.casting.x;gy=P.casting.y;r=SK[P.casting.id].r}
+    else if(P.gcast){gx=P.gcast.x;gy=P.gcast.y;r=SK[P.gcast.id].r}
+    if(gx!==null){const [x,y]=iso(gx,gy),rx=r*45,ry=r*22.6,pl=.8+Math.sin(time*6)*.2;
+      ctx.fillStyle=ok?`rgba(150,215,255,${.18*pl})`:'rgba(255,120,120,.15)';ctx.beginPath();ctx.ellipse(x,y,rx,ry,0,0,7);ctx.fill();
+      ctx.setLineDash([8,6]);ctx.strokeStyle=ok?'rgba(200,240,255,.9)':'rgba(255,150,150,.9)';ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(x,y,rx,ry,0,0,7);ctx.stroke();ctx.setLineDash([]);
+      if(aiming){const [px,py]=iso(P.x,P.y);ctx.strokeStyle='rgba(200,240,255,.25)';ctx.lineWidth=1.5;ctx.beginPath();ctx.ellipse(px,py,SK[aiming].range*45,SK[aiming].range*22.6,0,0,7);ctx.stroke()}}}
   if(P.casting){const [x,y]=iso(P.x,P.y);ctx.save();ctx.translate(x,y);ctx.scale(1,.5);ctx.rotate(time*2);ctx.strokeStyle=`rgba(${{magni:'150,195,255',gx:'255,225,120',fb:'255,120,60',fball:'255,90,40',sgust:'150,220,255',fwall:'255,120,40',swall:'255,170,215',tstorm:'180,150,255'}[P.casting.id]||'255,255,255'},.9)`;ctx.lineWidth=2;ctx.beginPath();ctx.arc(0,0,26,0,7);ctx.stroke();
     ctx.beginPath();for(let i=0;i<6;i++){const a=i/6*Math.PI*2;ctx.lineTo(Math.cos(a)*26,Math.sin(a)*26);ctx.lineTo(Math.cos(a+Math.PI/3*2)*26,Math.sin(a+Math.PI/3*2)*26)}ctx.stroke();ctx.restore()}
   // 奥から順に
@@ -2526,7 +2555,7 @@ function update(dt){
     if(P.rs>=8){P.rs=0;if(P.sp<s.msp)P.sp=Math.min(s.msp,P.sp+1+Math.floor(s.msp/60)+Math.floor(s.int/6))}
     P.atkT=Math.max(0,P.atkT-dt);P.swingT=Math.max(0,P.swingT-dt);P.moving=false;
     const frozen=P.frozen>time;
-    if(!frozen){updateCast(dt);updateTarget(dt,s)}
+    if(!frozen){updateGroundCast();updateCast(dt);updateTarget(dt,s)}
     if(P.path.length&&!P.casting&&!frozen){const [tx,ty]=P.path[0],r=moveEnt(P,tx,ty,s.speed,dt);if(r===true||r==='blocked')P.path.shift()}
     if(P.moving)P.walk+=dt;
     if(mouse.down&&mouse.ground){mouse.holdT-=dt;if(mouse.holdT<=0){mouse.holdT=.25;const [wx,wy]=toWorld(mouse.x,mouse.y);moveTo(Math.floor(wx),Math.floor(wy))}}
