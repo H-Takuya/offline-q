@@ -1151,9 +1151,9 @@ function updateMobs(dt,s){
       const sp=m.def.special;
       if(sp&&d<8){m.spT=(m.spT==null?5:m.spT)-dt;if(m.spT<=0){m.spT=sp.every;const cx=m.x,cy=m.y,r=sp.r,big=m.def.atk[1]*sp.mult;
         fx.push({type:'warn',col:sp.col,x:cx,y:cy,r,t:0,at:1.3,life:1.32,cb:()=>{fx.push(sp.freeze?{type:'spell',el:'cold',x:cx,y:cy,t:.22,at:.22,life:.5,done:true}:{type:'boom',x:cx,y:cy,t:0,life:.7,big:true});sfx('gx');
-          if(!P.dead&&Math.hypot(P.x-cx,P.y-cy)<=r){const s2=S(),dmg=Math.max(1,Math.round(big*(1-Math.min(.5,s2.def/100))-s2.vdef));P.hp-=dmg;float(P.x,P.y,dmg,'#ff4a3a',24,1,true);
+          if(!P.dead&&Math.hypot(P.x-cx,P.y-cy)<=r&&los(cx,cy,P.x,P.y)){const s2=S(),dmg=Math.max(1,Math.round(big*(1-Math.min(.5,s2.def/100))-s2.vdef));P.hp-=dmg;float(P.x,P.y,dmg,'#ff4a3a',24,1,true);
             if(sp.freeze&&P.hp>0){P.frozen=time+sp.freeze;P.casting=null;msg('凍りついて動けない！','warn')}if(P.hp<=0)die()}
-          if(merc&&!(merc.down>0)&&Math.hypot(merc.x-cx,merc.y-cy)<=r){merc.hp-=Math.round(big*.6);if(merc.hp<=0){merc.down=20;merc.cast=null;msg(`傭兵 ${MERC_LOOK[merc.job].name} が倒れた…（20秒後に復帰）`,'warn')}}}});
+          if(merc&&!(merc.down>0)&&Math.hypot(merc.x-cx,merc.y-cy)<=r&&los(cx,cy,merc.x,merc.y)){merc.hp-=Math.round(big*.6);if(merc.hp<=0){merc.down=20;merc.cast=null;msg(`傭兵 ${MERC_LOOK[merc.job].name} が倒れた…（20秒後に復帰）`,'warn')}}}});
         m.bubble=null;msg(sp.msg,'warn')}}
       // プレイヤーと傭兵のうち近いほうを狙う
       let tx=P.x,ty=P.y,td=d,onMerc=false;
@@ -1337,7 +1337,11 @@ function updateCast(dt){
 /* ---------- マジシャンの魔法 ---------- */
 const mdmg=(m,mult)=>Math.max(1,Math.round(S().matk*mult*(.9+rnd()*.2)-m.def.def*.3));
 const EL_COL={fire:'#ffb36b',cold:'#a8e4ff',bolt:'#fff27a'};
-function aoe(x,y,r,fn){for(const o of mobs)if(o.state!=='dead'&&Math.hypot(o.x-x,o.y-y)<=r)fn(o)}
+// 射線：2点を結ぶ線が木や壁を通るかどうか（水は見通せる）
+function los(x0,y0,x1,y1){const n=Math.ceil(Math.hypot(x1-x0,y1-y0)/.2);
+  for(let i=1;i<n;i++){const t=i/n,v=tile(Math.floor(x0+(x1-x0)*t),Math.floor(y0+(y1-y0)*t));if(v===TR||v===WL)return false}return true}
+// 範囲攻撃：中心から見通せる敵にだけ当たる（壁の向こうには届かない）
+function aoe(x,y,r,fn){for(const o of mobs)if(o.state!=='dead'&&Math.hypot(o.x-x,o.y-y)<=r&&los(x,y,o.x,o.y))fn(o)}
 function castSpell(c,lv){
   // 自分のまわりに置く魔法（対象なし）
   if(c.id==='swall'){P.swall={x:Math.floor(P.x),y:Math.floor(P.y),hits:lv+1,t:30};msg(`セーフティウォール！ ${lv+1}回まで攻撃を防ぐ`,'sys');sfx('buff');return}
@@ -1368,11 +1372,13 @@ function startGroundCast(id,x,y){
   const lv=P.skills[id],sk=SK[id];if(!lv)return;
   if(!pass(Math.floor(x),Math.floor(y))&&tile(Math.floor(x),Math.floor(y))!==WA){msg('そこには使えません','warn');return}
   P.target=null;P.queued=null;P.sit=false;P.gcast={id,x,y};
-  if(Math.hypot(x-P.x,y-P.y)>sk.range)moveTo(Math.floor(x),Math.floor(y));
+  if(Math.hypot(x-P.x,y-P.y)>sk.range||!los(P.x,P.y,x,y))moveTo(Math.floor(x),Math.floor(y));
 }
 function updateGroundCast(){
   const g=P.gcast;if(!g||P.casting)return;const sk=SK[g.id],lv=P.skills[g.id];
-  if(Math.hypot(g.x-P.x,g.y-P.y)>sk.range){if(!P.path.length)P.gcast=null;return}
+  if(Math.hypot(g.x-P.x,g.y-P.y)>sk.range||!los(P.x,P.y,g.x,g.y)){
+    if(!P.path.length){g.tries=(g.tries||0)+1;if(g.tries>3){P.gcast=null;msg('そこまで射線が通りません','warn');return}moveTo(Math.floor(g.x),Math.floor(g.y))}
+    return}
   P.path=[];P.gcast=null;const cost=sk.sp(lv);
   if(P.sp<cost){msg('SPが足りません','warn');return}
   P.sp-=cost;P.face=(g.x-P.x)-(g.y-P.y)>0?1:-1;
@@ -1454,7 +1460,7 @@ function updateMerc(dt){
   merc.target=t;
   const range=job==='aco'?1.4:job==='hunter'?8:8.5;
   if(t){const d=Math.hypot(t.x-merc.x,t.y-merc.y);
-    if(d>range)mercMove(t.x,t.y,dt);
+    if(d>range||(range>2&&!los(merc.x,merc.y,t.x,t.y)))mercMove(t.x,t.y,dt);
     else{const dx=t.x-merc.x,dy=t.y-merc.y;if(Math.abs(dx-dy)>.05)merc.face=(dx-dy)>0?1:-1;merc.path=[];
       if(merc.atkT<=0){merc.swing=.2;
         if(job==='aco'){hurtMob(t,mercDmg(t,st.atk),'#d0e8ff',17,false,'aco');sfx('hit');merc.atkT=.6}
@@ -1546,7 +1552,7 @@ function doSkill(id,m){
   P.sp-=cost;P.bubble={text:sk.n+'!!',t:1};
   if(id==='ds'){for(let i=0;i<2;i++)shoot(m,()=>playerAttack(m,S(),1.5+.25*lv,10,true),i*.12)}
   else if(id==='as'){const cx=m.x,cy=m.y;fx.push({type:'rain',x:cx,y:cy,t:0,life:.6});
-    later(.35,()=>{for(const o of mobs)if(o.state!=='dead'&&Math.abs(o.x-cx)<=1.5&&Math.abs(o.y-cy)<=1.5)playerAttack(o,S(),.75+.05*lv,10,true)})}
+    later(.35,()=>{for(const o of mobs)if(o.state!=='dead'&&Math.abs(o.x-cx)<=1.5&&Math.abs(o.y-cy)<=1.5&&los(cx,cy,o.x,o.y))playerAttack(o,S(),.75+.05*lv,10,true)})}
   else if(id==='blitz')blitz(m,lv);
 }
 function updateTraps(dt){
@@ -1583,7 +1589,8 @@ function updateTarget(dt,s){
   if(T.kind==='item'&&!groundItems.includes(T.ref)){P.target=null;return}
   const e=T.ref,d=Math.hypot(e.x-P.x,e.y-P.y);
   const range=T.kind==='mob'?(s.range||(P.queued&&SK[P.queued.id].range)||1.3+.25*e.def.size):T.kind==='npc'?1.8:.6;
-  if(d<=range){
+  // 遠距離（弓・魔法）は射線が通っているときだけ撃てる。通っていなければ回り込む
+  if(d<=range&&(range<2||los(P.x,P.y,e.x,e.y))){
     P.path=[];
     if(T.kind==='mob'){
       const dx=e.x-P.x,dy=e.y-P.y;if(Math.abs(dx-dy)>.05)P.face=(dx-dy)>0?1:-1;
@@ -2398,7 +2405,7 @@ function draw(){
       ctx.fillStyle=`rgba(255,236,150,${.55*a})`;ctx.fill();ctx.strokeStyle=`rgba(255,255,255,${.8*a})`;ctx.lineWidth=1.5;ctx.stroke()}}
   // 位置指定魔法の範囲表示（狙っている間はマウス位置、詠唱中は確定した場所）
   {let gx=null,gy=null,r=0,ok=true;
-    if(aiming&&SK[aiming].ground&&mouse.x>=0){[gx,gy]=toWorld(mouse.x,mouse.y);r=SK[aiming].r;ok=Math.hypot(gx-P.x,gy-P.y)<=SK[aiming].range}
+    if(aiming&&SK[aiming].ground&&mouse.x>=0){[gx,gy]=toWorld(mouse.x,mouse.y);r=SK[aiming].r;ok=Math.hypot(gx-P.x,gy-P.y)<=SK[aiming].range&&los(P.x,P.y,gx,gy)}
     else if(P.casting&&P.casting.ground){gx=P.casting.x;gy=P.casting.y;r=SK[P.casting.id].r}
     else if(P.gcast){gx=P.gcast.x;gy=P.gcast.y;r=SK[P.gcast.id].r}
     if(gx!==null){const [x,y]=iso(gx,gy),rx=r*45,ry=r*22.6,pl=.8+Math.sin(time*6)*.2;
