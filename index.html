@@ -55,6 +55,10 @@ kbd{font-family:var(--f-display);font-size:10px;color:var(--muted);margin-left:2
 .mrow{position:relative;display:flex;white-space:nowrap;justify-content:space-between;gap:6px;padding:2px 6px 5px;border-radius:4px;background:var(--win-2);font:11px var(--f-display);color:var(--ink);overflow:hidden;font-variant-numeric:tabular-nums}
 .mrow i{position:absolute;left:0;bottom:0;height:3px;background:var(--hp)}
 .mrow.hv i{background:var(--exp)}
+.quest{margin-top:6px;padding:5px 7px 6px;border-radius:4px;border-left:3px solid var(--exp);background:var(--win-2);font-size:11.5px;line-height:1.45}
+.quest .qc{display:block;font:10.5px var(--f-display);color:var(--muted)}
+.quest b{font-weight:700;color:var(--ink)}
+.talk-t .who{display:block;font:11px var(--f-display);color:var(--muted);margin-bottom:2px}
 .buffs{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px;min-height:0}
 .buffs span{font:11px var(--f-display);background:var(--sp);color:var(--head-ink);border-radius:3px;padding:0 5px}
 
@@ -160,6 +164,7 @@ kbd{font-family:var(--f-display);font-size:10px;color:var(--muted);margin-left:2
   <div class="row"><span id="hExp">Exp 0.0%</span><span id="hZeny">0 z</span></div>
   <div class="buffs" id="hBuff"></div>
   <div class="merc" id="hMerc" hidden></div>
+  <div class="quest" id="hQuest" hidden></div>
 </div>
 
 <div class="hud panel" id="mini"><canvas id="mm" width="168" height="88"></canvas><div class="coord" id="mmTxt">ルーンの草原</div><div class="coord boss" id="mmBoss"></div></div>
@@ -287,6 +292,8 @@ const PAL_SAND={left:'#8a6c40',right:'#a8864f',top:'#c9a86c',line:'rgba(60,40,15
   bg:'#1a130c',wall:'#2a1f14',floor:s=>`hsl(${34+s*6},${32+s*6}%,${44+s*8}%)`,fline:'rgba(70,45,20,.35)',crack:'rgba(60,40,20,.3)',flame:['255,190,90','#ff8a2a','#ffe08a']};
 const PAL_VOID={left:'#241a38',right:'#33284d',top:'#4a3a6a',line:'rgba(180,140,255,.22)',glyph:'rgba(190,140,255,.75)',hi:'rgba(210,180,255,.4)',
   bg:'#08060e',wall:'#14101e',floor:s=>`hsl(${255+s*12},${18+s*8}%,${18+s*8}%)`,fline:'rgba(150,110,230,.3)',crack:'rgba(120,230,255,.45)',flame:['150,120,255','#8a5aff','#d8c8ff']};
+const PAL_ICE={left:'#5a7a9a',right:'#7a9aba',top:'#cfe6f7',line:'rgba(255,255,255,.35)',glyph:'rgba(120,200,255,.85)',hi:'rgba(255,255,255,.65)',
+  bg:'#0c1622',wall:'#1a2a3a',floor:s=>`hsl(${200+s*10},${28+s*12}%,${66+s*12}%)`,fline:'rgba(110,150,190,.35)',crack:'rgba(255,255,255,.7)',flame:['150,220,255','#6ad0ff','#eaf8ff']};
 function genDungeon(seed=777){
   const R2=mulberry(seed),t=new Uint8Array(MW*MH).fill(WL),sh=new Float32Array(MW*MH);
   for(let i=0;i<MW*MH;i++)sh[i]=R2();
@@ -371,8 +378,12 @@ const ITEMS={
   c_prun:{n:'プルンカード',t:'card',b:{luk:2,mhp:60},sell:10,g:'札',c:'#e9869d',d:'LUK+2 / 最大HP+60'},
   c_kino:{n:'キノコンカード',t:'card',b:{vit:3},sell:10,g:'札',c:'#b05c3b',d:'VIT+3'},
   c_wolf:{n:'ウルフカード',t:'card',b:{atk:20},sell:10,g:'札',c:'#7f889b',d:'ATK+20'},
+  c_glacia:{n:'氷竜グレイシアカード',t:'card',b:{agi:12,dex:12,mhp:400},sell:10,g:'札',c:'#6ab8f0',d:'AGI+12 / DEX+12 / 最大HP+400'},
   c_gtb:{n:'黄金ゴキカード',t:'card',b:{def:15,mhp:300},sell:10,g:'札',c:'#b8901e',d:'DEF+15 / 最大HP+300'},
   relic:{n:'古代の秘宝',t:'etc',sell:3000,g:'宝',c:'#c9a23a',d:'ピラミッドで見つかる秘宝。高く売れる'},
+  shard1:{n:'ルーンの欠片・翠',t:'key',g:'欠',c:'#3aa86a',d:'草原のボスが抱えていたルーンの欠片。だいじな物'},
+  shard2:{n:'ルーンの欠片・砂',t:'key',g:'欠',c:'#d9a52c',d:'砂塵の王ファラオンが抱えていたルーンの欠片。だいじな物'},
+  shard3:{n:'ルーンの欠片・刻',t:'key',g:'欠',c:'#8a5aff',d:'終焉の王から取り戻したルーンの欠片。だいじな物'},
   c_kking:{n:'キノコ大王カード',t:'card',b:{vit:5,mhp:200},sell:10,g:'札',c:'#a8322a',d:'VIT+5 / 最大HP+200'},
   c_mist:{n:'ミストプルンカード',t:'card',b:{int:6},sell:10,g:'札',c:'#9a7be0',d:'INT+6'},
   c_wlord:{n:'ウルフロードカード',t:'card',b:{atk:40,agi:3},sell:10,g:'札',c:'#4a4f62',d:'ATK+40 / AGI+3'},
@@ -499,6 +510,7 @@ let NPCS=[
   {id:'guide',n:'案内人 ロウ',x:CX-2.5,y:CY+4.5,body:'#8a4b3a',hair:'#2b2b33',face:1},
   {id:'gate',n:'待ち人 ネフェル',x:CX-3.5,y:CY+2.5,body:'#c9a24a',hair:'#1a1a2a',face:1,hat:'pharaoh'},
   {id:'merc',n:'傭兵ギルド ガルド',x:CX-1.5,y:CY-3.5,body:'#5a4a3a',hair:'#3a2a1a',face:1,hat:'helm'},
+  {id:'ice',n:'氷窟の案内人 ユキ',x:CX-4.5,y:CY+.5,body:'#4a7ab0',hair:'#f2f6ff',face:1},
   {id:'chrono',n:'時の番人 クロノ',x:CX+3.5,y:CY+4.5,body:'#2a2a4a',hair:'#e8e8ff',face:-1,hat:'witch'},
 ];
 
@@ -514,9 +526,41 @@ function getDungeon(){
 }
 /* ---------- 最終ダンジョン「終焉の神殿」 ---------- */
 let FD=null;
+/* ---------- 中盤ダンジョン「凍てつく氷窟」 ---------- */
+const ICE_LV=300;let IC=null;
+function getIce(){
+  if(IC)return IC;const D=genDungeon(4242),imgs=[makeWall(false,PAL_ICE),makeWall(true,PAL_ICE)];
+  IC={id:'ice',name:'凍てつく氷窟',tiles:D.tiles,shade:D.shade,ground:renderDungeonGround(D,PAL_ICE),objs:dungeonObjs(D,imgs,PAL_ICE),safe:DG_SAFE,bgm:'ice',vig:'0,12,30',initMobs:()=>initIceMobs(),
+    npcs:[{id:'ret',n:'帰還の神官 アニ',x:CX+1.5,y:CY-.5,body:'#efe6cc',hair:'#1a1a2a',face:-1}],
+    spawn:()=>{for(let i=0;i<600;i++){const x=irand(2,MW-3),y=irand(2,MH-3);if(D.tiles[y*MW+x]===SA&&Math.hypot(x+.5-CX,y+.5-CY)>6)return [x+.5,y+.5]}return [CX+.5,CY+8.5]},
+    bossSpawn:()=>{let best=null,bd=0;for(let i=0;i<800;i++){const x=irand(2,MW-3),y=irand(2,MH-3),dd=Math.hypot(x+.5-CX,y+.5-CY);if(D.tiles[y*MW+x]===SA&&dd>bd){bd=dd;best=[x+.5,y+.5]}}return best||[CX+.5,CY+12.5]}};
+  return IC;
+}
+function iceDefs(){
+  // ピラミッドより一段強い：Lvは自分より上、数も多く、足も速い
+  const L=Math.round(Math.max(ICE_LV,P.lv)*1.1+50);
+  const mk=(n,kind,col,size,off,o={})=>{const lv=Math.max(5,L+off);
+    return {n,kind,lv,hp:Math.round(10*Math.pow(lv,1.35)+80),atk:[Math.round(lv*1.8),Math.round(lv*2.5)],def:Math.min(45,10+Math.floor(lv/25)),hit:lv+30,flee:Math.round(lv*.7),
+      exp:Math.round(Math.pow(lv,1.27)),jexp:Math.round(Math.pow(lv,1.27)*.7),speed:o.speed||2.4,delay:o.delay||1.1,aggro:true,aggroR:9,chaseR:20,col,size,
+      count:o.count||12,respawn:10,look:o.look||{},drops:[['yellow',.2],['blue',.08],['relic',.06],['gold',.05]],zeny:[lv*3,lv*6]}};
+  const lv=L+80;
+  const boss={n:'氷竜グレイシア',kind:'dragon',lv,hp:Math.round(150*Math.pow(lv,1.3)*2),atk:[Math.round(lv*2.5),Math.round(lv*3.3)],def:45,hit:lv+50,flee:Math.round(lv*.85),
+    exp:Math.round(Math.pow(lv,1.6)*2),jexp:Math.round(Math.pow(lv,1.6)*1.4),speed:2.3,delay:1.1,aggro:true,aggroR:10,chaseR:26,boss:true,tier:bossTier(),
+    col:'#bfe4ff',size:2.7,aura:'120,200,255',special:{every:8,r:3.6,mult:1,col:'80,170,255',freeze:2,msg:'氷竜が冷気を吸い込んでいる！ 青い円の外へ逃げろ！'},
+    count:1,respawn:0,look:{},drops:[['relic',1],['gold',1],['blue',1],['c_glacia',.12]],zeny:[lv*120,lv*240],mvp:[['c_glacia',.08],['relic',1]]};
+  return {
+    iwolf:mk('氷結ウルフ','wolf','#9ac8e8',1.2,0,{count:14,speed:3}),
+    fprun:mk('フロストプルン','prun','#bfe8ff',1.1,-30,{count:12}),
+    iwitch:mk('氷の魔女','human','#5a8ac0',1.1,40,{count:8,look:{hat:'witch',body:'#5a8ac0',hair:'#ffffff',skin:'#e0f0ff',eye:'#3af0ff'}}),
+    sskel:mk('雪原の骸骨','human','#e8f0f8',1.1,20,{count:12,look:{hat:'helm',body:'#9aa8b8',hair:'#e8f0f8',skin:'#f0f6ff',eye:'#4ad0ff'}}),
+    igtb:mk('氷晶ゴキ','gtb','#9ad8ff',1,10,{count:10,speed:3.4,delay:.9}),
+    glacia:boss,
+  };
+}
+function initIceMobs(){const defs=iceDefs();mobs=[];for(const k in defs){const def=defs[k];for(let i=0;i<def.count;i++){const m={key:k,def,seed:rnd()*10};spawnMob(m);mobs.push(m)}}}
 function getFinal(){
   if(FD)return FD;const D=genDungeon(9999),imgs=[makeWall(false,PAL_VOID),makeWall(true,PAL_VOID)];
-  FD={id:'final',name:'終焉の神殿',tiles:D.tiles,shade:D.shade,ground:renderDungeonGround(D,PAL_VOID),objs:dungeonObjs(D,imgs,PAL_VOID),safe:DG_SAFE,bgm:'final',initMobs:()=>initFinalMobs(),
+  FD={id:'final',name:'終焉の神殿',tiles:D.tiles,shade:D.shade,ground:renderDungeonGround(D,PAL_VOID),objs:dungeonObjs(D,imgs,PAL_VOID),safe:DG_SAFE,bgm:'final',vig:'10,0,22',initMobs:()=>initFinalMobs(),
     npcs:[{id:'ret',n:'帰還の神官 アニ',x:CX+1.5,y:CY-.5,body:'#efe6cc',hair:'#1a1a2a',face:-1}],
     spawn:()=>{for(let i=0;i<600;i++){const x=irand(2,MW-3),y=irand(2,MH-3);if(D.tiles[y*MW+x]===SA&&Math.hypot(x+.5-CX,y+.5-CY)>7)return [x+.5,y+.5]}return [CX+.5,CY+9.5]},
     bossSpawn:()=>{let best=null,bd=0;for(let i=0;i<800;i++){const x=irand(2,MW-3),y=irand(2,MH-3),dd=Math.hypot(x+.5-CX,y+.5-CY);if(D.tiles[y*MW+x]===SA&&dd>bd){bd=dd;best=[x+.5,y+.5]}}return best||[CX+.5,CY+12.5]}};
@@ -531,7 +575,7 @@ function finalDefs(){
   const lv=L+300;
   const boss={n:'終焉の王 アポカリオン',kind:'dragon',lv,hp:Math.round(150*Math.pow(lv,1.3)*4),atk:[Math.round(lv*3),Math.round(lv*4)],def:55,hit:lv+60,flee:Math.round(lv*.9),
     exp:Math.round(Math.pow(lv,1.6)*3),jexp:Math.round(Math.pow(lv,1.6)*2),speed:2.4,delay:1.1,aggro:true,aggroR:10,chaseR:30,boss:true,final:true,tier:bossTier(),
-    col:'#3a1a5a',size:3.2,aura:'170,90,255',count:1,respawn:0,look:{},drops:[['relic',1],['relic',1],['gold',1],['blue',1]],zeny:[lv*200,lv*400],mvp:[['relic',1]]};
+    col:'#3a1a5a',size:3.2,aura:'170,90,255',special:{every:7,r:4.2,mult:1.6,col:'255,40,40',msg:'終焉の王が力を溜めている！ 赤い円の外へ逃げろ！'},count:1,respawn:0,look:{},drops:[['relic',1],['relic',1],['gold',1],['blue',1]],zeny:[lv*200,lv*400],mvp:[['relic',1]]};
   return {
     dknight:mk('深淵の騎士','human','#1a1a2a',1.15,0,{count:12,look:{hat:'helm',body:'#1a1a2a',hair:'#0a0a12',skin:'#9a90b0',eye:'#c04aff'}}),
     vghost:mk('虚ろの亡霊','ghost','#5a4a8a',1.1,30,{count:10,speed:2.6}),
@@ -552,7 +596,7 @@ function enterMap(M,x,y){
   if(harvest)for(const u of harvest.units){if(u.carry)hvDeliver(u.carry);Object.assign(u,{x:x+(rnd()-.5)*1.5,y:y+(rnd()-.5)*1.5,st:'idle',it:null,carry:null})}
   [camX,camY]=iso(x,y);fx=fx.filter(f=>f.type==='lvbig'||f.type==='mvp');fx.push({type:'fade',t:0,life:.9});
   for(const w of ['w-talk','w-shop'])$(w).hidden=true;
-  msg(`${M.name} に到着した`,'sys');bgmSwitch(M.bgm);dirty=true;
+  msg(`${M.name} に到着した`,'sys');bgmSwitch(M.bgm);dirty=true;storyEvent('enter',M.id);
 }
 function dungeonDefs(){
   const L=Math.max(20,P.lv);
@@ -577,7 +621,7 @@ function newPlayer(){
   const p={x:SPAWN[0],y:SPAWN[1],face:1,path:[],target:null,queued:null,casting:null,
     lv:1,exp:0,jlv:1,jexp:0,statPts:0,skillPts:0,str:7,agi:6,vit:4,int:4,dex:5,luk:3,
     hp:1,sp:1,zeny:120,inv:[],eq:{weapon:null,armor:null},skills:{...JOBS.aco.skills},job:'aco',jobData:{},
-    buff:{agi:0,agiLv:0,magni:0,bless:0,blessLv:0,angelus:0,angelusLv:0,conc:0,concLv:0},atkT:0,swingT:0,walk:0,dead:false,bubble:null,sit:false,emote:null,reb:0,rebLv:0,rebJ:0,finalClear:false,maxCombo:0};
+    buff:{agi:0,agiLv:0,magni:0,bless:0,blessLv:0,angelus:0,angelusLv:0,conc:0,concLv:0},atkT:0,swingT:0,walk:0,dead:false,bubble:null,sit:false,emote:null,reb:0,rebLv:0,rebJ:0,finalClear:false,maxCombo:0,story:null};
   return p;
 }
 function addItem(id,q=1){
@@ -609,7 +653,7 @@ const healAmt=l=>{const s=P?S():{int:5};return Math.floor(12*l+((P?effLv():1)+s.
 /* ---------- 保存 ---------- */
 const SAVE_KEY='rune-meadow-save-v1';
 function serialize(){
-  const keys=['x','y','lv','exp','jlv','jexp','statPts','skillPts','str','agi','vit','int','dex','luk','hp','sp','zeny','skills','reb','rebLv','rebJ','finalClear','maxCombo'];
+  const keys=['x','y','lv','exp','jlv','jexp','statPts','skillPts','str','agi','vit','int','dex','luk','hp','sp','zeny','skills','reb','rebLv','rebJ','finalClear','maxCombo','story'];
   const o={}; for(const k of keys) o[k]=P[k];
   o.inv=P.inv.map(e=>({id:e.id,qty:e.qty,cards:e.cards.slice()}));
   o.eqW=P.inv.indexOf(P.eq.weapon); o.eqA=P.inv.indexOf(P.eq.armor);
@@ -714,7 +758,12 @@ const SONG_FINAL=[
   ['C',[[76,1.5],[74,.5],[72,2]]],['B7',[[71,1],[75,1],[78,2]]],['Am',[[76,1],[72,1],[69,1],[72,1]]],['B',[[71,4]]],
 ];
 CH.F=[41,[53,57,60]];CH.B=[47,[51,54,59]];
-const SONGS={town:{beat:60/112,bpb:3,bars:SONG},pyramid:{beat:60/88,bpb:4,bars:SONG_PYRAMID,drone:38},final:{beat:60/76,bpb:4,bars:SONG_FINAL,drone:40}};
+const SONG_ICE=[
+  ['Am',[[76,1],[72,1],[69,2]]],['F',[[72,1],[74,1],[76,2]]],['C',[[79,1.5],[76,.5],[72,2]]],['G',[[74,2],[71,2]]],
+  ['Am',[[69,1],[71,1],[72,1],[76,1]]],['F',[[77,2],[76,1],[74,1]]],['E',[[71,1],[68,1],[71,1],[74,1]]],['E',[[76,4]]],
+];
+CH.G=CH.G||[43,[55,59,62]];CH.E=[40,[52,56,59]];
+const SONGS={ice:{beat:60/96,bpb:4,bars:SONG_ICE,drone:45},town:{beat:60/112,bpb:3,bars:SONG},pyramid:{beat:60/88,bpb:4,bars:SONG_PYRAMID,drone:38},final:{beat:60/76,bpb:4,bars:SONG_FINAL,drone:40}};
 let bgmSong='town',bgmLp=null;
 function scheduleBar(i,t){
   const S2=SONGS[bgmSong],B=S2.beat,[ch,mel]=S2.bars[i],[bass,tri]=CH[ch];
@@ -809,12 +858,14 @@ function updateMobs(dt,s){
       }
     }
     if(m.state==='chase'){
-      // 最終ボスは定期的に範囲攻撃（赤い円が出てから1.3秒後に爆発）
-      if(m.def.final&&d<8){m.spT=(m.spT==null?5:m.spT)-dt;if(m.spT<=0){m.spT=7;const cx=m.x,cy=m.y,r=4.2,big=m.def.atk[1]*1.6;
-        fx.push({type:'warn',x:cx,y:cy,r,t:0,at:1.3,life:1.32,cb:()=>{fx.push({type:'boom',x:cx,y:cy,t:0,life:.7,big:true});sfx('gx');
-          if(!P.dead&&Math.hypot(P.x-cx,P.y-cy)<=r){const s2=S(),dmg=Math.max(1,Math.round(big*(1-Math.min(.5,s2.def/100))-s2.vdef));P.hp-=dmg;float(P.x,P.y,dmg,'#ff4a3a',24,1,true);if(P.hp<=0)die()}
+      // 一部のボスは定期的に範囲攻撃（円が出てから1.3秒後に発動。凍結つきのものもある）
+      const sp=m.def.special;
+      if(sp&&d<8){m.spT=(m.spT==null?5:m.spT)-dt;if(m.spT<=0){m.spT=sp.every;const cx=m.x,cy=m.y,r=sp.r,big=m.def.atk[1]*sp.mult;
+        fx.push({type:'warn',col:sp.col,x:cx,y:cy,r,t:0,at:1.3,life:1.32,cb:()=>{fx.push(sp.freeze?{type:'spell',el:'cold',x:cx,y:cy,t:.22,at:.22,life:.5,done:true}:{type:'boom',x:cx,y:cy,t:0,life:.7,big:true});sfx('gx');
+          if(!P.dead&&Math.hypot(P.x-cx,P.y-cy)<=r){const s2=S(),dmg=Math.max(1,Math.round(big*(1-Math.min(.5,s2.def/100))-s2.vdef));P.hp-=dmg;float(P.x,P.y,dmg,'#ff4a3a',24,1,true);
+            if(sp.freeze&&P.hp>0){P.frozen=time+sp.freeze;P.casting=null;msg('凍りついて動けない！','warn')}if(P.hp<=0)die()}
           if(merc&&!(merc.down>0)&&Math.hypot(merc.x-cx,merc.y-cy)<=r){merc.hp-=Math.round(big*.6);if(merc.hp<=0){merc.down=20;merc.cast=null;msg(`傭兵 ${MERC_LOOK[merc.job].name} が倒れた…（20秒後に復帰）`,'warn')}}}});
-        m.bubble=null;msg('終焉の王が力を溜めている！ 赤い円の外へ逃げろ！','warn')}}
+        m.bubble=null;msg(sp.msg,'warn')}}
       // プレイヤーと傭兵のうち近いほうを狙う
       let tx=P.x,ty=P.y,td=d,onMerc=false;
       if(merc&&!(merc.down>0)){const dm=Math.hypot(merc.x-m.x,merc.y-m.y);if(dm<td){tx=merc.x;ty=merc.y;td=dm;onMerc=true}}
@@ -875,12 +926,13 @@ function killMob(m){
   if(combo.n>(P.maxCombo||0))P.maxCombo=combo.n;
   if(combo.n%5===0){combo.pop=1;sfx('combo');float(P.x,P.y,`${combo.n} COMBO! EXP+${Math.round(bonus*100)}%`,'#7af0ff',18,.7)}
   gainExp(m.def.exp*(1+bonus),m.def.jexp*(1+bonus));
+  storyEvent('kill',m);if(m.def.boss)storyEvent('boss',m);
   for(const [id,r] of m.def.drops) if(rnd()<r) dropItem(id,1,m);
   dropItem('zeny',irand(m.def.zeny[0],m.def.zeny[1]),m);
   if(m.loot){for(const g of m.loot)dropItem(g.id,g.qty,m);m.loot=[]}
   if(m.def.boss){
     const rw=(m.def.mvp.find(([,r])=>rnd()<r)||m.def.mvp[m.def.mvp.length-1])[0];addItem(rw);
-    if(m.def.final){P.finalClear=true;setTimeout(openRebirth,1800)}
+    if(m.def.final){P.finalClear=true;const st=storyStep();if(!(st&&st.auto))setTimeout(openRebirth,1800)}
     fx.push({type:'mvp',t:0,life:3.2});sfx('mvp');
     msg(`MVP！ ${m.def.n} を討伐しました`,'sys');msg(`MVP報酬 ${ITEMS[rw].n} を獲得`,'item');
   }
@@ -1338,10 +1390,12 @@ function renderShop(){
     body=`<div class="btns" style="margin-bottom:8px"><button class="btn" data-act="selletc">収集品をまとめて売る</button></div>${rows||'<p class="note">売れる物がありません（装備中の物は売れません）</p>'}`}
   $('b-shop').innerHTML=`<div class="tabs"><button class="btn" data-act="tab" data-k="buy" aria-pressed="${shopTab==='buy'}">購入</button><button class="btn" data-act="tab" data-k="sell" aria-pressed="${shopTab==='sell'}">売却</button></div><div class="list">${body}</div><div class="foot"><span>所持金</span><b class="price">${P.zeny.toLocaleString()} z</b></div>`;
 }
-const TIPS=['左クリックで移動、モンスターをクリックで攻撃。押しっぱなしで歩き続けるよ。','ブレッシングと速度増加をかけてからメイスで殴る。それが殴りアコライトの基本だよ。','囲まれたらグランドクロス。ただしHPも削れるから、ヒールの分のSPは残しておこう。','町の外に出るほどモンスターは強くなる。ウルフは近づくと襲ってくるから気をつけて。','草原の奥に、金色のでっかいプルンがいるらしい。強いぞ。','黄金ゴキを見たって噂がある。すばしっこくて硬い、正真正銘のMVPだ。','プルンは落ちてるアイテムを拾っちゃう。倒せば取り返せるよ。','レベルが上がったらAキーでステータスを振ろう。ジョブレベルではスキルポイントがもらえる。','カードはまれにしか落ちない。空きスロットのある装備に挿すと能力が上がる。','町の中ではHPとSPの回復が早いし、モンスターも入ってこられないよ。'];
+const TIPS=['左クリックで移動、モンスターをクリックで攻撃。押しっぱなしで歩き続けるよ。','ブレッシングと速度増加をかけてからメイスで殴る。それが殴りアコライトの基本だよ。','囲まれたらグランドクロス。ただしHPも削れるから、ヒールの分のSPは残しておこう。','町の外に出るほどモンスターは強くなる。ウルフは近づくと襲ってくるから気をつけて。','草原の奥に、金色のでっかいプルンがいるらしい。強いぞ。','黄金ゴキを見たって噂がある。すばしっこくて硬い、正真正銘のMVPだ。','プルンは落ちてるアイテムを拾っちゃう。倒せば取り返せるよ。','Lv300を超えたら、氷窟の案内人ユキに話してごらん。ピラミッドより手ごわい氷窟に連れて行ってくれるよ。','レベルが上がったらAキーでステータスを振ろう。ジョブレベルではスキルポイントがもらえる。','カードはまれにしか落ちない。空きスロットのある装備に挿すと能力が上がる。','町の中ではHPとSPの回復が早いし、モンスターも入ってこられないよ。'];
 let talkNpc=null;
 function openNpc(n){
-  talkNpc=n;$('talkName').textContent=n.n;
+  talkNpc=n;
+  const st=storyStep();if(st&&st.type==='talk'&&st.npc===n.id){showStoryTalk(st.lines,()=>{storyAdvance();if(st.after==='rebirth')openRebirth()});return}
+  $('talkName').textContent=n.n;
   if(n.id==='shop'){shopTab='buy';toggleWin('shop',true);return}
   let html;
   if(n.id==='heal') html=`<p class="talk-t">神のご加護を。傷を癒やしてさしあげましょう。</p><div class="btns"><button class="btn" data-act="doheal">回復してもらう</button><button class="btn" data-close>また今度</button></div>`;
@@ -1356,6 +1410,11 @@ function openNpc(n){
       `<div class="it">${icon('収','#d9a52c')}<div class="tx"><div class="nm">ハーヴェスト</div><div class="ds">小さな8匹の群れ。まわりに落ちたアイテムとZenyを拾って届けてくれる。戦闘はしない</div></div><button class="btn" data-act="hire-hv" ${P.zeny<MERC_PRICE?'disabled':''}>${harvest?'延長':'雇う'}</button></div></div>`+
       `<div class="foot"><span>所持金 <b class="price">${P.zeny.toLocaleString()} z</b></span><span class="btns">${merc?'<button class="btn warn" data-act="fire-merc">傭兵を解除</button>':''}${harvest?'<button class="btn warn" data-act="fire-hv">ハーヴェストを解除</button>':''}${!merc&&!harvest?'<button class="btn" data-close>やめておく</button>':''}</span></div>`;
   }
+  else if(n.id==='ice'){
+    html=P.lv>=ICE_LV
+      ?`<p class="talk-t">北の山の奥に、凍てつく氷窟があるの。ピラミッドより手ごわい魔物ばかりよ。<br>敵の数が多くて足も速い。それに奥の「氷竜グレイシア」の冷気を浴びると、しばらく凍って動けなくなる。<br>安全なのは入口の9マスだけ。気をつけてね。</p><div class="btns"><button class="btn" data-act="warp-ice">氷窟へ行く</button><button class="btn" data-close>やめておく</button></div>`
+      :`<p class="talk-t">北の氷窟は、Base Lv ${ICE_LV} 以上の人しか案内できないの。<br>今のあなたは Lv ${P.lv}。まずはピラミッドで腕を磨いてきて。</p><div class="btns"><button class="btn" data-close>わかった</button></div>`;
+  }
   else if(n.id==='chrono'){
     if(P.finalClear){openRebirth();return}
     html=P.lv>=MAX_LV
@@ -1366,6 +1425,116 @@ function openNpc(n){
   else html=`<p class="talk-t">${TIPS[Math.floor(rnd()*TIPS.length)]}</p><div class="btns"><button class="btn" data-act="tip">ほかには？</button><button class="btn" data-close>ありがとう</button></div>`;
   $('b-talk').innerHTML=html;toggleWin('talk',true);
 }
+/* ---------- ストーリー ---------- */
+const NARR='語り部',ROU='案内人 ロウ',EMA='シスター・エマ',NEF='待ち人 ネフェル',CHR='時の番人 クロノ';
+const PROLOGUE=[
+  [NARR,'遥か昔、この大地には時を刻む石〈ルーン〉があった。'],
+  [NARR,'ルーンが脈打つかぎり、季節はめぐり、命は生まれ、やがて眠りにつく。'],
+  [NARR,'だが近ごろ、草原の魔物たちが妙にざわめいている。倒しても倒しても、なぜか再び現れるのだ。'],
+  [NARR,'あなたは名もなき冒険者。噴水の町にたどり着いたところから、物語は始まる。'],
+];
+const ENDING=[
+  [NARR,'三つの欠片をおさめたルーンは再び脈打ち、季節はめぐりはじめた。'],
+  [NARR,'けれど時の流れの中で、いつかまた終焉は目を覚ますだろう。'],
+  [NARR,'そのときもきっと——あの冒険者が、草原を歩いている。'],
+  [NARR,'〜 ルーンの草原・完 〜<br>（冒険はこれからも続く）'],
+];
+const STORY=[
+  {t:'草原のざわめき',steps:[
+    {type:'talk',npc:'guide',goal:'案内人 ロウに話しかけよう',lines:[
+      [ROU,'やあ、見ない顔だね。ここはルーンの草原の町さ。'],
+      [ROU,'この町の噴水の下には、大昔のルーンが眠ってるって言い伝えがあるんだ。'],
+      [ROU,'最近は魔物が増えるいっぽうでね…ルーンが弱ってるんじゃないかって噂だよ。'],
+      [ROU,'腕試しがてら、町の外の魔物を10体倒してきてくれないか？']]},
+    {type:'kill',count:10,goal:'町の外の魔物を倒そう'},
+    {type:'talk',npc:'guide',goal:'案内人 ロウに報告しよう',lines:[
+      [ROU,'おかえり！ なかなかやるじゃないか。'],
+      [ROU,'でも見たかい？ 倒したそばから、また湧いてくる。まるで時間が巻き戻ってるみたいだ。'],
+      [ROU,'ルーンのことなら、シスター・エマが詳しい。話を聞いてみるといい。']]},
+  ]},
+  {t:'祈りの声',steps:[
+    {type:'talk',npc:'heal',goal:'シスター・エマに話しかけよう',lines:[
+      [EMA,'あなたが…ロウさんの言っていた冒険者ですね。'],
+      [EMA,'祈るたびに、ルーンの声が乱れていくのを感じます。まるで何かに削り取られているような…。'],
+      [EMA,'草原の奥では、ルーンの力を吸って巨大になった魔物——ボスたちが暴れています。'],
+      [EMA,'どれか一体を鎮めてください。きっと、ルーンの欠片を抱えているはずです。']]},
+    {type:'boss',boss:'field',give:'shard1',goal:'草原のボスを1体倒そう'},
+    {type:'talk',npc:'heal',goal:'シスター・エマに欠片を見せよう',lines:[
+      [EMA,'それは…ルーンの欠片！ やはり、ルーンは砕けていたのですね。'],
+      [EMA,'言い伝えでは、欠片は三つ。ひとつは南の砂の都、ピラミッドの奥深くに眠るといいます。'],
+      [EMA,'噴水の西に立っている「待ち人」ネフェルさんを訪ねてください。あの方は砂の都の出だそうです。']]},
+  ]},
+  {t:'砂に眠る王',steps:[
+    {type:'talk',npc:'gate',goal:'待ち人 ネフェルに話しかけよう',lines:[
+      [NEF,'……来てくれたのね。ずっと、あなたを待っていた。'],
+      [NEF,'私は砂の都の最後の巫女。ピラミッドの王ファラオンは、ルーンの欠片の力で目覚めてしまったの。'],
+      [NEF,'王を、もう一度眠らせてあげて。欠片さえ取り戻せば、王は安らかに眠れるはず。'],
+      [NEF,'準備ができたら、もう一度話しかけて。ピラミッドへ案内するわ。']]},
+    {type:'enter',map:'pyramid',goal:'ネフェルに頼んでピラミッドへ行こう'},
+    {type:'boss',boss:'pharaoh',give:'shard2',goal:'砂塵の王ファラオンを倒そう'},
+    {type:'talk',npc:'gate',goal:'町へ戻り、ネフェルに報告しよう',lines:[
+      [NEF,'王の気配が…静かになった。ありがとう、冒険者さん。'],
+      [NEF,'最後の欠片は「時の果て」——この世界の終わりの場所にあるわ。'],
+      [NEF,'そこへの道を知っているのは、時の番人クロノだけ。噴水のそばで、ずっと時を見張っている人よ。']]},
+  ]},
+  {t:'時の番人',steps:[
+    {type:'talk',npc:'chrono',goal:'時の番人 クロノに話しかけよう',lines:[
+      [CHR,'ほう…二つの欠片を集めたか。'],
+      [CHR,'三つ目は終焉の神殿にある。そこには時を喰らう王——アポカリオンが眠っておる。'],
+      [CHR,'魔物が何度でも甦るのも、ルーンが乱れるのも、すべてあやつが時を喰らっているせいじゃ。'],
+      [CHR,'だが今のお前では、神殿の門すらくぐれん。時の果て——Base Lv 999 まで、己を鍛えてくるがよい。']]},
+    {type:'lv',lv:999,goal:'Base Lv 999 に到達しよう'},
+    {type:'talk',npc:'chrono',goal:'時の番人 クロノに話しかけよう',lines:[
+      [CHR,'……よくぞ時の果てに至った。'],
+      [CHR,'終焉の神殿への門を開こう。アポカリオンを倒し、最後の欠片を取り戻すのじゃ。'],
+      [CHR,'行け、冒険者。終焉を、終わらせてこい。']]},
+  ]},
+  {t:'終焉の王',steps:[
+    {type:'boss',boss:'final',give:'shard3',goal:'終焉の神殿でアポカリオンを倒そう'},
+    {type:'talk',npc:'chrono',auto:true,after:'rebirth',goal:'時の番人 クロノの声を聞こう',lines:[
+      [CHR,'……三つの欠片がそろった。聞こえるか？ ルーンが、再び脈打ちはじめた。'],
+      [CHR,'だが、アポカリオンは時そのものを喰らっておった。喰われた時は戻らん…世界は少しだけ、巻き戻る。'],
+      [CHR,'案ずるな。お前の体は、その強さを覚えている。'],
+      [CHR,'もう一度、始まりの草原から歩き出すがいい。——それが「転生」じゃ。']]},
+  ]},
+  {t:'めぐる時',steps:[
+    {type:'reb',goal:'転生して、新たな旅を始めよう'},
+  ]},
+];
+let storyTalk=null;
+function storyStep(){const s=P.story;if(!s||s.done)return null;const c=STORY[s.ch];return c?c.steps[s.step]:null}
+function initStory(){P.story={ch:0,step:0,kills:0,done:false};setTimeout(()=>showStoryTalk(PROLOGUE,()=>chapterBanner(0)),700)}
+function chapterBanner(i){fx.push({type:'lvbig',t:0,life:3,title:`第${i+1}章`,lines:[`「${STORY[i].t}」`]});msg(`第${i+1}章「${STORY[i].t}」`,'item');sfx('buff')}
+function storyAdvance(){
+  const s=P.story,st=storyStep();if(!st)return;
+  if(st.give&&!count(st.give)){addItem(st.give);msg(`${ITEMS[st.give].n} を手に入れた！`,'item')}
+  s.step++;s.kills=0;
+  if(s.step>=STORY[s.ch].steps.length){s.ch++;s.step=0;
+    if(s.ch>=STORY.length){s.done=true;setTimeout(()=>showStoryTalk(ENDING,()=>msg('物語は完結しました。冒険はこれからも続く','item')),2500)}
+    else chapterBanner(s.ch)}
+  const nx=storyStep();
+  if(nx&&nx.auto)setTimeout(()=>showStoryTalk(nx.lines,()=>{storyAdvance();if(nx.after==='rebirth')openRebirth()}),1800);
+  dirty=true;save();
+}
+function storyEvent(type,arg){
+  const st=storyStep();if(!st||st.type!==type)return;
+  if(type==='kill'){P.story.kills++;if(P.story.kills>=st.count)storyAdvance()}
+  else if(type==='boss'){const m=arg,ok=st.boss==='field'?curMap.id==='field':st.boss==='pharaoh'?m.key==='pharaoh':!!m.def.final;if(ok)storyAdvance()}
+  else if(type==='enter'&&arg===st.map)storyAdvance();
+}
+function storyCheck(){const st=storyStep();if(!st)return;if((st.type==='lv'&&P.lv>=st.lv)||(st.type==='reb'&&P.reb>=1))storyAdvance()}
+function showStoryTalk(lines,done){storyTalk={lines,i:0,done};renderStoryTalk();toggleWin('talk',true)}
+function renderStoryTalk(){
+  const T=storyTalk,[who,text]=T.lines[T.i],last=T.i>=T.lines.length-1;
+  $('talkName').textContent=who===NARR?'物語':who;
+  $('b-talk').innerHTML=`<p class="talk-t">${who===NARR?'':`<span class="who">${who}</span>`}${text}</p><div class="btns"><button class="btn" data-act="story-next">${last?'閉じる':'次へ ▶'}</button><span class="note" style="margin:0 0 0 auto">${T.i+1}/${T.lines.length}</span></div>`;
+}
+function drawQuestMark(x,y){
+  const b=Math.abs(Math.sin(time*4))*4;ctx.fillStyle='#ffd84a';ctx.strokeStyle='#5a3a08';ctx.lineWidth=2;
+  ctx.beginPath();ctx.arc(x,y-b,9,0,7);ctx.fill();ctx.stroke();
+  ctx.fillStyle='#5a3a08';ctx.font='bold 13px "DotGothic16",monospace';ctx.textAlign='center';ctx.fillText('!',x,y-b+5);
+}
+
 /* ---------- 転生 ---------- */
 function openRebirth(){
   if(!P.finalClear)return;
@@ -1414,11 +1583,13 @@ document.addEventListener('click',e=>{
     openNpc(talkNpc);dirty=true;return}
   else if(act==='fire-hv'){if(harvest){for(const u of harvest.units)if(u.carry)hvDeliver(u.carry);harvest=null;msg('ハーヴェストとの契約を解除しました','sys')}openNpc(talkNpc);dirty=true;return}
   else if(act==='fire-merc'){if(merc){msg(`傭兵 ${MERC_LOOK[merc.job].name} との契約を解除しました`,'sys');merc=null}openNpc(talkNpc);dirty=true;return}
+  else if(act==='warp-ice'){$('w-talk').hidden=true;if(P.lv<ICE_LV)return;enterMap(getIce(),CX-.5,CY+1.5);return}
   else if(act==='warp-final'){$('w-talk').hidden=true;if(P.lv<MAX_LV)return;enterMap(getFinal(),CX-.5,CY+1.5);return}
+  else if(act==='story-next'){const T=storyTalk;if(!T)return;T.i++;if(T.i>=T.lines.length){storyTalk=null;$('w-talk').hidden=true;T.done&&T.done()}else renderStoryTalk();return}
   else if(act==='rebirth'){$('w-talk').hidden=true;doRebirth();return}
   else if(act==='warp-home'){$('w-talk').hidden=true;enterMap(FIELD,CX-3.5,CY+3.5);return}
   else if(act==='reset'){if(!resetArm){resetArm=true;dirty=true;setTimeout(()=>{resetArm=false;dirty=true},4000);return}
-    resetArm=false;try{localStorage.removeItem(SAVE_KEY)}catch(_){}if(curMap.id!=='field'){useMap(FIELD);bgmSwitch('town')}merc=null;harvest=null;freshStart();initMobs();groundItems=[];traps=[];buildHotbar();msg('データを初期化しました','sys')}
+    resetArm=false;try{localStorage.removeItem(SAVE_KEY)}catch(_){}if(curMap.id!=='field'){useMap(FIELD);bgmSwitch('town')}merc=null;harvest=null;freshStart();initMobs();groundItems=[];traps=[];buildHotbar();msg('データを初期化しました','sys');initStory()}
   dirty=true;
 });
 document.addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&e.target.matches&&e.target.matches('.it[data-act]')){e.preventDefault();e.target.click()}});
@@ -1450,6 +1621,13 @@ function hud(){
   const be=P.exp/needBase(P.lv)*100,je=P.jexp/needJob(P.jlv)*100;
   $('exBar').style.width=be+'%';$('jxBar').style.width=je+'%';
   $('hExp').textContent=`Exp ${be.toFixed(1)}% / Job ${je.toFixed(1)}%`;$('hZeny').textContent=P.zeny.toLocaleString()+' z';
+  storyCheck();
+  const hq=$('hQuest'),sq=storyStep();
+  if(P.story&&P.story.done)hq.innerHTML=`<span class="qc">物語</span><b>完結（${P.reb?`★${P.reb} `:''}旅は続く）</b>`;
+  else if(sq){const ch=STORY[P.story.ch];let g=sq.goal;
+    if(sq.type==='kill')g+=`（${P.story.kills}/${sq.count}）`;else if(sq.type==='lv')g+=`（現在 Lv ${P.lv}）`;
+    hq.innerHTML=`<span class="qc">第${P.story.ch+1}章「${ch.t}」</span><b>${g}</b>`}
+  hq.hidden=!P.story;
   const hm=$('hMerc'),rows=[];
   if(merc){const st=mercStats(),L=MERC_LOOK[merc.job];
     rows.push(`<div class="mrow"><span>傭兵 ${L.name}（${JOBS[merc.job].n}）</span><span>${merc.down>0?`復帰まで ${Math.ceil(merc.down)}秒`:`残り ${fmtTime(merc.end-time)}`}</span><i style="width:${merc.down>0?0:clamp(merc.hp/st.mhp,0,1)*100}%"></i></div>`)}
@@ -1748,9 +1926,9 @@ function draw(){
     if(tr.k==='ankle'){ctx.strokeStyle='#8a8f99';ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(x,y,10,5,0,0,7);ctx.stroke();ctx.fillStyle='#b9bec8';
       for(let i=0;i<8;i++){const a=i/8*Math.PI*2;ctx.beginPath();ctx.moveTo(x+Math.cos(a)*10,y+Math.sin(a)*5);ctx.lineTo(x+Math.cos(a)*6,y+Math.sin(a)*3-3);ctx.lineTo(x+Math.cos(a+.3)*10,y+Math.sin(a+.3)*5);ctx.fill()}}
     else{ctx.fillStyle='#3a3a42';ctx.beginPath();ctx.ellipse(x,y,9,4.5,0,0,7);ctx.fill();ctx.fillStyle=Math.sin(time*6)>0?'#ff4a3a':'#7a2a22';ctx.beginPath();ctx.arc(x,y-1,2,0,7);ctx.fill()}}
-  for(const f of fx){if(f.type!=='warn'||f.t>f.at)continue;const [x,y]=iso(f.x,f.y),q=f.t/f.at,rx=f.r*45,ry=f.r*22.6;
-    ctx.fillStyle=`rgba(255,40,40,${.15+q*.3})`;ctx.beginPath();ctx.ellipse(x,y,rx,ry,0,0,7);ctx.fill();
-    ctx.strokeStyle='rgba(255,90,90,.9)';ctx.lineWidth=2.5;ctx.beginPath();ctx.ellipse(x,y,rx*q,ry*q,0,0,7);ctx.stroke();ctx.beginPath();ctx.ellipse(x,y,rx,ry,0,0,7);ctx.stroke()}
+  for(const f of fx){if(f.type!=='warn'||f.t>f.at)continue;const [x,y]=iso(f.x,f.y),q=f.t/f.at,rx=f.r*45,ry=f.r*22.6,wc=f.col||'255,40,40';
+    ctx.fillStyle=`rgba(${wc},${.15+q*.3})`;ctx.beginPath();ctx.ellipse(x,y,rx,ry,0,0,7);ctx.fill();
+    ctx.strokeStyle=`rgba(${wc},.9)`;ctx.lineWidth=2.5;ctx.beginPath();ctx.ellipse(x,y,rx*q,ry*q,0,0,7);ctx.stroke();ctx.beginPath();ctx.ellipse(x,y,rx,ry,0,0,7);ctx.stroke()}
   for(const f of fx){if(f.type!=='click')continue;const [x,y]=iso(f.x,f.y),p=f.t/f.life;ctx.strokeStyle=`rgba(255,255,255,${1-p})`;ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(x,y,14*(1-p*.5),7*(1-p*.5),0,0,7);ctx.stroke()}
   if(P.target&&P.target.kind==='mob'){const m=P.target.ref,[x,y]=iso(m.x,m.y),p=1+Math.sin(time*8)*.08;ctx.strokeStyle='rgba(255,90,80,.9)';ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(x,y,17*m.def.size*p,7*m.def.size*p,0,0,7);ctx.stroke()}
   for(const f of fx){if(f.type!=='gx')continue;const p=f.t/f.life,a=p<.12?p/.12:Math.max(0,1-(p-.12)/.88);
@@ -1769,7 +1947,8 @@ function draw(){
   if(curMap.id==='field'){objs.push([CX+CY,drawFountain]);addTownDeco(objs)}
   if(merc&&!(merc.down>0))objs.push([merc.x+merc.y,drawMerc]);
   if(harvest)for(const u of harvest.units)objs.push([u.x+u.y-.2,()=>drawHvUnit(u)]);
-  for(const n of NPCS)objs.push([n.x+n.y,()=>{const [x,y]=iso(n.x,n.y);drawHuman(x,y,{face:n.face,body:n.body,hair:n.hair,hat:n.hat});label(n.n,x,y-56,'#ffe9a8',12)}]);
+  for(const n of NPCS)objs.push([n.x+n.y,()=>{const [x,y]=iso(n.x,n.y);drawHuman(x,y,{face:n.face,body:n.body,hair:n.hair,hat:n.hat});label(n.n,x,y-56,'#ffe9a8',12);
+    const st=storyStep();if(st&&st.type==='talk'&&st.npc===n.id)drawQuestMark(x,y-82)}]);
   if(!P.dead||true)objs.push([P.x+P.y,()=>{const [x,y]=iso(P.x,P.y);
     if(P.dead)ctx.globalAlpha=.5;
     const H=P.job==='hunter',M=P.job==='mage',wi=P.eq.weapon&&ITEMS[P.eq.weapon.id],wOk=wi&&wi.cls===JOBS[P.job].w;
@@ -1780,6 +1959,7 @@ function draw(){
       robe:!H,mace:!H,bow:H,quiver:H,
       weapon:wOk?(H?{bow:'#8a5a2c',cbow:'#46663a',hbow:'#c9a23a'}[P.eq.weapon.id]:(P.eq.weapon.id==='axe'?'#d1a93f':'#a9b0bc')):null});
     if(H&&!fx.some(f=>f.type==='falcon'))drawFalcon(x-15*P.face,y-60+(P.sit?9:0)+Math.sin(time*3)*2,P.face,false);
+    if(P.frozen>time){ctx.globalAlpha=.55;ctx.fillStyle='#bfe8ff';ctx.strokeStyle='#ffffff';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(x-16,y+2);ctx.lineTo(x-13,y-50);ctx.lineTo(x,y-60);ctx.lineTo(x+14,y-48);ctx.lineTo(x+16,y+2);ctx.closePath();ctx.fill();ctx.stroke();ctx.globalAlpha=1}
     ctx.globalAlpha=1;const s=S();
     ctx.fillStyle='rgba(10,14,22,.75)';ctx.fillRect(x-18,y+6,36,8);ctx.fillStyle=P.hp/s.mhp<.25?'#e9493f':'#4ecb5a';ctx.fillRect(x-17,y+7,34*clamp(P.hp/s.mhp,0,1),3);
     ctx.fillStyle='#5b9cff';ctx.fillRect(x-17,y+11,34*clamp(P.sp/s.msp,0,1),2);
@@ -1890,7 +2070,7 @@ function drawCombo(){
 function drawScreenFx(){
   ctx.setTransform(DPR,0,0,DPR,0,0);
   if(curMap.id!=='field'){const r=Math.max(VW,VH),g=ctx.createRadialGradient(VW/2,VH/2,r*.22,VW/2,VH/2,r*.72);
-    g.addColorStop(0,'rgba(20,10,0,0)');g.addColorStop(1,'rgba(20,10,0,.72)');ctx.fillStyle=g;ctx.fillRect(0,0,VW,VH)}
+    const vg=curMap.vig||'20,10,0';g.addColorStop(0,`rgba(${vg},0)`);g.addColorStop(1,`rgba(${vg},.72)`);ctx.fillStyle=g;ctx.fillRect(0,0,VW,VH)}
   for(const f of fx)if(f.type==='fade'){ctx.fillStyle=`rgba(0,0,0,${Math.max(0,1-f.t/f.life)})`;ctx.fillRect(0,0,VW,VH)}
 }
 function drawLvBanner(){
@@ -1933,13 +2113,14 @@ function update(dt){
     if(P.rh>=6){P.rh=0;if(P.hp<s.mhp)P.hp=Math.min(s.mhp,P.hp+Math.max(1,Math.floor(s.mhp/40+s.vit/4)))}
     if(P.rs>=8){P.rs=0;if(P.sp<s.msp)P.sp=Math.min(s.msp,P.sp+1+Math.floor(s.msp/60)+Math.floor(s.int/6))}
     P.atkT=Math.max(0,P.atkT-dt);P.swingT=Math.max(0,P.swingT-dt);P.moving=false;
-    updateCast(dt);updateTarget(dt,s);
-    if(P.path.length&&!P.casting){const [tx,ty]=P.path[0],r=moveEnt(P,tx,ty,s.speed,dt);if(r===true||r==='blocked')P.path.shift()}
+    const frozen=P.frozen>time;
+    if(!frozen){updateCast(dt);updateTarget(dt,s)}
+    if(P.path.length&&!P.casting&&!frozen){const [tx,ty]=P.path[0],r=moveEnt(P,tx,ty,s.speed,dt);if(r===true||r==='blocked')P.path.shift()}
     if(P.moving)P.walk+=dt;
     if(mouse.down&&mouse.ground){mouse.holdT-=dt;if(mouse.holdT<=0){mouse.holdT=.25;const [wx,wy]=toWorld(mouse.x,mouse.y);moveTo(Math.floor(wx),Math.floor(wy))}}
   }
   if(P.bubble){P.bubble.t-=dt;if(P.bubble.t<=0)P.bubble=null}
-  for(const n of NPCS){if(n.bubble){n.bubble.t-=dt;if(n.bubble.t<=0)n.bubble=null}else if(rnd()<dt*.04){const L={shop:['ポーションあるよ〜','いらっしゃい！'],heal:['癒やしが必要な方は？'],guide:['困ったら話しかけてね'],gate:['砂の向こうで待っている…','ピラミッドへ行くかい？'],ret:['帰りたいか？','ここだけは安全だ'],merc:['腕利きの傭兵、いるぜ','5000zで10分だ！'],chrono:['時の果てを目指す者よ…','Lv999で会おう']}[n.id]||['…'];n.bubble={text:L[Math.floor(rnd()*L.length)],t:3}}}
+  for(const n of NPCS){if(n.bubble){n.bubble.t-=dt;if(n.bubble.t<=0)n.bubble=null}else if(rnd()<dt*.04){const L={shop:['ポーションあるよ〜','いらっしゃい！'],heal:['癒やしが必要な方は？'],guide:['困ったら話しかけてね'],gate:['砂の向こうで待っている…','ピラミッドへ行くかい？'],ret:['帰りたいか？','ここだけは安全だ'],merc:['腕利きの傭兵、いるぜ','5000zで10分だ！'],chrono:['時の果てを目指す者よ…','Lv999で会おう'],ice:['北の氷窟、行ってみる？','寒いのは平気？']}[n.id]||['…'];n.bubble={text:L[Math.floor(rnd()*L.length)],t:3}}}
   updateMobs(dt,s);updateTraps(dt);updateMerc(dt);updateHarvest(dt);
   for(const f of fx){f.t+=dt;
     if(f.cb&&!f.done&&f.t>=f.at){f.done=true;f.cb()}
@@ -1973,6 +2154,7 @@ function start(data){
   msg(`【経験値 ${EXP_RATE}倍】 Zキーで座る / チャットで /! /? /ho /lv /thx のエモーション`,'sys');
   cv.style.cursor=CUR.def;
   if(d)msg('前回の続きから再開しました','item');
+  if(!P.story)initStory();
   if(d&&d.harvest&&d.harvest.remain>1){hireHarvest(d.harvest.remain,true);msg(`ハーヴェストが合流しました（残り ${fmtTime(harvest.end-time)}）`,'item')}
   if(d&&d.merc&&d.merc.remain>1&&MERC_LOOK[d.merc.job]){hireMerc(d.merc.job,d.merc.remain,true);msg(`傭兵 ${MERC_LOOK[merc.job].name} が合流しました（残り ${fmtTime(merc.end-time)}）`,'item')}
   msg('Qでアコライト、Wでハンター、Rでマジシャンに切り替え（左上のボタンでも可）','sys');
