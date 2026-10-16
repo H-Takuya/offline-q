@@ -897,10 +897,6 @@ const SONG=[
   ['Am',[[69,1],[72,1],[76,1]]],['D',[[74,1],[78,1],[81,1]]],['G',[[79,2],[71,1]]],['G',[[67,3]]],
 ];
 let bgmGain=null,bgmTimer=null,bgmNext=0,bgmBar=0;
-function bnote(t,n,dur,type,vol,att=.02){const o=AC.createOscillator(),g=AC.createGain();o.type=type;o.frequency.value=mf(n);
-  g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vol,t+att);g.gain.exponentialRampToValueAtTime(.0008,t+dur);o.connect(g);g.connect(bgmGain);o.start(t);o.stop(t+dur+.05);return o}
-function flute(t,n,dur){const o=bnote(t,n,dur*.95+.15,'triangle',.16,.05),v=AC.createOscillator(),vg=AC.createGain();
-  v.frequency.value=5.2;vg.gain.value=7;v.connect(vg);vg.connect(o.detune);v.start(t);v.stop(t+dur+.2);bnote(t,n+12,dur*.9,'sine',.03,.06)}
 const SONG_FINAL=[
   ['Em',[[64,2],[67,1],[71,1]]],['F',[[72,2],[71,1],[69,1]]],['Em',[[67,1],[66,1],[64,2]]],['D',[[66,1],[69,1],[74,2]]],
   ['C',[[76,1.5],[74,.5],[72,2]]],['B7',[[71,1],[75,1],[78,2]]],['Am',[[76,1],[72,1],[69,1],[72,1]]],['B',[[71,4]]],
@@ -921,55 +917,136 @@ const SONG_PORT=[
   ['D',[[74,1],[73,1],[74,1]]],['G',[[71,2],[74,1]]],['A7',[[73,1],[76,1],[73,1]]],['D',[[74,3]]],
   ['Bm',[[78,1],[76,1],[74,1]]],['G',[[71,1],[74,1],[79,1]]],['A7',[[76,1],[73,1],[69,1]]],['D',[[74,3]]],
 ];
-function timp(t,n,vol=.3){const o=AC.createOscillator(),g=AC.createGain();o.type='sine';o.frequency.setValueAtTime(mf(n),t);o.frequency.exponentialRampToValueAtTime(mf(n)*.7,t+.35);
-  g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(.001,t+.7);o.connect(g);g.connect(bgmGain);o.start(t);o.stop(t+.75)}
-function swell(t,dur=1.2,vol=.07){const n=Math.floor(AC.sampleRate*dur),buf=AC.createBuffer(1,n,AC.sampleRate),d=buf.getChannelData(0);for(let i=0;i<n;i++)d[i]=(rnd()*2-1)*Math.sin(i/n*Math.PI);
-  const s=AC.createBufferSource(),f=AC.createBiquadFilter(),g=AC.createGain();s.buffer=buf;f.type='highpass';f.frequency.value=5000;g.gain.value=vol;s.connect(f);f.connect(g);g.connect(bgmGain);s.start(t)}
 CH.Bb=[46,[50,53,58]];
 const SONG_ABYSS=[
   ['Dm',[[69,2],[72,1],[74,1]]],['Bb',[[74,1],[72,1],[70,2]]],['F',[[69,1],[72,1],[77,2]]],['A',[[76,3],[73,1]]],
   ['Dm',[[74,1.5],[76,.5],[77,2]]],['Bb',[[79,2],[77,1],[74,1]]],['Gm',[[74,1],[70,1],[67,2]]],['A',[[69,4]]],
 ];
-const SONGS={abyss:{beat:60/70,bpb:4,bars:SONG_ABYSS,drone:38},ice:{beat:60/96,bpb:4,bars:SONG_ICE,drone:45},town:{beat:60/100,bpb:3,bars:SONG,grand:true},port:{beat:60/126,bpb:3,bars:SONG_PORT},pyramid:{beat:60/88,bpb:4,bars:SONG_PYRAMID,drone:38},final:{beat:60/76,bpb:4,bars:SONG_FINAL,drone:40}};
-let bgmSong='town',bgmLp=null;
-function scheduleBar(i,t){
-  const S2=SONGS[bgmSong],B=S2.beat,[ch,mel]=S2.bars[i],[bass,tri]=CH[ch];
-  if(S2.bpb===3){
-    bnote(t,bass,B*1.6,'sine',.22,.01);bnote(t,bass+12,B*.8,'triangle',.05,.01);
-    for(const b of [1,2])for(const n of tri)bnote(t+b*B,n,B*.55,'triangle',.035,.01);
-    if(i>=8&&!S2.grand)for(let k=0;k<6;k++)bnote(t+k*B/2,tri[k%3]+(k>=3?24:12),B*.9,'sine',.025,.005);
-    if(S2.grand){
-      const big=i>=16;
-      // ストリングスの白玉（和音を伸ばす）
-      for(const n of tri){bnote(t,n+12,B*3.1,'sawtooth',big?.016:.01,.35);bnote(t,n,B*3.1,'triangle',.03,.3)}
-      // ハープの分散和音（8小節目から）
-      if(i>=8)for(let k=0;k<6;k++)bnote(t+k*B/2,tri[k%3]+(k>=3?24:12),B*.9,'sine',.022,.005);
-      // ティンパニ：前半は4小節ごと、後半は毎小節
-      if(big||i%4===0)timp(t,bass-12+12,big?.32:.22);
-      if(big&&i%4===3)for(const b of [1,1.5,2,2.5])timp(t+b*B,bass,.14);
-      // 区切りでシンバルのうねり
-      if(i===0||i===16)swell(t,1.6,.08);
-      // 後半は金管がメロディを1オクターブ下で重ねる
-      if(big){let bt=0;for(const [n,len] of mel){bnote(t+bt*B,n-12,len*B*.95,'sawtooth',.03,.04);bnote(t+bt*B,n-12,len*B*.95,'square',.012,.04);bt+=len}}
-    }
-  }else{
-    bnote(t,S2.drone,B*4.2,'sine',.08,.4);
-    for(const b of [0,2])bnote(t+b*B,bass,B*1.5,'triangle',.16,.01);
-    for(const b of [1,3])for(const n of tri)bnote(t+b*B,n,B*.4,'triangle',.03,.01);
-    for(const b of [0,.75,1.5,2,2.75,3.5])bnote(t+b*B,b%1?86:81,.07,'sine',b%1?.025:.04,.003);
-  }
-  let bt=0;for(const [n,len] of mel){flute(t+bt*B,n,len*B);bt+=len}
+/* ---------- BGM エンジン：音色・残響・マップごとの編成 ---------- */
+let bgmSong='town',bgmLoop=0,bgmComp=null,bgmIR=null,bgmOut=null;
+// ホールの残響（ステレオのノイズを減衰させたインパルス応答を作る）
+function makeIR(sec=3.2,decay=2.6){const n=Math.floor(AC.sampleRate*sec),b=AC.createBuffer(2,n,AC.sampleRate);
+  for(let c=0;c<2;c++){const d=b.getChannelData(c);for(let i=0;i<n;i++)d[i]=(rnd()*2-1)*Math.pow(1-i/n,decay)}return b}
+function toOut(node,pan=0){if(pan&&AC.createStereoPanner){const p=AC.createStereoPanner();p.pan.value=clamp(pan,-1,1);node.connect(p);p.connect(bgmOut)}else node.connect(bgmOut)}
+// 汎用の1音：波形・音量の立ち上がり/減衰・フィルター・ビブラート・定位
+function voice(o){
+  const t=o.t,dur=o.dur,a=o.att??.01,r=o.rel??.15,os=AC.createOscillator();
+  os.type=o.type||'sine';os.frequency.value=o.f||mf(o.n);if(o.det)os.detune.value=o.det;
+  let node=os;
+  if(o.lp){const f=AC.createBiquadFilter();f.type=o.ft||'lowpass';f.Q.value=o.q||.7;f.frequency.setValueAtTime(o.lp,t);
+    if(o.lpTo){f.frequency.linearRampToValueAtTime(o.lpTo,t+(o.lpT||.12));if(o.lpEnd)f.frequency.setTargetAtTime(o.lpEnd,t+(o.lpT||.12),.25)}node.connect(f);node=f}
+  if(o.vib){const l=AC.createOscillator(),lg=AC.createGain();l.frequency.value=o.vibF||5.4;lg.gain.setValueAtTime(0,t);lg.gain.linearRampToValueAtTime(o.vib,t+(o.vibD||.25)+.2);
+    l.connect(lg);lg.connect(os.detune);l.start(t);l.stop(t+dur+r+.1)}
+  const g=AC.createGain();g.gain.setValueAtTime(.0001,t);g.gain.linearRampToValueAtTime(o.vol,t+a);
+  if(o.dec)g.gain.setTargetAtTime(Math.max(.0001,o.vol*(o.sus??0)),t+a,o.dec);
+  g.gain.setTargetAtTime(.0001,t+dur,r/3);node.connect(g);toOut(g,o.pan||0);os.start(t);os.stop(t+dur+r+.1);
 }
+function noiseHit(t,dur,vol,ft,fq,pan=0,q=1){const n=Math.floor(AC.sampleRate*dur),b=AC.createBuffer(1,n,AC.sampleRate),d=b.getChannelData(0);
+  for(let i=0;i<n;i++)d[i]=(rnd()*2-1)*Math.pow(1-i/n,2);const s=AC.createBufferSource(),f=AC.createBiquadFilter(),g=AC.createGain();
+  s.buffer=b;f.type=ft;f.frequency.value=fq;f.Q.value=q;g.gain.value=vol;s.connect(f);f.connect(g);toOut(g,pan);s.start(t)}
+/* ---- 楽器 ---- */
+const I={
+  // フルート：やわらかい立ち上がり、遅れてかかるビブラート、息の音
+  flute:(t,n,d,v=.12,pan=0)=>{voice({t,n,dur:d*.96,type:'triangle',vol:v,att:.06,rel:.18,vib:9,vibD:.22,lp:3200,pan});voice({t,n:n+12,dur:d*.9,type:'sine',vol:v*.18,att:.08,rel:.15,pan});noiseHit(t,.07,v*.12,'bandpass',2600,pan,2)},
+  // ストリングス：3本のノコギリ波を少しずつずらして重ね、左右に広げる
+  strings:(t,n,d,v=.025)=>{for(const [det,pan] of [[-9,-.45],[0,0],[9,.45]])voice({t,n,dur:d,type:'sawtooth',det,vol:v,att:.38,rel:.7,lp:1700,q:.4,pan,vib:4,vibF:4.6,vibD:.4});voice({t,n,dur:d,type:'triangle',vol:v*1.2,att:.3,rel:.6})},
+  cello:(t,n,d,v=.08)=>{voice({t,n,dur:d,type:'sawtooth',vol:v,att:.05,rel:.35,lp:650,q:.6,vib:5,vibD:.3});voice({t,n:n-12,dur:d,type:'sine',vol:v*1.6,att:.02,rel:.3})},
+  // 金管：音の頭でフィルターが開いて「パーン」と鳴る
+  brass:(t,n,d,v=.05,pan=0)=>{voice({t,n,dur:d,type:'sawtooth',vol:v,att:.05,rel:.18,lp:420,lpTo:2600,lpT:.09,lpEnd:1500,q:1.2,vib:6,vibD:.3,pan});voice({t,n,dur:d,type:'square',det:6,vol:v*.35,att:.06,rel:.18,lp:1400,pan})},
+  pizz:(t,n,v=.035,pan=0)=>voice({t,n,dur:.05,type:'triangle',vol:v,att:.003,dec:.09,sus:0,rel:.25,lp:2400,pan}),
+  harp:(t,n,v=.03,pan=0)=>{voice({t,n,dur:.05,type:'triangle',vol:v,att:.002,dec:.45,sus:0,rel:.6,lp:3500,pan});voice({t,n:n+12,dur:.05,type:'sine',vol:v*.35,att:.002,dec:.25,sus:0,rel:.4,pan})},
+  guitar:(t,n,v=.03,pan=0)=>{voice({t,n,dur:.05,type:'sawtooth',vol:v*.6,att:.003,dec:.22,sus:0,rel:.35,lp:2200,lpTo:900,lpT:.2,pan});voice({t,n,dur:.05,type:'triangle',vol:v,att:.003,dec:.35,sus:0,rel:.4,pan})},
+  oud:(t,n,v=.04,pan=0)=>voice({t,n,dur:.05,type:'sawtooth',vol:v,att:.002,dec:.18,sus:0,rel:.3,lp:1500,lpTo:600,lpT:.18,q:2,pan}),
+  accordion:(t,n,d,v=.05,pan=0)=>{for(const det of [-7,7])voice({t,n,dur:d*.95,type:'square',det,vol:v,att:.03,rel:.1,lp:1900,vib:5,vibF:6,vibD:.1,pan})},
+  // ベル：FM合成（グロッケン・チェレスタ風）
+  bell:(t,n,d=1.6,v=.05,pan=0)=>{const c=AC.createOscillator(),m=AC.createOscillator(),mg=AC.createGain(),g=AC.createGain(),f=mf(n);
+    c.frequency.value=f;m.frequency.value=f*3.5;mg.gain.setValueAtTime(f*2.2,t);mg.gain.exponentialRampToValueAtTime(f*.05,t+d);m.connect(mg);mg.connect(c.frequency);
+    g.gain.setValueAtTime(.0001,t);g.gain.linearRampToValueAtTime(v,t+.004);g.gain.exponentialRampToValueAtTime(.0001,t+d);c.connect(g);toOut(g,pan);c.start(t);m.start(t);c.stop(t+d+.05);m.stop(t+d+.05)},
+  // 合唱：ずらしたノコギリ波を「アー」の声の帯域で絞る
+  choir:(t,n,d,v=.03,pan=0)=>{for(const det of [-12,0,12]){const o={t,n,dur:d,type:'sawtooth',det,vol:v,att:.6,rel:1,lp:900,ft:'bandpass',q:1.6,vib:7,vibF:5,vibD:.5,pan:pan+det/40};voice(o)}},
+  timpani:(t,n,v=.25)=>{const o=AC.createOscillator(),g=AC.createGain();o.frequency.setValueAtTime(mf(n),t);o.frequency.exponentialRampToValueAtTime(mf(n)*.75,t+.4);
+    g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(.001,t+.9);o.connect(g);toOut(g);o.start(t);o.stop(t+.95);noiseHit(t,.08,v*.35,'lowpass',380)},
+  drum:(t,v=.2,pan=0)=>{const o=AC.createOscillator(),g=AC.createGain();o.frequency.setValueAtTime(150,t);o.frequency.exponentialRampToValueAtTime(55,t+.18);
+    g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(.001,t+.3);o.connect(g);toOut(g,pan);o.start(t);o.stop(t+.32);noiseHit(t,.05,v*.25,'bandpass',900,pan)},
+  tamb:(t,v=.05,pan=.3)=>noiseHit(t,.09,v,'highpass',7000,pan),
+  cymbal:(t,d=1.8,v=.06)=>{const n=Math.floor(AC.sampleRate*d),b=AC.createBuffer(1,n,AC.sampleRate),dd=b.getChannelData(0);for(let i=0;i<n;i++)dd[i]=(rnd()*2-1)*Math.sin(i/n*Math.PI);
+    const s=AC.createBufferSource(),f=AC.createBiquadFilter(),g=AC.createGain();s.buffer=b;f.type='highpass';f.frequency.value=5500;g.gain.value=v;s.connect(f);f.connect(g);toOut(g);s.start(t)},
+  sub:(t,n,d,v=.12)=>voice({t,n,dur:d,type:'sine',vol:v,att:.02,rel:.3}),
+  drone:(t,n,d,v=.06)=>{voice({t,n,dur:d,type:'sine',vol:v,att:.5,rel:.8});voice({t,n:n+7,dur:d,type:'sine',vol:v*.4,att:.6,rel:.8})},
+};
+const playMel=(mel,t,B,fn)=>{let bt=0;for(const [n,len] of mel){fn(t+bt*B,n,len*B);bt+=len}};
+/* ---- マップごとの編成 ---- */
+const ARR={
+  // ルーンの草原：オーケストラの3拍子。後半16小節で金管・ティンパニが入って盛り上がる
+  town:(i,t,B,mel,bass,tri)=>{const big=i>=16,lp=bgmLoop%2;
+    I.cello(t,bass,B*2.7,big?.08:.065);
+    for(const n of tri)I.strings(t,n+12,B*3,big?.026:.018);
+    for(const b of [1,2])tri.forEach((n,k)=>I.pizz(t+b*B,n+12,.026,k*.35-.35));
+    if(i>=8)for(let k=0;k<6;k++)I.harp(t+k*B/2,tri[k%3]+(k>=3?24:12),.026,-.5+k*.2);
+    if(big||i%4===0)I.timpani(t,bass+12,big?.26:.17);
+    if(big&&i%4===3)for(const b of [1,1.5,2,2.5])I.timpani(t+b*B,bass+12,.1);
+    if(i===0||i===16)I.cymbal(t,2,.06);
+    playMel(mel,t,B,(tt,n,d)=>{I.flute(tt,n,d,big?.1:.12);if(big){I.brass(tt,n-12,d,.045,-.2);I.brass(tt,n-5,d,.02,.25)}else if(lp)I.flute(tt,n-12,d,.05,.3)});
+  },
+  // 港町：アコーディオンとギターの船乗り歌。2周目はフルートとタンバリンが加わる
+  port:(i,t,B,mel,bass,tri)=>{const lp=bgmLoop%2;
+    I.sub(t,bass,B*.9,.13);I.guitar(t,bass+12,.03,-.2);
+    for(const b of [1,2])tri.forEach((n,k)=>I.guitar(t+b*B+k*.012,n,.022,.3));
+    for(const b of [1,2])I.tamb(t+b*B,lp?.05:.03);if(lp)I.tamb(t+2.5*B,.025);
+    playMel(mel,t,B,(tt,n,d)=>{I.accordion(tt,n,d,.04,-.15);if(lp)I.flute(tt,n+12,d,.06,.3)});
+  },
+  // ピラミッド：持続音と太鼓、ウード風のつま弾き、息の多い笛
+  pyramid:(i,t,B,mel,bass,tri)=>{const lp=bgmLoop%2;
+    I.drone(t,38,B*4.1,.055);
+    [[0,.2],[1.5,.11],[2,.16],[3,.1],[3.5,.13]].forEach(([b,v])=>I.drum(t+b*B,v,b%2?.3:-.2));
+    for(let b=0;b<4;b++)I.oud(t+b*B,tri[b%3],.032,-.3);
+    if(lp)for(const n of tri)I.strings(t,n,B*4,.012);
+    playMel(mel,t,B,(tt,n,d)=>{I.flute(tt,n,d,.11,.1);noiseHit(tt,.12,.012,'bandpass',1800,.1,1.5)});
+  },
+  // 氷窟：ベルとハープがきらめく、冷たく澄んだ響き
+  ice:(i,t,B,mel,bass,tri)=>{const lp=bgmLoop%2;
+    I.sub(t,bass,B*3.8,.09);for(const n of tri)I.strings(t,n+12,B*4,.014);
+    for(let k=0;k<8;k++)I.harp(t+k*B/2,tri[k%3]+(k%4>1?24:12),.018,k%2?.4:-.4);
+    playMel(mel,t,B,(tt,n,d)=>{I.bell(tt,n+12,Math.max(1.2,d*1.5),.045,.15);if(lp)I.flute(tt,n,d,.07,-.2)});
+    if(i%2)I.bell(t+3.5*B,tri[2]+36,1.4,.02,.6);
+  },
+  // 終焉の神殿：合唱と低い弦、ティンパニ、金管の重いメロディ
+  final:(i,t,B,mel,bass,tri)=>{const lp=bgmLoop%2;
+    I.cello(t,bass,B*4,.085);for(const n of tri)I.choir(t,n,B*4,.016);
+    I.timpani(t,bass+12,.26);I.timpani(t+2*B,bass+12,.16);if(i%4===3)for(const b of [3,3.25,3.5,3.75])I.timpani(t+b*B,bass+12,.09);
+    if(i===0)I.cymbal(t,2.4,.07);
+    playMel(mel,t,B,(tt,n,d)=>{I.brass(tt,n-12,d,.05,-.15);if(lp)I.strings(tt,n,d,.02)});
+    if(lp&&i%2===0)I.bell(t,tri[0]+24,2.4,.03,.4);
+  },
+  // 海底神殿：深い残響、合唱、ベルの旋律
+  abyss:(i,t,B,mel,bass,tri)=>{const lp=bgmLoop%2;
+    I.drone(t,38,B*4.1,.05);for(const n of tri)I.choir(t,n+12,B*4,.012,0);
+    for(let k=0;k<4;k++)I.harp(t+k*B,tri[k%3]+12,.02,k%2?.5:-.5);
+    playMel(mel,t,B,(tt,n,d)=>{I.bell(tt,n,Math.max(1.6,d*1.4),.04,-.1);if(lp)I.flute(tt,n-12,d,.05,.2)});
+  },
+};
+const SONGS={
+  town:{beat:60/100,bpb:3,bars:SONG,rev:.32},
+  port:{beat:60/126,bpb:3,bars:SONG_PORT,rev:.18},
+  pyramid:{beat:60/88,bpb:4,bars:SONG_PYRAMID,rev:.36},
+  ice:{beat:60/96,bpb:4,bars:SONG_ICE,rev:.52},
+  final:{beat:60/76,bpb:4,bars:SONG_FINAL,rev:.46},
+  abyss:{beat:60/70,bpb:4,bars:SONG_ABYSS,rev:.62},
+};
+function scheduleBar(i,t){const S2=SONGS[bgmSong],[ch,mel]=S2.bars[i],[bass,tri]=CH[ch];ARR[bgmSong](i,t,S2.beat,mel,bass,tri)}
 function bgmTick(){if(!AC||!bgmGain||!bgmTimer)return;const S2=SONGS[bgmSong];
-  while(bgmNext<AC.currentTime+1.5){scheduleBar(bgmBar,bgmNext);bgmNext+=S2.beat*S2.bpb;bgmBar=(bgmBar+1)%S2.bars.length}}
+  while(bgmNext<AC.currentTime+1.5){scheduleBar(bgmBar,bgmNext);bgmNext+=S2.beat*S2.bpb;bgmBar++;if(bgmBar>=S2.bars.length){bgmBar=0;bgmLoop++}}}
 function bgmStart(){
   if(!ac()||bgmTimer)return;
-  if(!bgmLp){bgmLp=AC.createBiquadFilter();bgmLp.type='lowpass';bgmLp.frequency.value=4200;bgmLp.connect(AC.destination)}
-  bgmGain=AC.createGain();bgmGain.connect(bgmLp);
-  const now=AC.currentTime;bgmGain.gain.setValueAtTime(.0001,now);bgmGain.gain.exponentialRampToValueAtTime(.5,now+1);
-  bgmNext=now+.15;bgmBar=0;bgmTimer=setInterval(bgmTick,250);bgmTick();
+  if(!bgmComp){bgmComp=AC.createDynamicsCompressor();bgmComp.threshold.value=-18;bgmComp.ratio.value=3;bgmComp.connect(AC.destination);bgmIR=makeIR()}
+  // 曲ごとに「そのままの音」と「残響」を混ぜる
+  bgmGain=AC.createGain();bgmOut=bgmGain;
+  const dry=AC.createBiquadFilter();dry.type='lowpass';dry.frequency.value=6500;const conv=AC.createConvolver();conv.buffer=bgmIR;const wet=AC.createGain();wet.gain.value=SONGS[bgmSong].rev;
+  bgmGain.connect(dry);dry.connect(bgmComp);bgmGain.connect(conv);conv.connect(wet);wet.connect(bgmComp);
+  const now=AC.currentTime;bgmGain.gain.setValueAtTime(.0001,now);bgmGain.gain.exponentialRampToValueAtTime(.6,now+1.2);
+  bgmNext=now+.15;bgmBar=0;bgmLoop=0;bgmTimer=setInterval(bgmTick,250);bgmTick();
 }
-function bgmStop(){if(bgmTimer){clearInterval(bgmTimer);bgmTimer=null}if(bgmGain&&AC){bgmGain.gain.cancelScheduledValues(AC.currentTime);bgmGain.gain.setTargetAtTime(0,AC.currentTime,.15)}}
+function bgmStop(){if(bgmTimer){clearInterval(bgmTimer);bgmTimer=null}if(bgmGain&&AC){bgmGain.gain.cancelScheduledValues(AC.currentTime);bgmGain.gain.setTargetAtTime(0,AC.currentTime,.25)}}
 function bgmSwitch(name){if(bgmSong===name)return;bgmSong=name;if(bgmTimer){bgmStop();bgmStart()}}
 
 /* ---------- モンスター ---------- */
