@@ -715,7 +715,7 @@ function makePalm(h){
   return c;
 }
 const palmImgs=[makePalm(-4),makePalm(2),makePalm(6)];
-function lighthouseLit(){const s=P.story;return !!(s&&(s.done||s.ch>8||(s.ch===8&&s.step>=1)))}
+function lighthouseLit(){const s=P.story;return !!(s&&(s.done||s.ch>9||(s.ch===9&&s.step>=1)))}
 function drawLighthouse(x,y){
   shadow(x,y,24,9);ctx.fillStyle='#8a8070';ctx.beginPath();ctx.ellipse(x,y-2,22,9,0,0,7);ctx.fill();
   for(let k=0;k<5;k++){const y0=y-4-k*22,w0=17-k*1.6,w1=17-(k+1)*1.6;ctx.fillStyle=k%2?'#d8443a':'#f4f0e8';ctx.beginPath();ctx.moveTo(x-w0,y0);ctx.lineTo(x+w0,y0);ctx.lineTo(x+w1,y0-22);ctx.lineTo(x-w1,y0-22);ctx.closePath();ctx.fill()}
@@ -776,7 +776,7 @@ function getAbyss(){
   return AB;
 }
 // タラッサは番人を倒したあと（第11章以降）に目を覚ます
-function thalassaAwake(){const s=P.story;return !!(s&&(s.done||s.ch>=10))}
+function thalassaAwake(){const s=P.story;return !!(s&&(s.done||s.ch>=11))}
 function abyssDefs(){
   const L=Math.round(Math.max(60,effLv())*1.05+60);
   const mk=(n,kind,col,size,off,o={})=>{const lv=Math.max(5,L+off);
@@ -811,7 +811,7 @@ function wakeThalassa(){
 }
 /* ---------- 第3部：雪の村フロストと白銀の雪原 ---------- */
 const SNOW=9,ICE=10,SNOW_ARR=[CX+.5,CY+5.5];let SN=null,CA=null;
-function villageThawed(){const s=P.story;return !!(s&&(s.done||s.ch>=16))}
+function villageThawed(){const s=P.story;return !!(s&&(s.done||s.ch>=17))}
 function genSnow(){
   const R4=mulberry(80085),t=new Uint8Array(MW*MH),sh=new Float32Array(MW*MH);
   for(let i=0;i<MW*MH;i++)sh[i]=R4();
@@ -1036,6 +1036,8 @@ function deserialize(o){
   for(const k in P.skills) if(k in old) P.skills[k]=old[k];
   // 転職システム以前のデータ：今のJob Lvに応じた職の段階を与え、使っていたスキルをそのまま使えるようにする
   if(!o.tiers){const t=effJob()>=TIER_REQ[2]?3:effJob()>=TIER_REQ[1]?2:1;P.tiers={aco:t,hunter:t,mage:t};grantTierSkills(P.job,t,P.skills)}
+  // ピラミッドのあとに「凍てつく氷窟」の章を追加した：旧データの章番号を1つずらす（旧「時の番人」は段階つきに）
+  if(P.story&&!P.story.v){const st=P.story;if(st.ch===3)st.step=st.step>=2?4:st.step;if(st.ch>=3)st.ch++;st.v=2}
   // 旧職のスキル（強打・ファイアボルト）に振ったポイントは返却
   P.skillPts+=Math.max(0,(old.bash||0)+(old.bolt||0)-2);
   P.inv=(o.inv||[]).filter(e=>ITEMS[e.id]).map(e=>({id:e.id,qty:e.qty,cards:e.cards||[]}));
@@ -1992,7 +1994,7 @@ function openNpc(n){
       :`<p class="talk-t">（氷の中で、時が止まっている……。まばたきひとつしない）</p><div class="btns"><button class="btn" data-close>そっとしておく</button></div>`;
   }
   else if(n.id==='nomad'){
-    const open=P.story&&(P.story.done||P.story.ch>=12);
+    const open=P.story&&(P.story.done||P.story.ch>=13);
     html=curMap.id==='snow'
       ?`<p class="talk-t">ルーンの草原へ戻るかい？ 犬ぞりならひとっ走りだ。</p><div class="btns"><button class="btn" data-act="warp-rune">ルーンの草原へ帰る</button><button class="btn" data-close>まだ村にいる</button></div>`
       :open?`<p class="talk-t">北のフロスト村行きの犬ぞりだ。しっかり着込んでいきな！</p><div class="btns"><button class="btn" data-act="warp-snow">フロスト村へ行く</button><button class="btn" data-close>また今度</button></div>`
@@ -2000,12 +2002,12 @@ function openNpc(n){
   }
   else if(n.id==='elder') html=`<p class="talk-t">${villageThawed()?'村に時が戻った。旅の方、本当にありがとう。いつでも温かいスープを用意して待っておるぞ。':'村の者を、どうか……。〈時の霜〉の正体さえわかれば……。'}</p><div class="btns"><button class="btn" data-close>また来ます</button></div>`;
   else if(n.id==='lila'){
-    const can=count('icekey')||(P.story&&(P.story.done||P.story.ch>=15));
+    const can=count('icekey')||(P.story&&(P.story.done||P.story.ch>=16));
     html=can?`<p class="talk-t">${villageThawed()?'村のみんなが元気になって、ほんとうによかった！ 城にはまだ魔物がいるみたい。修行に行くなら送るよ。':'お城へ行くの？ わたしの魔法で、門の前まで飛ばしてあげる！'}</p><div class="btns"><button class="btn" data-act="warp-castle">氷晶の城へ行く</button><button class="btn" data-close>また今度</button></div>`
       :`<p class="talk-t">お城の窓の明かり……あれが村を凍らせた原因なんだと思う。でも、雪原の主が道をふさいでいるの。</p><div class="btns"><button class="btn" data-close>わかった</button></div>`;
   }
   else if(n.id==='sailor'){
-    const open=P.reb>=1||(P.story&&P.story.ch>=6);
+    const open=P.reb>=1||(P.story&&P.story.ch>=7);
     html=curMap.id==='port'
       ?`<p class="talk-t">よう、ルーンの草原に戻るかい？ 潮の具合はばっちりだ。</p><div class="btns"><button class="btn" data-act="warp-rune">ルーンの草原へ帰る</button><button class="btn" data-close>まだ港にいる</button></div>`
       :open?`<p class="talk-t">東の港町マリナ行きの船だ。転生を越えた強者なら、荒れた海も怖くねぇだろ？</p><div class="btns"><button class="btn" data-act="warp-port">港町マリナへ出航</button><button class="btn" data-close>また今度</button></div>`
@@ -2044,14 +2046,14 @@ function openNpc(n){
 }
 /* ---------- ストーリー ---------- */
 const NARR='語り部',ROU='案内人 ロウ',EMA='シスター・エマ',NEF='待ち人 ネフェル',CHR='時の番人 クロノ',
-  YOR='北の行商人 ヨルン',BRG='村長 ベルグ',LIL='見習い魔導士 リラ',CEL='氷晶の女王 セルシア';
+  YOR='北の行商人 ヨルン',BRG='村長 ベルグ',LIL='見習い魔導士 リラ',CEL='氷晶の女王 セルシア',YUK='氷窟の案内人 ユキ';
 // 会話の顔アイコン用の見た目
 const PORTRAIT={
   [ROU]:{body:'#8a4b3a',hair:'#2b2b33'},[EMA]:{body:'#2f3e66',hair:'#e9d9a8'},[NEF]:{body:'#c9a24a',hair:'#1a1a2a',hat:'pharaoh'},
   [CHR]:{body:'#2a2a4a',hair:'#e8e8ff',hat:'witch'},'船乗り ガスパル':{body:'#2a3a6a',hair:'#3a2a1a'},'町長 シーラ':{body:'#2a6a8a',hair:'#c86a3a'},
   '灯台守 オルカ':{body:'#3a4a6a',hair:'#e8e8e8'},'時喰らいの海竜 タラッサ':{monster:true,body:'#123a4a',eye:'#3affd0'},
   [YOR]:{body:'#7a4a2a',hair:'#c87a3a'},[BRG]:{body:'#5a3a2a',hair:'#f0f0f0'},[LIL]:{body:'#4a6ac0',hair:'#f0c070',hat:'witch'},
-  [CEL]:{body:'#cfe0ff',hair:'#ffffff',skin:'#eef4ff',eye:'#3ad0ff',hat:'crown'},'冒険者':{body:'#2f3658',hair:'#8a4a1f',spiky:true},
+  [YUK]:{body:'#4a7ab0',hair:'#f2f6ff'},[CEL]:{body:'#cfe0ff',hair:'#ffffff',skin:'#eef4ff',eye:'#3ad0ff',hat:'crown'},'冒険者':{body:'#2f3658',hair:'#8a4a1f',spiky:true},
 };
 const PROLOGUE=[
   [NARR,'遥か昔、この大地には時を刻む石〈ルーン〉があった。'],
@@ -2103,12 +2105,37 @@ const STORY=[
       [NEF,'最後の欠片は「時の果て」——この世界の終わりの場所にあるわ。'],
       [NEF,'そこへの道を知っているのは、時の番人クロノだけ。噴水のそばで、ずっと時を見張っている人よ。']]},
   ]},
-  {t:'時の番人',steps:[
+  {t:'凍てつく氷窟',steps:[
     {type:'talk',npc:'chrono',goal:'時の番人 クロノに話しかけよう',lines:[
       [CHR,'ほう…二つの欠片を集めたか。'],
       [CHR,'三つ目は終焉の神殿にある。そこには時を喰らう王——アポカリオンが眠っておる。'],
+      [CHR,'だが今のお前では、神殿の門すらくぐれん。まずは足もとの異変を片づけてくるがよい。'],
+      [CHR,'北の山の氷窟で、氷竜グレイシアが欠片の余波を浴びて暴れておる。案内人のユキが、ずっと気をもんでおるぞ。'],
+      [CHR,'氷窟は Base Lv 300 からじゃ。それまでピラミッドで腕を磨け。']]},
+    {type:'lv',lv:300,goal:'Base Lv 300 に到達しよう'},
+    {type:'talk',npc:'ice',goal:'氷窟の案内人 ユキに話しかけよう',lines:[
+      [YUK,'あなたがクロノさんの言っていた冒険者ね。'],
+      [YUK,'氷窟の奥の氷竜グレイシア…前はおとなしい竜だったの。でも最近、吐く冷気で洞窟ごと時が止まりかけてる。'],
+      [YUK,'冷気の青い円を浴びると、しばらく凍って動けなくなるわ。気をつけて。'],
+      [YUK,'準備ができたら、もう一度話しかけて。氷窟へ案内する。']]},
+    {type:'enter',map:'ice',goal:'ユキに頼んで凍てつく氷窟へ行こう'},
+    {type:'boss',boss:'glacia',goal:'氷竜グレイシアを倒そう'},
+    {type:'talk',npc:'ice',goal:'町へ戻り、ユキに報告しよう',reward:{zeny:300000},lines:[
+      [YUK,'氷窟の冷気が…やわらいでいく。ありがとう！'],
+      [YUK,'竜の胸には、欠片の光の名残があったわ。きっと終焉の神殿から漏れ出した力ね。'],
+      [YUK,'クロノさんに伝えて。時の歪みは、もうすぐそこまで来てるって。']]},
+  ]},
+  {t:'時の番人',steps:[
+    {type:'talk',npc:'chrono',goal:'時の番人 クロノに話しかけよう',lines:[
+      [CHR,'グレイシアを鎮めたか。だが、あれは終焉の王が漏らした力のほんの一滴にすぎん。'],
       [CHR,'魔物が何度でも甦るのも、ルーンが乱れるのも、すべてあやつが時を喰らっているせいじゃ。'],
-      [CHR,'だが今のお前では、神殿の門すらくぐれん。時の果て——Base Lv 999 まで、己を鍛えてくるがよい。']]},
+      [CHR,'神殿へは、時の果て——Base Lv 999 に至った者しか入れん。'],
+      [CHR,'道は長い。まずは Lv 600 を目指せ。そこまで来たら、シスター・エマを訪ねるとよい。']]},
+    {type:'lv',lv:600,goal:'Base Lv 600 に到達しよう'},
+    {type:'talk',npc:'heal',goal:'シスター・エマに話しかけよう',lines:[
+      [EMA,'ずいぶん遠くまで来ましたね。ルーンの声が、あなたの名前を呼んでいる気がします。'],
+      [EMA,'終焉の神殿の前には、時が逆巻く「時の果て」があるそうです。そこに立てるのは、Lv 999 に至った者だけ。'],
+      [EMA,'あなたに祝福を。…クロノさんが待っています。']]},
     {type:'lv',lv:999,goal:'Base Lv 999 に到達しよう'},
     {type:'talk',npc:'chrono',goal:'時の番人 クロノに話しかけよう',lines:[
       [CHR,'……よくぞ時の果てに至った。'],
@@ -2255,7 +2282,8 @@ const ENDING3=[
 ['ロウの依頼で草原の魔物を退治した。倒しても甦る魔物に、ルーンの異変を感じた。',
  'シスター・エマの祈りに導かれ、草原のボスから〈ルーンの欠片・翠〉を取り戻した。',
  '砂の都の巫女ネフェルと出会い、ピラミッドの王ファラオンを眠らせて〈欠片・砂〉を得た。',
- '時の番人クロノから、時を喰らう王アポカリオンの存在を聞き、Lv999を目指した。',
+ 'クロノの導きで北の凍てつく氷窟へ。案内人ユキとともに、暴れる氷竜グレイシアを鎮めた。',
+ '時を喰らう王アポカリオンの存在を聞き、シスター・エマの祝福を受けて、時の果て Lv999 に至った。',
  '終焉の神殿でアポカリオンを倒し、三つの欠片がそろった。',
  '喰われた時は戻らず、世界は少しだけ巻き戻った。冒険者は転生し、新たな旅に出た。',
  '港町マリナから、夜ごと海が光るという便りが届き、船乗りガスパルの船でマリナへ渡った。',
@@ -2278,7 +2306,7 @@ const ENDING2=[
 ];
 let storyTalk=null;
 function storyStep(){const s=P.story;if(!s||s.done)return null;const c=STORY[s.ch];return c?c.steps[s.step]:null}
-function initStory(){P.story={ch:0,step:0,kills:0,done:false};setTimeout(()=>showStoryTalk(PROLOGUE,()=>chapterBanner(0)),700)}
+function initStory(){P.story={ch:0,step:0,kills:0,done:false,v:2};setTimeout(()=>showStoryTalk(PROLOGUE,()=>chapterBanner(0)),700)}
 function chapterBanner(i){const c=STORY[i],pm=c.part&&c.part.match(/^(第\d部)(.*)$/);
   fx.push({type:'lvbig',t:0,life:3.4,title:pm?pm[1]:`第${i+1}章`,lines:pm?[pm[2],`第${i+1}章「${c.t}」`]:[`「${c.t}」`]});msg(`${c.part?c.part+' ':''}第${i+1}章「${c.t}」`,'item');sfx('buff')}
 function storyAfter(a){
