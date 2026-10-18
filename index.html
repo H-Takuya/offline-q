@@ -58,6 +58,19 @@ kbd{font-family:var(--f-display);font-size:10px;color:var(--muted);margin-left:2
 .quest{margin-top:6px;padding:5px 7px 6px;border-radius:4px;border-left:3px solid var(--exp);background:var(--win-2);font-size:11.5px;line-height:1.45}
 .quest .qc{display:block;font:10.5px var(--f-display);color:var(--muted)}
 .quest b{font-weight:700;color:var(--ink)}
+.sl-now{padding:6px 8px;border-left:3px solid var(--exp);background:var(--win-2);border-radius:4px;font-size:12.5px}
+.sl-now .qc{display:block;font:10.5px var(--f-display);color:var(--muted)}
+.sl-h{font:12px var(--f-display);margin:12px 0 4px;color:var(--head)}
+.sl-part{font:11.5px var(--f-display);color:var(--accent);margin:8px 0 2px}
+.sl-p{margin:0 0 6px;font-size:12px;line-height:1.6}
+.slot.locked .ic{filter:grayscale(1);opacity:.25}
+.it.locked{opacity:.6}
+.quest .qs{display:block;font-size:10.5px;color:var(--muted);margin-top:2px}
+.st-row{display:flex;gap:10px;align-items:flex-start}
+.portrait{width:72px;height:72px;flex:none;border-radius:10px;box-shadow:0 2px 6px var(--shade)}
+.st-text{flex:1;min-width:0;min-height:72px;cursor:pointer}
+.btn.choice{display:block;width:100%;text-align:left;margin-bottom:4px;font-size:12.5px;padding:6px 10px}
+.btn.choice:hover{background:var(--head);color:var(--head-ink)}
 .talk-t .who{display:block;font:11px var(--f-display);color:var(--muted);margin-bottom:2px}
 .buffs{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px;min-height:0}
 .buffs span{font:11px var(--f-display);background:var(--sp);color:var(--head-ink);border-radius:3px;padding:0 5px}
@@ -199,6 +212,7 @@ kbd{font-family:var(--f-display);font-size:10px;color:var(--muted);margin-left:2
     <button class="btn" data-open="status">ステータス<kbd>A</kbd></button>
     <button class="btn" data-open="inv">アイテム<kbd>E</kbd></button>
     <button class="btn" data-open="skill">スキル<kbd>S</kbd></button>
+    <button class="btn" data-open="story">物語<kbd>J</kbd></button>
     <button class="btn" id="sitBtn">座る<kbd>Z</kbd></button>
     <button class="btn" id="muteBtn">音 ON</button>
     <button class="btn" id="bgmBtn">BGM ON</button>
@@ -210,6 +224,7 @@ kbd{font-family:var(--f-display);font-size:10px;color:var(--muted);margin-left:2
 <section class="win" id="w-inv" hidden><header><span>アイテム</span><button class="x" data-close aria-label="閉じる">×</button></header><div class="body" id="b-inv"></div></section>
 <section class="win" id="w-skill" hidden><header><span>スキル</span><button class="x" data-close aria-label="閉じる">×</button></header><div class="body" id="b-skill"></div></section>
 <section class="win" id="w-shop" hidden><header><span>道具屋 トルテ</span><button class="x" data-close aria-label="閉じる">×</button></header><div class="body" id="b-shop"></div></section>
+<section class="win" id="w-story" hidden><header><span>物語</span><button class="x" data-close aria-label="閉じる">×</button></header><div class="body" id="b-story"></div></section>
 <section class="win" id="w-talk" hidden><header><span id="talkName">NPC</span><button class="x" data-close aria-label="閉じる">×</button></header><div class="body" id="b-talk"></div></section>
 
 <div id="dead" hidden><div class="panel deadbox"><p class="dt">力尽きてしまった…</p><p>経験値を少し失いました。</p><button class="btn" id="revive">セーブポイントへ戻る</button></div></div>
@@ -402,6 +417,11 @@ const ITEMS={
   c_kino:{n:'キノコンカード',t:'card',b:{vit:3},sell:10,g:'札',c:'#b05c3b',d:'VIT+3'},
   c_wolf:{n:'ウルフカード',t:'card',b:{atk:20},sell:10,g:'札',c:'#7f889b',d:'ATK+20'},
   c_barbaro:{n:'海賊王バルバロカード',t:'card',b:{str:10,luk:10,atk:30},sell:10,g:'札',c:'#5a1a1a',d:'STR+10 / LUK+10 / ATK+30'},
+  tfrost:{n:'時の霜',t:'etc',sell:60,g:'霜',c:'#9ad8ff',d:'雪原の魔物がまとっていた、時を凍らせる霜。フロスト村の村長が探している'},
+  icekey:{n:'氷晶の鍵',t:'key',g:'鍵',c:'#8ab8f0',d:'氷牙の王が守っていた鍵。氷晶の城の門を開く。だいじな物'},
+  tdrop:{n:'時の雫',t:'key',g:'雫',c:'#d8f0ff',d:'氷晶の女王が遺した、涙のような雫。だいじな物'},
+  c_glacies:{n:'氷牙の王カード',t:'card',b:{agi:15,atk:50},sell:10,g:'札',c:'#8ab8e0',d:'AGI+15 / ATK+50'},
+  c_celsia:{n:'氷晶の女王カード',t:'card',b:{int:20,dex:10,mhp:800},sell:10,g:'札',c:'#cfe0ff',d:'INT+20 / DEX+10 / 最大HP+800'},
   tidekey:{n:'潮の鍵',t:'key',g:'鍵',c:'#3a9ab0',d:'深海の番人が守っていた鍵。海底神殿の最奥の扉を開く。だいじな物'},
   pearl:{n:'潮騒の真珠',t:'key',g:'珠',c:'#c8f0f0',d:'時喰らいの海竜が抱えていた真珠。耳を当てると波の音がする。だいじな物'},
   c_thalassa:{n:'時喰らいの海竜カード',t:'card',b:{int:15,dex:15,mhp:600},sell:10,g:'札',c:'#1a6a7a',d:'INT+15 / DEX+15 / 最大HP+600'},
@@ -504,20 +524,48 @@ const SK={
   as:{job:'hunter',n:'アローシャワー',max:10,sp:l=>15,target:true,g:'雨',c:'#4f86c9',d:l=>`対象の周囲3×3に矢の雨。ATK ${75+5*l}%`},
   blitz:{job:'hunter',n:'ブリッツビート',max:5,sp:l=>10+3*l,target:true,g:'鷹',c:'#8a6a3a',d:l=>`鷹が${l}回攻撃（必中・防御無視）。対象のまわり3×3マスを巻き込むが、巻き込んだ数でダメージを分け合う。通常攻撃のたびに 10%＋LUK÷3% で自動発動`},
   ankle:{job:'hunter',n:'アンクルスネア',max:5,sp:l=>12,target:false,g:'罠',c:'#6f7480',d:l=>`足元に罠を置く。踏んだ敵を${3+2*l}秒その場に縛る`},
-  fb:{job:'mage',n:'ファイアーボルト',max:10,sp:l=>10+2*l,cast:l=>.4+.2*l,range:9,target:true,el:'fire',g:'炎',c:'#e0582a',d:l=>`炎の矢を${l}本落とす（単体）。1本 MATK×0.9`},
-  fball:{job:'mage',n:'ファイアーボール',max:10,sp:l=>20+2*l,cast:l=>.8,range:9,target:true,el:'fire',g:'球',c:'#c8401a',d:l=>`火球が爆発し、周囲5×5の敵すべてに MATK×${(1+.15*l).toFixed(2)}`},
-  tstorm:{job:'mage',n:'サンダーストーム',max:10,sp:l=>25+4*l,cast:l=>1+.2*l,range:9,target:true,el:'bolt',g:'雷',c:'#8a7ad8',d:l=>`対象の周囲5×5に雷を${l}回。範囲内の敵すべてに1回 MATK×0.9`},
-  sgust:{job:'mage',n:'ストームガスト',max:10,sp:l=>50+5*l,cast:l=>2+.3*l,range:9,ground:true,r:3.5,el:'cold',g:'嵐',c:'#5ab8f0',d:l=>`クリックした場所の周囲7×7に吹雪を10回（射程9）。1回 MATK×${(.4+.06*l).toFixed(2)}。3回目で敵を3秒凍らせる`},
-  fwall:{job:'mage',n:'ファイアーウォール',max:10,sp:l=>30+2*l,cast:l=>.4,target:false,g:'壁',c:'#e86a2a',d:l=>`マウスの方向に炎の壁（3マス）。触れた敵に MATK×0.6 と押し返し。1マスあたり${2+l}回 / ${5+l}秒`},
-  swall:{job:'mage',n:'セーフティウォール',max:10,sp:l=>30+3*l,cast:l=>.5,target:false,g:'護',c:'#e88ab8',d:l=>`足元に光の柱。その上にいる間、敵の攻撃を${l+1}回まで防ぐ（30秒）`},
+  fb:{job:'mage',n:'ファイアーボルト',max:10,sp:l=>10+2*l,cast:l=>.2+.1*l,range:9,target:true,el:'fire',g:'炎',c:'#e0582a',d:l=>`炎の矢を${l}本落とす（単体）。1本 MATK×0.9`},
+  fball:{job:'mage',n:'ファイアーボール',max:10,sp:l=>20+2*l,cast:l=>.4,range:9,target:true,el:'fire',g:'球',c:'#c8401a',d:l=>`火球が爆発し、周囲5×5の敵すべてに MATK×${(1+.15*l).toFixed(2)}`},
+  tstorm:{job:'mage',n:'サンダーストーム',max:10,sp:l=>25+4*l,cast:l=>.5+.1*l,range:9,target:true,el:'bolt',g:'雷',c:'#8a7ad8',d:l=>`対象の周囲5×5に雷を${l}回。範囲内の敵すべてに1回 MATK×0.9`},
+  sgust:{job:'mage',n:'ストームガスト',max:10,sp:l=>50+5*l,cast:l=>1+.15*l,range:9,ground:true,r:3.5,el:'cold',g:'嵐',c:'#5ab8f0',d:l=>`クリックした場所の周囲7×7に吹雪を10回（射程9）。1回 MATK×${(.4+.06*l).toFixed(2)}。3回目で敵を3秒凍らせる`},
+  fwall:{job:'mage',n:'ファイアーウォール',max:10,sp:l=>30+2*l,cast:l=>.2,target:false,g:'壁',c:'#e86a2a',d:l=>`マウスの方向に炎の壁（3マス）。触れた敵に MATK×0.6 と押し返し。1マスあたり${2+l}回 / ${5+l}秒`},
+  swall:{job:'mage',n:'セーフティウォール',max:10,sp:l=>30+3*l,cast:l=>.25,target:false,g:'護',c:'#e88ab8',d:l=>`足元に光の柱。その上にいる間、敵の攻撃を${l+1}回まで防ぐ（30秒）`},
   mine:{job:'hunter',n:'ランドマイン',max:5,sp:l=>10,target:false,g:'爆',c:'#c94a3a',d:l=>`足元に地雷を置く。踏んだ敵にDEXとINT依存の大ダメージ`},
 };
 const JOBS={
-  aco:{n:'アコライト',w:'mace',skills:{bless:1,agi:1,heal:1,angelus:0,magni:1,gx:1},hot:['bless','agi','heal','angelus','magni','gx']},
-  hunter:{n:'ハンター',w:'bow',skills:{conc:1,ds:1,as:0,blitz:1,ankle:1,mine:0},hot:['conc','ds','as','blitz','ankle','mine']},
-  mage:{n:'マジシャン',w:'staff',skills:{fb:1,fball:1,tstorm:0,sgust:0,fwall:1,swall:1},hot:['fb','fball','tstorm','sgust','fwall','swall']},
+  aco:{n:'アコライト',w:'mace',skills:{bless:1,heal:1,agi:0,angelus:0,magni:0,gx:0},hot:['bless','heal','agi','angelus','magni','gx']},
+  hunter:{n:'アーチャー',w:'bow',skills:{ds:1,conc:1,ankle:0,blitz:0,as:0,mine:0},hot:['ds','conc','ankle','blitz','as','mine']},
+  mage:{n:'マジシャン',w:'staff',skills:{fb:1,fball:1,tstorm:0,fwall:0,sgust:0,swall:0},hot:['fb','fball','tstorm','fwall','sgust','swall']},
 };
 let HOT=[];
+/* ---------- 転職：1次職 → 2次職（Job Lv100）→ 3次職（Job Lv200） ---------- */
+const JOB_NAMES={aco:['アコライト','プリースト','ハイプリースト'],hunter:['アーチャー','ハンター','スナイパー'],mage:['マジシャン','ウィザード','ハイウィザード']};
+const TIER_REQ=[0,100,200];
+// スキルを覚えられる職の段階
+const SK_TIER={bless:1,heal:1,agi:2,angelus:2,magni:3,gx:3, ds:1,conc:1,ankle:2,blitz:2,as:3,mine:3, fb:1,fball:1,tstorm:2,fwall:2,sgust:3,swall:3};
+for(const k in SK)SK[k].tier=SK_TIER[k]||1;
+const tierOf=j=>(P&&P.tiers&&P.tiers[j])||1;
+const effJob=()=>P.jlv+(P.rebJ||0);
+const skillLocked=id=>SK[id].tier>tierOf(SK[id].job);
+for(const j in JOBS)Object.defineProperty(JOBS[j],'n',{get:()=>JOB_NAMES[j][tierOf(j)-1],configurable:true});
+// その段階のスキルをLv1で覚えさせる（転職のごほうび）
+function grantTierSkills(j,tier,skills){for(const k in SK)if(SK[k].job===j&&SK[k].tier<=tier&&!(skills[k]>0))skills[k]=1}
+function promote(j){
+  const t=tierOf(j);if(t>=3)return;const need=TIER_REQ[t];if(effJob()<need){msg(`Job Lv ${need} が必要です`,'warn');return}
+  const before=JOB_NAMES[j][t-1],after=JOB_NAMES[j][t];P.tiers[j]=t+1;
+  if(j===P.job)grantTierSkills(j,t+1,P.skills);else if(P.jobData[j])grantTierSkills(j,t+1,P.jobData[j].skills);
+  fx.push({type:'lv',t:0,life:2.2,angel:true,rgb:'255,230,150'},{type:'shock',t:0,life:1.2,rgb:'255,230,150'});
+  fx.push({type:'lvbig',t:0,life:3.4,title:'JOB CHANGE!',lines:[`${before} → ${after}`,'新しいスキルを覚えた！']});
+  sfx('mvp');msg(`${after} に転職した！ 新しいスキルを覚えた（Sキーで確認）`,'item');buildHotbar();dirty=true;save();
+}
+function jobMasterHTML(){
+  $('talkName').textContent='転職官 ギルベルト';
+  const rows=Object.keys(JOBS).map(j=>{const t=tierOf(j),cur=JOB_NAMES[j][t-1];
+    if(t>=3)return `<div class="it"><div class="tx"><div class="nm">${cur}</div><div class="ds">最上位職に到達している</div></div><button class="btn" disabled>最上位</button></div>`;
+    const nx=JOB_NAMES[j][t],need=TIER_REQ[t],ok=effJob()>=need,newSk=Object.keys(SK).filter(k=>SK[k].job===j&&SK[k].tier===t+1).map(k=>SK[k].n).join('・');
+    return `<div class="it"><div class="tx"><div class="nm">${cur} → ${nx}</div><div class="ds">条件：Job Lv ${need}（現在 ${effJob()}）<br>覚えるスキル：${newSk}</div></div><button class="btn" data-act="promote" data-job="${j}" ${ok?'':'disabled'}>転職する</button></div>`}).join('');
+  return `<p class="talk-t">わしは転職官ギルベルト。Job Lv ${TIER_REQ[1]} で2次職、Job Lv ${TIER_REQ[2]} で3次職へ導こう。<br>転職すると、新しいスキルを覚えられるようになるぞ。</p><div class="list">${rows}</div>`;
+}
 const BUFFS=[['bless','ブレッシング'],['agi','速度増加'],['angelus','エンジェラス'],['magni','マグニフィカート'],['conc','集中力向上']];
 const earnedStatPts=lv=>{let s=0;for(let l=2;l<=lv;l++)s+=3+Math.floor(l/5);return s};
 const GXS=[];for(let dy=-3;dy<=3;dy++)for(let dx=-3;dx<=3;dx++)if(((dx===0||dy===0)&&Math.abs(dx+dy)<=3)||(Math.abs(dx)===1&&Math.abs(dy)===1))GXS.push([dx,dy]);
@@ -539,6 +587,9 @@ let NPCS=[
   {id:'gate',n:'待ち人 ネフェル',x:CX-3.5,y:CY+2.5,body:'#c9a24a',hair:'#1a1a2a',face:1,hat:'pharaoh'},
   {id:'merc',n:'傭兵ギルド ガルド',x:CX-1.5,y:CY-3.5,body:'#5a4a3a',hair:'#3a2a1a',face:1,hat:'helm'},
   {id:'sailor',n:'船乗り ガスパル',x:CX+5.5,y:CY-4.5,body:'#2a3a6a',hair:'#3a2a1a',face:-1},
+  {id:'nomad',n:'北の行商人 ヨルン',x:CX+5.5,y:CY+.5,body:'#7a4a2a',hair:'#c87a3a',face:-1},
+  {id:'board',n:'依頼掲示板',x:CX+.5,y:CY-5,sign:true},
+  {id:'jobmaster',n:'転職官 ギルベルト',x:CX+.5,y:CY+6.2,body:'#3a2a5a',hair:'#d8c8a8',face:1,hat:'helm'},
   {id:'ice',n:'氷窟の案内人 ユキ',x:CX-4.5,y:CY+.5,body:'#4a7ab0',hair:'#f2f6ff',face:1},
   {id:'chrono',n:'時の番人 クロノ',x:CX+3.5,y:CY+4.5,body:'#2a2a4a',hair:'#e8e8ff',face:-1,hat:'witch'},
 ];
@@ -685,6 +736,7 @@ function getPort(){
       {id:'sailor',n:'船乗り ガスパル',x:CX-2.5,y:CY-6.5,body:'#2a3a6a',hair:'#3a2a1a',face:1},
       {id:'shop2',n:'道具屋 マーリン',x:CX-4.5,y:CY+2.5,body:'#3a8a7a',hair:'#f0d080',face:1,shop:true},
       {id:'heal2',n:'修道士 ルカ',x:CX+4.5,y:CY+2.5,body:'#e8e4d8',hair:'#5a3a2a',face:-1,heal:true},
+      {id:'board',n:'依頼掲示板',x:CX+.5,y:CY+4.5,sign:true},
     ],
     spawn:()=>{for(let i=0;i<600;i++){const x=irand(2,MW-3),y=irand(2,MH-3),v=D.tiles[y*MW+x];if(v!==WA&&v!==TR&&v!==WOOD&&!townXY(x+.5,y+.5)&&cheb(x+.5,y+.5)>9)return [x+.5,y+.5]}return [CX+.5,CY+12.5]},
     bossSpawn:()=>{for(let i=0;i<600;i++){const x=irand(2,MW-3),y=irand(14,19),v=D.tiles[y*MW+x];if(v===SA&&Math.abs(x-CX)>10)return [x+.5,y+.5]}return [CX+14.5,16.5]}};
@@ -757,6 +809,142 @@ function wakeThalassa(){
   const m={key:'thalassa',def:thalassaDef(Math.round(Math.max(60,effLv())*1.05+60)+250),seed:rnd()*10};spawnMob(m);mobs.push(m);
   msg('神殿の最奥で、何かが目を覚ました……','warn');fx.push({type:'shock',t:0,life:1.2,rgb:'60,255,220'});sfx('gx');
 }
+/* ---------- 第3部：雪の村フロストと白銀の雪原 ---------- */
+const SNOW=9,ICE=10,SNOW_ARR=[CX+.5,CY+5.5];let SN=null,CA=null;
+function villageThawed(){const s=P.story;return !!(s&&(s.done||s.ch>=16))}
+function genSnow(){
+  const R4=mulberry(80085),t=new Uint8Array(MW*MH),sh=new Float32Array(MW*MH);
+  for(let i=0;i<MW*MH;i++)sh[i]=R4();
+  const lakes=[[CX-14,CY+12,5,3.5],[CX+15,CY-12,4,5],[CX+13,CY+15,3.5,3]];
+  for(let y=0;y<MH;y++)for(let x=0;x<MW;x++){
+    const i=y*MW+x,d=cheb(x+.5,y+.5);let v=SNOW;
+    if(lakes.some(([lx,ly,rx,ry])=>((x+.5-lx)/rx)**2+((y+.5-ly)/ry)**2<1))v=ICE;
+    if(x<2||y<2||x>=MW-2||y>=MH-2)v=TR;
+    if(townXY(x+.5,y+.5))v=ST;
+    else if(v!==TR&&(x===CX-1||x===CX||y===CY-1||y===CY))v=DI;
+    else if(v===SNOW&&d>9&&R4()<.06)v=TR;
+    t[i]=v;
+  }
+  // 小屋（障害物）
+  for(const [hx,hy] of [[CX-6,CY-6],[CX+5,CY-6],[CX-6,CY+5],[CX+5,CY+5]])for(let dy=0;dy<2;dy++)for(let dx=0;dx<2;dx++)t[(hy+dy)*MW+hx+dx]=WL;
+  const seen=new Uint8Array(MW*MH),q=[[CX,CY+3]];seen[(CY+3)*MW+CX]=1;
+  const ok=(x,y)=>x>=0&&y>=0&&x<MW&&y<MH&&t[y*MW+x]!==TR&&t[y*MW+x]!==WL;
+  while(q.length){const [x,y]=q.pop();for(const [dx,dy] of DIRS.slice(0,4)){const nx=x+dx,ny=y+dy,k=ny*MW+nx;if(ok(nx,ny)&&!seen[k]){seen[k]=1;q.push([nx,ny])}}}
+  for(let i=0;i<MW*MH;i++)if(!seen[i]&&t[i]!==TR&&t[i]!==WL)t[i]=TR;
+  return {tiles:t,shade:sh};
+}
+function renderSnowGround(D){
+  const c=document.createElement('canvas');c.width=GW;c.height=GH;const g=c.getContext('2d');
+  g.fillStyle='#1c2a3a';g.fillRect(0,0,GW,GH);
+  for(let y=0;y<MH;y++)for(let x=0;x<MW;x++){const i=y*MW+x,v=D.tiles[i],s=D.shade[i],[px,py]=iso(x,y);
+    g.beginPath();g.moveTo(px,py);g.lineTo(px+32,py+16);g.lineTo(px,py+32);g.lineTo(px-32,py+16);g.closePath();
+    g.fillStyle=v===ICE?`hsl(${195+s*8},${55+s*10}%,${78+s*6}%)`:v===ST?`hsl(212,${12+s*6}%,${74+s*6}%)`:v===DI?`hsl(210,${14+s*6}%,${84+s*5}%)`:`hsl(${205+s*8},${22+s*10}%,${v===TR||v===WL?86:90+s*6}%)`;
+    g.fill();g.strokeStyle='rgba(60,90,130,.08)';g.lineWidth=1;g.stroke();
+    if(v===ICE){g.strokeStyle='rgba(255,255,255,.55)';g.beginPath();g.moveTo(px-10,py+12);g.lineTo(px+2,py+18);g.lineTo(px+12,py+14);g.stroke()}
+    if(v===SNOW&&s>.75){g.fillStyle='rgba(255,255,255,.9)';g.beginPath();g.arc(px-8+s*16,py+14,1.5,0,7);g.fill()}
+    if(v===ST){g.beginPath();g.moveTo(px,py+5);g.lineTo(px+22,py+16);g.lineTo(px,py+27);g.lineTo(px-22,py+16);g.closePath();g.strokeStyle='rgba(255,255,255,.45)';g.stroke()}
+  }
+  return c;
+}
+function makePine(h){
+  const c=document.createElement('canvas');c.width=76;c.height=116;const g=c.getContext('2d');
+  g.fillStyle='rgba(30,50,80,.22)';g.beginPath();g.ellipse(38,106,20,7,0,0,7);g.fill();
+  g.fillStyle='#5a3e26';g.fillRect(34,86,8,20);
+  for(let k=0;k<4;k++){const y=86-k*20,w=30-k*6;g.fillStyle=`hsl(${150+h},35%,${20+k*3}%)`;g.beginPath();g.moveTo(38-w,y);g.lineTo(38,y-30);g.lineTo(38+w,y);g.closePath();g.fill();
+    g.fillStyle='#f4f8ff';g.beginPath();g.moveTo(38-w*.55,y-12);g.lineTo(38,y-30);g.lineTo(38+w*.55,y-12);g.quadraticCurveTo(38,y-18,38-w*.55,y-12);g.fill()}
+  return c;
+}
+const pineImgs=[makePine(0),makePine(10),makePine(-8)];
+function drawCabin(x,y){
+  shadow(x,y+28,46,16);
+  ctx.fillStyle='#7a5032';ctx.beginPath();ctx.moveTo(x-40,y+12);ctx.lineTo(x,y+32);ctx.lineTo(x,y-6);ctx.lineTo(x-40,y-26);ctx.closePath();ctx.fill();
+  ctx.fillStyle='#93623d';ctx.beginPath();ctx.moveTo(x,y+32);ctx.lineTo(x+40,y+12);ctx.lineTo(x+40,y-26);ctx.lineTo(x,y-6);ctx.closePath();ctx.fill();
+  ctx.strokeStyle='rgba(50,30,15,.45)';ctx.lineWidth=1;for(let k=1;k<4;k++){ctx.beginPath();ctx.moveTo(x-40,y+12-k*9.5);ctx.lineTo(x,y+32-k*9.5);ctx.lineTo(x+40,y+12-k*9.5);ctx.stroke()}
+  ctx.fillStyle=villageThawed()?'#ffd88a':'#7aa0c8';ctx.fillRect(x+14,y-6,10,10);ctx.fillRect(x-28,y-10,10,10);
+  ctx.fillStyle='#f4f8ff';ctx.beginPath();ctx.moveTo(x-46,y-24);ctx.lineTo(x,y-50);ctx.lineTo(x+46,y-24);ctx.lineTo(x,y-2);ctx.closePath();ctx.fill();
+  ctx.fillStyle='#d8e4f0';ctx.beginPath();ctx.moveTo(x,y-50);ctx.lineTo(x+46,y-24);ctx.lineTo(x,y-2);ctx.closePath();ctx.fill();
+  ctx.fillStyle='#6a6a7a';ctx.fillRect(x+18,y-52,7,14);
+  if(villageThawed()){ctx.fillStyle='rgba(220,225,235,.5)';for(let k=0;k<3;k++){const p=(time*.4+k/3)%1;ctx.beginPath();ctx.arc(x+21+Math.sin(p*6)*4,y-56-p*30,3+p*5,0,7);ctx.fill()}}
+}
+function drawBonfire(x,y){
+  ctx.fillStyle='#6a4a2a';for(const a of [-.5,.5])(ctx.save(),ctx.translate(x,y-3),ctx.rotate(a),ctx.fillRect(-12,-2,24,5),ctx.restore());
+  if(villageThawed()){const f=1+Math.sin(time*12)*.1;const g=ctx.createRadialGradient(x,y-14,2,x,y-14,50);g.addColorStop(0,'rgba(255,190,90,.45)');g.addColorStop(1,'rgba(255,170,60,0)');ctx.fillStyle=g;ctx.beginPath();ctx.arc(x,y-14,50,0,7);ctx.fill();
+    ctx.fillStyle='#ff8a2a';ctx.beginPath();ctx.ellipse(x,y-12,9*f,15*f,0,0,7);ctx.fill();ctx.fillStyle='#ffe08a';ctx.beginPath();ctx.ellipse(x,y-9,4.5,8*f,0,0,7);ctx.fill()}
+  else{ctx.globalAlpha=.85;ctx.fillStyle='#bfe8ff';ctx.beginPath();ctx.moveTo(x-9,y-4);ctx.lineTo(x-4,y-26);ctx.lineTo(x,y-14);ctx.lineTo(x+3,y-30);ctx.lineTo(x+9,y-4);ctx.closePath();ctx.fill();ctx.strokeStyle='#ffffff';ctx.stroke();ctx.globalAlpha=1}
+}
+function getSnow(){
+  if(SN)return SN;const D=genSnow(),objs=[];
+  for(let y=0;y<MH;y++)for(let x=0;x<MW;x++)if(D.tiles[y*MW+x]===TR){const [sx,sy]=iso(x+.5,y+.5);objs.push({d:x+y+1,sx,sy,img:pineImgs[Math.floor(D.shade[y*MW+x]*3)],ox:38,oy:106})}
+  for(const [hx,hy] of [[CX-6,CY-6],[CX+5,CY-6],[CX-6,CY+5],[CX+5,CY+5]]){const [sx,sy]=iso(hx+1,hy+1);objs.push({d:hx+hy+2.5,sx,sy,fn:drawCabin})}
+  {const [sx,sy]=iso(CX,CY);objs.push({d:CX+CY,sx,sy,fn:drawBonfire})}
+  const vil=(n,x,y,body,hair,face)=>({id:'villager',n,x,y,body,hair,face,frozenNpc:true});
+  SN={id:'snow',name:'雪の村フロスト',tiles:D.tiles,shade:D.shade,ground:renderSnowGround(D),objs,safe:townXY,bgm:'snow',snowfall:true,aurora:true,initMobs:()=>initSnowMobs(),
+    npcs:[
+      {id:'elder',n:'村長 ベルグ',x:CX-3.5,y:CY-2.5,body:'#5a3a2a',hair:'#f0f0f0',face:1},
+      {id:'lila',n:'見習い魔導士 リラ',x:CX+2.5,y:CY-3.5,body:'#4a6ac0',hair:'#f0c070',face:-1,hat:'witch'},
+      {id:'nomad',n:'北の行商人 ヨルン',x:CX-2.5,y:CY+5.5,body:'#7a4a2a',hair:'#c87a3a',face:1},
+      {id:'shop3',n:'雑貨屋 ミーナ',x:CX-4.5,y:CY+2.5,body:'#8a3a3a',hair:'#3a2a1a',face:1,shop:true},
+      {id:'heal3',n:'治療師 オーラ',x:CX+4.5,y:CY+2.5,body:'#e8e4d8',hair:'#c8c8d8',face:-1,heal:true},
+      {id:'board',n:'依頼掲示板',x:CX+2.5,y:CY+5.5,sign:true},
+      vil('村の子ども',CX-1.5,CY+1.8,'#c84a4a','#5a3a2a',1),vil('リラの母',CX+1.8,CY-1.2,'#6a4a8a','#f0c070',-1),
+      vil('猟師',CX+1.8,CY+1.8,'#4a6a3a','#3a2a1a',-1),vil('リラの弟',CX-1.2,CY-1.6,'#3a7ac0','#f0c070',1),
+    ],
+    spawn:()=>{for(let i=0;i<600;i++){const x=irand(2,MW-3),y=irand(2,MH-3),v=D.tiles[y*MW+x];if(v!==TR&&v!==WL&&!townXY(x+.5,y+.5)&&cheb(x+.5,y+.5)>9)return [x+.5,y+.5]}return [CX+.5,CY+12.5]},
+    bossSpawn:()=>{let best=null,bd=0;for(let i=0;i<800;i++){const x=irand(2,MW-3),y=irand(2,MH-3),v=D.tiles[y*MW+x],dd=cheb(x+.5,y+.5);if(v!==TR&&v!==WL&&v!==ICE&&dd>bd){bd=dd;best=[x+.5,y+.5]}}return best||[CX+.5,CY+20.5]}};
+  return SN;
+}
+function snowDefs(){
+  const L=Math.round(Math.max(80,effLv())*1.1+120);
+  const mk=(n,kind,col,size,off,o={})=>{const lv=Math.max(5,L+off);
+    return {n,kind,lv,hp:Math.round(10*Math.pow(lv,1.35)+80),atk:[Math.round(lv*1.7),Math.round(lv*2.4)],def:Math.min(45,10+Math.floor(lv/25)),hit:lv+30,flee:Math.round(lv*.7),
+      exp:Math.round(Math.pow(lv,1.27)),jexp:Math.round(Math.pow(lv,1.27)*.7),speed:o.speed||2.2,delay:o.delay||1.2,aggro:!!o.aggro,aggroR:7,chaseR:18,col,size,
+      count:o.count||10,respawn:10,look:o.look||{},drops:[['tfrost',.35],['yellow',.15],['blue',.06],['relic',.04]],zeny:[lv*3,lv*6]}};
+  const blv=L+90;
+  return {
+    snprun:mk('スノープルン','prun','#e8f4ff',1.1,-30,{count:12}),
+    swolf:mk('雪狼','wolf','#dfe8f0',1.15,0,{count:14,speed:3,aggro:true}),
+    yeti:mk('ヒエティ','human','#e8eef4',1.5,30,{count:8,speed:1.8,aggro:true,look:{body:'#e8eef4',skin:'#c8d4e0',hair:'#f4f8ff',eye:'#3a6aff'}}),
+    ispirit:mk('氷精','ghost','#bfe8ff',.95,10,{count:8,speed:2.5,aggro:true}),
+    glacies:{n:'氷牙の王 グラキエス',kind:'wolf',lv:blv,hp:Math.round(150*Math.pow(blv,1.3)*2),atk:[Math.round(blv*2.5),Math.round(blv*3.3)],def:45,hit:blv+50,flee:Math.round(blv*.9),
+      exp:Math.round(Math.pow(blv,1.6)*2),jexp:Math.round(Math.pow(blv,1.6)*1.4),speed:3,delay:1,aggro:true,aggroR:10,chaseR:26,boss:true,far:true,tier:bossTier(),
+      col:'#cfe4ff',size:2.6,aura:'160,220,255',special:{every:8,r:3.4,mult:1.1,col:'120,200,255',freeze:1.8,msg:'グラキエスが凍てつく息を吸い込んだ！ 水色の円から離れろ！'},
+      count:1,respawn:0,look:{},drops:[['relic',1],['gold',1],['blue',1],['c_glacies',.1]],zeny:[blv*120,blv*240],mvp:[['c_glacies',.06],['relic',1]]},
+  };
+}
+function initSnowMobs(){const defs=snowDefs();mobs=[];for(const k in defs){const def=defs[k];for(let i=0;i<def.count;i++){const m={key:k,def,seed:rnd()*10};spawnMob(m);mobs.push(m)}}}
+/* ---------- 第3部：氷晶の城 ---------- */
+const PAL_CRYSTAL={left:'#5a6a9a',right:'#7a8ac0',top:'#d8e0ff',line:'rgba(255,255,255,.35)',glyph:'rgba(190,170,255,.85)',hi:'rgba(255,255,255,.7)',
+  bg:'#0a0c1a',wall:'#161a30',floor:s=>`hsl(${228+s*14},${24+s*10}%,${52+s*12}%)`,fline:'rgba(200,210,255,.35)',crack:'rgba(255,255,255,.75)',flame:['200,190,255','#b8a8ff','#ffffff']};
+function getCastle(){
+  if(CA)return CA;const D=genDungeon(1357),imgs=[makeWall(false,PAL_CRYSTAL),makeWall(true,PAL_CRYSTAL)];
+  CA={id:'castle',name:'氷晶の城',tiles:D.tiles,shade:D.shade,ground:renderDungeonGround(D,PAL_CRYSTAL),objs:dungeonObjs(D,imgs,PAL_CRYSTAL),safe:DG_SAFE,bgm:'castle',
+    vig:'10,12,35',dark:true,snowfall:true,home:'snow',initMobs:()=>initCastleMobs(),
+    npcs:[{id:'ret',n:'帰還の神官 アニ',x:CX+1.5,y:CY-.5,body:'#efe6cc',hair:'#1a1a2a',face:-1}],
+    spawn:()=>{for(let i=0;i<600;i++){const x=irand(2,MW-3),y=irand(2,MH-3);if(D.tiles[y*MW+x]===SA&&Math.hypot(x+.5-CX,y+.5-CY)>6)return [x+.5,y+.5]}return [CX+.5,CY+8.5]},
+    bossSpawn:()=>{let best=null,bd=0;for(let i=0;i<800;i++){const x=irand(2,MW-3),y=irand(2,MH-3),dd=Math.hypot(x+.5-CX,y+.5-CY);if(D.tiles[y*MW+x]===SA&&dd>bd){bd=dd;best=[x+.5,y+.5]}}return best||[CX+.5,CY+12.5]}};
+  return CA;
+}
+function castleDefs(){
+  const L=Math.round(Math.max(80,effLv())*1.12+170);
+  const mk=(n,kind,col,size,off,o={})=>{const lv=Math.max(5,L+off);
+    return {n,kind,lv,hp:Math.round(11*Math.pow(lv,1.35)+90),atk:[Math.round(lv*1.8),Math.round(lv*2.5)],def:Math.min(48,12+Math.floor(lv/25)),hit:lv+35,flee:Math.round(lv*.72),
+      exp:Math.round(Math.pow(lv,1.28)),jexp:Math.round(Math.pow(lv,1.28)*.7),speed:o.speed||2.3,delay:o.delay||1.15,aggro:true,aggroR:9,chaseR:20,col,size,
+      count:o.count||10,respawn:10,look:o.look||{},drops:[['blue',.12],['relic',.1],['gold',.06]],zeny:[lv*4,lv*8]}};
+  const lv=L+260;
+  return {
+    cknight:mk('氷晶の騎士','human','#9ab8d8',1.15,20,{count:12,look:{hat:'helm',body:'#9ab8d8',hair:'#e8f0ff',skin:'#d8e4f4',eye:'#7af0ff'}}),
+    cmage:mk('氷の宮廷魔導師','human','#6a8ac8',1.1,40,{count:8,look:{hat:'witch',body:'#6a8ac8',hair:'#ffffff',skin:'#e0eaff',eye:'#b08aff'}}),
+    cghost:mk('クリスタルゴースト','ghost','#e0f0ff',1.05,10,{count:10,speed:2.6}),
+    fdrake:mk('凍結ドラゴン','dragon','#8ab8e0',1.2,60,{count:6}),
+    cprun:mk('クリスタルプルン','prun','#c8d0ff',1.2,-20,{count:10}),
+    celsia:{n:'氷晶の女王 セルシア',kind:'human',lv,hp:Math.round(150*Math.pow(lv,1.3)*4),atk:[Math.round(lv*3),Math.round(lv*4)],def:55,hit:lv+60,flee:Math.round(lv*.9),
+      exp:Math.round(Math.pow(lv,1.6)*3),jexp:Math.round(Math.pow(lv,1.6)*2),speed:2.2,delay:1.1,aggro:true,aggroR:10,chaseR:30,boss:true,far:true,tier:bossTier(),
+      col:'#cfe0ff',size:2.1,aura:'200,230,255',look:{hat:'crown',body:'#cfe0ff',hair:'#ffffff',skin:'#eef4ff',eye:'#3ad0ff'},
+      special:{every:7,r:5,mult:1.5,col:'170,220,255',freeze:2.5,msg:'時が凍りつく……！ 大きな円の外へ逃げろ！'},
+      count:1,respawn:0,drops:[['relic',1],['relic',1],['gold',1],['blue',1],['c_celsia',.1]],zeny:[lv*200,lv*400],mvp:[['c_celsia',.06],['relic',1]]},
+  };
+}
+function initCastleMobs(){const defs=castleDefs();mobs=[];for(const k in defs){const def=defs[k];for(let i=0;i<def.count;i++){const m={key:k,def,seed:rnd()*10};spawnMob(m);mobs.push(m)}}}
 function useMap(M){curMap=M;map=M.tiles;shade=M.shade;ground=M.ground;trees=M.objs;NPCS=M.npcs;safeXY=M.safe}
 function enterMap(M,x,y){
   curMap.mobs=mobs;curMap.items=groundItems;curMap.traps=traps;
@@ -764,7 +952,7 @@ function enterMap(M,x,y){
   fwalls=[];P.swall=null;
   if(M.initMobs){M.initMobs();groundItems=[];traps=[]}else{mobs=M.mobs||mobs;groundItems=M.items||[];traps=M.traps||[]}
   P.x=x;P.y=y;P.path=[];P.target=null;P.queued=null;P.casting=null;P.gcast=null;P.sit=false;aiming=null;
-  if(merc){[merc.x,merc.y]=nearFree(x+.8,y+.8);merc.path=[];merc.target=null;merc.cast=null}
+  mercs.forEach((m,i)=>{[m.x,m.y]=nearFree(x+.8,y+.8+i*.6);m.path=[];m.target=null;m.cast=null});
   if(harvest)for(const u of harvest.units){if(u.carry)hvDeliver(u.carry);Object.assign(u,{x:x+(rnd()-.5)*1.5,y:y+(rnd()-.5)*1.5,st:'idle',it:null,carry:null})}
   [camX,camY]=iso(x,y);fx=fx.filter(f=>f.type==='lvbig'||f.type==='mvp');fx.push({type:'fade',t:0,life:.9});
   for(const w of ['w-talk','w-shop'])$(w).hidden=true;
@@ -793,7 +981,7 @@ function newPlayer(){
   const p={x:SPAWN[0],y:SPAWN[1],face:1,path:[],target:null,queued:null,casting:null,
     lv:1,exp:0,jlv:1,jexp:0,statPts:0,skillPts:0,str:7,agi:6,vit:4,int:4,dex:5,luk:3,
     hp:1,sp:1,zeny:120,inv:[],eq:{weapon:null,armor:null},skills:{...JOBS.aco.skills},job:'aco',jobData:{},
-    buff:{agi:0,agiLv:0,magni:0,bless:0,blessLv:0,angelus:0,angelusLv:0,conc:0,concLv:0},atkT:0,swingT:0,walk:0,dead:false,bubble:null,sit:false,emote:null,reb:0,rebLv:0,rebJ:0,finalClear:false,maxCombo:0,story:null};
+    buff:{agi:0,agiLv:0,magni:0,bless:0,blessLv:0,angelus:0,angelusLv:0,conc:0,concLv:0},atkT:0,swingT:0,walk:0,dead:false,bubble:null,sit:false,emote:null,reb:0,rebLv:0,rebJ:0,finalClear:false,maxCombo:0,story:null,side:null,tiers:{aco:1,hunter:1,mage:1}};
   return p;
 }
 function addItem(id,q=1){
@@ -814,9 +1002,9 @@ function S(){
     atk:Math.floor(hunter?dex*2.6+str/5:P.job==='aco'?str*2.3+dex/5:str*1.4+dex/5)+Math.floor(luk/5)+w+b.atk+EL,
     range:hunter?8.5:0,
     matk:int*3+Math.floor(int*int/25)+EL+(wi&&wi.cls===JOBS[P.job].w&&wi.matk?wi.matk:0),
-    castMul:Math.max(.15,1-dex/150),
+    castMul:Math.max(.15,1-dex/150)*(P.bragi>time?.5:1),
     def:a,vdef:Math.floor(vit*.6),hit:EL+dex,flee:EL+agi,crit:1+luk*.3,
-    delay:Math.max(.16,.85-agi*.012-dex*.003)*(P.buff.agi>0?.9:1),
+    delay:Math.max(.16,.85-agi*.012-dex*.003)*(P.buff.agi>0?.9:1)*(P.bragi>time?.85:1),
     mhp:Math.floor((38+EL*11)*(1+vit*.02))+b.mhp,
     msp:Math.floor((12+EL*3)*(1+int*.025)),
     speed:4.2*(P.buff.agi>0?1.3:1)};
@@ -827,12 +1015,12 @@ const healAmt=l=>{const s=P?S():{int:5};return Math.floor(((P?effLv():1)+s.int*3
 /* ---------- 保存 ---------- */
 const SAVE_KEY='rune-meadow-save-v1';
 function serialize(){
-  const keys=['x','y','lv','exp','jlv','jexp','statPts','skillPts','str','agi','vit','int','dex','luk','hp','sp','zeny','skills','reb','rebLv','rebJ','finalClear','maxCombo','story'];
+  const keys=['x','y','lv','exp','jlv','jexp','statPts','skillPts','str','agi','vit','int','dex','luk','hp','sp','zeny','skills','reb','rebLv','rebJ','finalClear','maxCombo','story','side','tiers'];
   const o={}; for(const k of keys) o[k]=P[k];
   o.inv=P.inv.map(e=>({id:e.id,qty:e.qty,cards:e.cards.slice()}));
   o.eqW=P.inv.indexOf(P.eq.weapon); o.eqA=P.inv.indexOf(P.eq.armor);
   if(curMap.id!=='field'){o.x=SPAWN[0];o.y=SPAWN[1]}
-  o.merc=merc?{job:merc.job,remain:Math.max(0,merc.end-time)}:null;
+  o.mercs=mercs.map(m=>({job:m.job,remain:Math.max(0,m.end-time)}));
   o.harvest=harvest?{remain:Math.max(0,harvest.end-time)}:null;
   o.job=P.job; o.jobData={};
   for(const j in P.jobData) if(j!==P.job){const d=P.jobData[j];o.jobData[j]={...d,skills:{...d.skills},weapon:P.inv.indexOf(d.weapon)}}
@@ -846,7 +1034,8 @@ function deserialize(o){
   const old=o.skills||{};
   P.skills={...JOBS[P.job].skills};
   for(const k in P.skills) if(k in old) P.skills[k]=old[k];
-  if(P.job==='hunter'&&!P.skills.blitz)P.skills.blitz=1;
+  // 転職システム以前のデータ：今のJob Lvに応じた職の段階を与え、使っていたスキルをそのまま使えるようにする
+  if(!o.tiers){const t=effJob()>=TIER_REQ[2]?3:effJob()>=TIER_REQ[1]?2:1;P.tiers={aco:t,hunter:t,mage:t};grantTierSkills(P.job,t,P.skills)}
   // 旧職のスキル（強打・ファイアボルト）に振ったポイントは返却
   P.skillPts+=Math.max(0,(old.bash||0)+(old.bolt||0)-2);
   P.inv=(o.inv||[]).filter(e=>ITEMS[e.id]).map(e=>({id:e.id,qty:e.qty,cards:e.cards||[]}));
@@ -871,6 +1060,7 @@ function stashJob(){const d={statPts:P.statPts,skillPts:P.skillPts,skills:{...P.
 function createJob(j){
   const base={hunter:{str:4,agi:7,vit:4,int:3,dex:8,luk:4},mage:{str:3,agi:4,vit:4,int:9,dex:8,luk:3}}[j]||{str:7,agi:6,vit:4,int:4,dex:5,luk:3};
   P.jobData[j]={...base,statPts:earnedStatPts(P.lv),skillPts:Math.max(0,P.jlv-1),skills:{...JOBS[j].skills},weapon:null};
+  grantTierSkills(j,tierOf(j),P.jobData[j].skills);
   if(!P.inv.some(e=>ITEMS[e.id].cls===JOBS[j].w)){const id={hunter:'bow',mage:'rod'}[j]||'knife';addItem(id);msg(`${ITEMS[id].n} を手に入れた`,'item')}
 }
 function switchJob(j){
@@ -878,7 +1068,7 @@ function switchJob(j){
   if(P.dead||P.casting){msg('今は職業を切り替えられません','warn');return}
   stashJob();if(!P.jobData[j])createJob(j);
   const d=P.jobData[j];P.job=j;
-  for(const k of STATS)P[k]=d[k];P.statPts=d.statPts;P.skillPts=d.skillPts;P.skills={...JOBS[j].skills,...d.skills};if(j==='hunter'&&!P.skills.blitz)P.skills.blitz=1;
+  for(const k of STATS)P[k]=d[k];P.statPts=d.statPts;P.skillPts=d.skillPts;P.skills={...JOBS[j].skills,...d.skills};
   P.eq.weapon=d.weapon&&P.inv.includes(d.weapon)?d.weapon:(P.inv.find(e=>ITEMS[e.id].cls===JOBS[j].w)||null);
   delete P.jobData[j];
   P.target=null;P.queued=null;P.sit=false;aiming=null;P.path=[];
@@ -908,6 +1098,7 @@ const SFX={hit:()=>{noise(.07,.35,1200);tone(150,.09,'square',.06,0,.5)},crit:()
   pick:()=>tone(880,.07,'square',.05,0,1.5),buff:()=>{tone(660,.2,'triangle',.08);tone(990,.25,'triangle',.08,.08)},
   gx:()=>{noise(.5,.3,700);tone(220,.6,'sawtooth',.06,0,2)},mvp:()=>[392,523,659,784,1047].forEach((f,i)=>tone(f,.4,'square',.06,i*.12)),
   combo:()=>{[784,988,1175,1568].forEach((f,i)=>tone(f,.18,'square',.05,i*.05));noise(.15,.15,4000)},
+  card:()=>{noise(.6,.2,5000);[784,988,1175,1568,1976,2349].forEach((f,i)=>tone(f,.4,'triangle',.09,i*.07));[1568,1976,2349].forEach(f=>tone(f,1.4,'sine',.05,.5));tone(392,1,'triangle',.08,.42)},
   lvbig:()=>{noise(.35,.25,3000);[523,659,784,1047,1319].forEach((f,i)=>tone(f,.3,'triangle',.12,i*.065));
     [523,659,784,1047].forEach(f=>tone(f,1.2,'triangle',.06,.36));tone(1568,1,'sine',.06,.36)}};
 function sfx(k){if(muted||!AC)return;try{SFX[k]()}catch(_){}}
@@ -949,6 +1140,14 @@ const SONG_PORT=[
   ['Bm',[[78,1],[76,1],[74,1]]],['G',[[71,1],[74,1],[79,1]]],['A7',[[76,1],[73,1],[69,1]]],['D',[[74,3]]],
 ];
 CH.Bb=[46,[50,53,58]];
+const SONG_SNOW=[
+  ['Em',[[71,2],[74,1],[76,1]]],['C',[[79,2],[76,2]]],['G',[[74,1],[71,1],[74,2]]],['D',[[78,3],[74,1]]],
+  ['Em',[[76,1],[78,1],[79,2]]],['C',[[81,2],[79,1],[76,1]]],['B7',[[75,2],[78,2]]],['Em',[[76,4]]],
+];
+const SONG_CASTLE=[
+  ['Dm',[[74,1],[77,1],[81,2]]],['Bb',[[82,1.5],[81,.5],[77,2]]],['Gm',[[79,1],[77,1],[74,2]]],['A7',[[73,2],[76,2]]],
+  ['Dm',[[74,1],[76,1],[77,1],[79,1]]],['F',[[81,2],[84,2]]],['Gm',[[82,1],[81,1],[79,1],[77,1]]],['A7',[[76,4]]],
+];
 const SONG_ABYSS=[
   ['Dm',[[69,2],[72,1],[74,1]]],['Bb',[[74,1],[72,1],[70,2]]],['F',[[69,1],[72,1],[77,2]]],['A',[[76,3],[73,1]]],
   ['Dm',[[74,1.5],[76,.5],[77,2]]],['Bb',[[79,2],[77,1],[74,1]]],['Gm',[[74,1],[70,1],[67,2]]],['A',[[69,4]]],
@@ -1008,6 +1207,21 @@ const I={
 const playMel=(mel,t,B,fn)=>{let bt=0;for(const [n,len] of mel){fn(t+bt*B,n,len*B);bt+=len}};
 /* ---- マップごとの編成 ---- */
 const ARR={
+  // 雪の村：チェレスタのようなベルと、やわらかい弦。ゆっくりした冬の夜
+  snow:(i,t,B,mel,bass,tri)=>{const lp=bgmLoop%2;
+    I.sub(t,bass,B*3.8,.08);for(const n of tri)I.strings(t,n,B*4,.013);
+    for(let k=0;k<4;k++)I.harp(t+k*B,tri[k%3]+24,.016,k%2?.45:-.45);
+    playMel(mel,t,B,(tt,n,d)=>{I.bell(tt,n+12,Math.max(1.4,d*1.6),.045,.1);if(lp)I.flute(tt,n,d,.06,-.25)});
+    if(i%4===3)I.bell(t+3*B,tri[2]+36,1.8,.018,.55);
+  },
+  // 氷晶の城：合唱と弦の刻み、チェンバロ風のつま弾き、重いティンパニ
+  castle:(i,t,B,mel,bass,tri)=>{const lp=bgmLoop%2;
+    I.cello(t,bass,B*4,.08);for(const n of tri)I.choir(t,n+12,B*4,.013);
+    for(let k=0;k<8;k++)I.guitar(t+k*B/2,tri[k%3]+12,.016,k%2?.35:-.35);
+    I.timpani(t,bass+12,.24);if(i%2)I.timpani(t+2.5*B,bass+12,.12);
+    if(i===0)I.cymbal(t,2.2,.06);
+    playMel(mel,t,B,(tt,n,d)=>{I.strings(tt,n,d,.024);if(lp)I.brass(tt,n-12,d,.04,-.2);else I.bell(tt,n+12,1.4,.025,.3)});
+  },
   // ルーンの草原：オーケストラの3拍子。後半16小節で金管・ティンパニが入って盛り上がる
   town:(i,t,B,mel,bass,tri)=>{const big=i>=16,lp=bgmLoop%2;
     I.cello(t,bass,B*2.7,big?.08:.065);
@@ -1063,6 +1277,8 @@ const SONGS={
   ice:{beat:60/96,bpb:4,bars:SONG_ICE,rev:.52},
   final:{beat:60/76,bpb:4,bars:SONG_FINAL,rev:.46},
   abyss:{beat:60/70,bpb:4,bars:SONG_ABYSS,rev:.62},
+  snow:{beat:60/84,bpb:4,bars:SONG_SNOW,rev:.5},
+  castle:{beat:60/92,bpb:4,bars:SONG_CASTLE,rev:.55},
 };
 function scheduleBar(i,t){const S2=SONGS[bgmSong],[ch,mel]=S2.bars[i],[bass,tri]=CH[ch];ARR[bgmSong](i,t,S2.beat,mel,bass,tri)}
 function bgmTick(){if(!AC||!bgmGain||!bgmTimer)return;const S2=SONGS[bgmSong];
@@ -1153,15 +1369,15 @@ function updateMobs(dt,s){
         fx.push({type:'warn',col:sp.col,x:cx,y:cy,r,t:0,at:1.3,life:1.32,cb:()=>{fx.push(sp.freeze?{type:'spell',el:'cold',x:cx,y:cy,t:.22,at:.22,life:.5,done:true}:{type:'boom',x:cx,y:cy,t:0,life:.7,big:true});sfx('gx');
           if(!P.dead&&Math.hypot(P.x-cx,P.y-cy)<=r&&los(cx,cy,P.x,P.y)){const s2=S(),dmg=Math.max(1,Math.round(big*(1-Math.min(.5,s2.def/100))-s2.vdef));P.hp-=dmg;float(P.x,P.y,dmg,'#ff4a3a',24,1,true);
             if(sp.freeze&&P.hp>0){P.frozen=time+sp.freeze;P.casting=null;msg('凍りついて動けない！','warn')}if(P.hp<=0)die()}
-          if(merc&&!(merc.down>0)&&Math.hypot(merc.x-cx,merc.y-cy)<=r&&los(cx,cy,merc.x,merc.y)){merc.hp-=Math.round(big*.6);if(merc.hp<=0){merc.down=20;merc.cast=null;msg(`傭兵 ${MERC_LOOK[merc.job].name} が倒れた…（20秒後に復帰）`,'warn')}}}});
+          for(const mc of mercs)if(!(mc.down>0)&&Math.hypot(mc.x-cx,mc.y-cy)<=r&&los(cx,cy,mc.x,mc.y)){mc.hp-=Math.round(big*.6);if(mc.hp<=0)mercDown(mc)}}});
         m.bubble=null;msg(sp.msg,'warn')}}
       // プレイヤーと傭兵のうち近いほうを狙う
-      let tx=P.x,ty=P.y,td=d,onMerc=false;
-      if(merc&&!(merc.down>0)){const dm=Math.hypot(merc.x-m.x,merc.y-m.y);if(dm<td){tx=merc.x;ty=merc.y;td=dm;onMerc=true}}
+      let tx=P.x,ty=P.y,td=d,onMerc=null;
+      for(const mc of mercs)if(!(mc.down>0)){const dm=Math.hypot(mc.x-m.x,mc.y-m.y);if(dm<td){tx=mc.x;ty=mc.y;td=dm;onMerc=mc}}
       const ex=tx-m.x,ey=ty-m.y;
       if(d>(m.def.chaseR||13)||safe){m.state='idle';m.wx=m.x;m.wy=m.y}
       else if(td>1.2*Math.max(1,m.def.size*.8)){if(!rooted)moveEnt(m,tx,ty,m.def.speed,dt,mobPass);m.atkT=Math.min(m.atkT,.5)}
-      else if(!(m.iceT>time)){if(Math.abs(ex-ey)>.05)m.face=(ex-ey)>0?1:-1;m.atkT-=dt;if(m.atkT<=0){m.atkT=m.def.delay;if(onMerc)mobHitMerc(m);else mobAttack(m,s)}}
+      else if(!(m.iceT>time)){if(Math.abs(ex-ey)>.05)m.face=(ex-ey)>0?1:-1;m.atkT-=dt;if(m.atkT<=0){m.atkT=m.def.delay;if(onMerc)mobHitMerc(m,onMerc);else mobAttack(m,s)}}
     }
   }
   // ボスは必ず1体いる。さらに1分ごとに1体ずつ増える
@@ -1216,7 +1432,7 @@ function killMob(m){
   if(combo.n>(P.maxCombo||0))P.maxCombo=combo.n;
   if(combo.n%5===0){combo.pop=1;sfx('combo');float(P.x,P.y,`${combo.n} COMBO! EXP+${Math.round(bonus*100)}%`,'#7af0ff',18,.7)}
   gainExp(m.def.exp*(1+bonus),m.def.jexp*(1+bonus));
-  storyEvent('kill',m);if(m.def.boss)storyEvent('boss',m);
+  storyEvent('kill',m);if(m.def.boss)storyEvent('boss',m);sideKill(m);
   for(const [id,r] of m.def.drops) if(rnd()<r) dropItem(id,1,m);
   dropItem('zeny',irand(m.def.zeny[0],m.def.zeny[1]),m);
   if(m.loot){for(const g of m.loot)dropItem(g.id,g.qty,m);m.loot=[]}
@@ -1227,7 +1443,10 @@ function killMob(m){
     msg(`MVP！ ${m.def.n} を討伐しました`,'sys');msg(`MVP報酬 ${ITEMS[rw].n} を獲得`,'item');
   }
 }
-function dropItem(id,qty,m){groundItems.push({id,qty,x:m.x+(rnd()-.5)*.9,y:m.y+(rnd()-.5)*.9,t:0})}
+function dropItem(id,qty,m){const g={id,qty,x:m.x+(rnd()-.5)*.9,y:m.y+(rnd()-.5)*.9,t:0};groundItems.push(g);
+  // カードが出たら、光の柱と大きな演出で知らせる
+  if(id!=='zeny'&&ITEMS[id].t==='card'){g.card=true;fx.push({type:'cardpillar',x:g.x,y:g.y,t:0,life:6});
+    fx.push({type:'lvbig',t:0,life:3.6,title:'CARD!',card:true,lines:[ITEMS[id].n,ITEMS[id].d]});sfx('card');msg(`★ ${ITEMS[id].n} がドロップした！ ★`,'item')}}
 
 function gainExp(b,j){
   P.exp+=Math.round(b*EXP_RATE);P.jexp+=Math.round(j*EXP_RATE);
@@ -1293,6 +1512,7 @@ function moveTo(tx,ty){
 /* ---------- スキル・アイテム ---------- */
 function useSkill(id){
   if(P.dead)return; const lv=P.skills[id],sk=SK[id]; P.sit=false;
+  if(skillLocked(id)){msg(`${sk.n} は ${JOB_NAMES[sk.job][sk.tier-1]} に転職すると使えます（転職官ギルベルト）`,'warn');return}
   if(!lv){msg(`${sk.n} はまだ習得していません (S)`,'warn');return}
   if(sk.ground){aiming=id;msg(`${sk.n}：使いたい場所をクリック（射程${sk.range}マス）`,'sys');dirty=true;return}
   if(sk.target){
@@ -1365,6 +1585,8 @@ function castSpell(c,lv){
 function stormGust(cx,cy,lv){
   fx.push({type:'sgust',x:cx,y:cy,r:3.5,t:0,life:4.8});sfx('gx');
   for(let k=0;k<10;k++)later(.15+k*.45,()=>{aoe(cx,cy,3.5,o=>{hurtMob(o,mdmg(o,.4+.06*lv),'#a8e4ff',18);
+    // 凍るまでは吹雪で押し流す（ノックバック）。ボスは動かない
+    if(k<2&&o.state!=='dead'&&!o.def.boss&&!(o.iceT>time)){const a=rnd()*Math.PI*2,nx=o.x+Math.cos(a)*.7,ny=o.y+Math.sin(a)*.7;if(mobPass(nx,ny)){o.x=nx;o.y=ny}}
     if(k===2&&o.state!=='dead'&&!o.def.boss){o.root=Math.max(o.root||0,3);o.iceT=time+3}});if(k%3===0)sfx('hit')});
 }
 // 位置指定の魔法：射程外なら歩いて近づき、届いたら詠唱を始める
@@ -1408,24 +1630,29 @@ function updateFireWalls(dt){
   fwalls=fwalls.filter(w=>w.t<w.life&&w.tiles.some(t=>t.hits>0));
   if(P.swall){P.swall.t-=dt;if(P.swall.t<=0||P.swall.hits<=0)P.swall=null}
 }
-/* ---------- 傭兵（仲間） ---------- */
-const MERC_PRICE=5000,MERC_TIME=600;
+/* ---------- 傭兵（仲間）：最大2人まで。2人目は1000倍の料金 ---------- */
+const MERC_PRICE=5000,MERC_TIME=600,MERC_MAX=2;
+const mercPrice=slot=>slot===0?MERC_PRICE:MERC_PRICE*1000;
 const MERC_LOOK={
-  aco:{name:'クレア',body:'#7a2a3a',hair:'#f0d878',robe:true,mace:true,weapon:'#a9b0bc'},
-  hunter:{name:'リオ',body:'#3a6a5a',hair:'#f0d878',bow:true,quiver:true,weapon:'#8a5a2c'},
-  mage:{name:'ミナ',body:'#2a5a7a',hair:'#f0d878',robe:true,staff:true,weapon:'#c08aff'},
+  aco:{name:'クレア',jn:'アコライト',body:'#7a2a3a',hair:'#f0d878',robe:true,mace:true,weapon:'#a9b0bc',desc:'回復とブレッシング・速度増加で支えつつ、メイスで殴る'},
+  hunter:{name:'リオ',jn:'ハンター',body:'#3a6a5a',hair:'#f0d878',bow:true,quiver:true,weapon:'#8a5a2c',desc:'離れた位置から矢で攻撃。ときどき2連射'},
+  mage:{name:'ミナ',jn:'マジシャン',body:'#2a5a7a',hair:'#f0d878',robe:true,staff:true,weapon:'#c08aff',desc:'ファイアーボルトとファイアーボールで攻撃'},
+  bard:{name:'カノン',jn:'バード',body:'#2a7a5a',hair:'#e8b860',bow:true,quiver:true,weapon:'#c8a050',desc:'「ブラギの詩」を奏でる。そばにいる間、詠唱時間が半分・攻撃とスキルの間隔が15%短くなる。弓でも少し戦う'},
 };
-let merc=null;
+let mercs=[];
 const fmtTime=s=>{s=Math.max(0,Math.ceil(s));return `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`};
+const bragiOn=()=>P.bragi>time;
 function mercStats(){const L=effLv();return {atk:30+L*5,matk:40+L*6,mhp:200+L*30,heal:60+L*8}}
 function hireMerc(job,dur=MERC_TIME,silent){
-  const st=mercStats(),[x,y]=nearFree(P.x+.8,P.y+.8);
-  merc={job,x,y,face:1,hp:st.mhp,end:time+dur,atkT:1,healT:0,buffT:0,repath:0,path:[],target:null,down:0,cast:null,castN:0,walk:0,moving:false,swing:0,bubble:null};
-  if(!silent){msg(`傭兵 ${MERC_LOOK[job].name}（${JOBS[job].n}）を雇いました。契約は10分間です`,'item');merc.bubble={text:'よろしくね！',t:2.5};fx.push({type:'heal',t:0,life:1,col:'#ffe08a'})}
+  if(mercs.length>=MERC_MAX)return;
+  const st=mercStats(),[x,y]=nearFree(P.x+.8,P.y+.8+mercs.length*.6);
+  const m={job,x,y,face:1,hp:st.mhp,end:time+dur,atkT:1,healT:0,buffT:0,repath:0,path:[],target:null,down:0,cast:null,castN:0,walk:0,moving:false,swing:0,bubble:null,songT:0};
+  mercs.push(m);
+  if(!silent){msg(`傭兵 ${MERC_LOOK[job].name}（${MERC_LOOK[job].jn}）を雇いました。契約は10分間です`,'item');m.bubble={text:job==='bard'?'一曲いかが？♪':'よろしくね！',t:2.5};fx.push({type:'heal',t:0,life:1,col:'#ffe08a'})}
   dirty=true;
 }
 function nearFree(x,y){if(pass(Math.floor(x),Math.floor(y)))return [x,y];return [P.x,P.y]}
-function mercMove(tx,ty,dt){
+function mercMove(merc,tx,ty,dt){
   merc.repath-=dt;
   if(merc.repath<=0){merc.repath=.5;merc.path=astar(Math.floor(merc.x),Math.floor(merc.y),Math.floor(tx),Math.floor(ty))||[]}
   const spd=4.4;
@@ -1433,15 +1660,20 @@ function mercMove(tx,ty,dt){
   else moveEnt(merc,tx,ty,spd,dt);
 }
 function mercDmg(m,base){return Math.max(1,Math.round(base*(.9+rnd()*.2)*(1-m.def.def/100)-m.def.def*.5))}
-function updateMerc(dt){
-  if(!merc)return;
+function updateMerc(dt){for(const m of mercs.slice())updateOneMerc(m,dt)}
+function updateOneMerc(merc,dt){
   if(merc.bubble){merc.bubble.t-=dt;if(merc.bubble.t<=0)merc.bubble=null}
-  if(time>=merc.end){msg(`傭兵 ${MERC_LOOK[merc.job].name} との契約が切れました`,'sys');merc=null;dirty=true;return}
+  if(time>=merc.end){msg(`傭兵 ${MERC_LOOK[merc.job].name} との契約が切れました`,'sys');mercs.splice(mercs.indexOf(merc),1);dirty=true;return}
   if(merc.down>0){merc.down-=dt;if(merc.down<=0){merc.hp=mercStats().mhp;[merc.x,merc.y]=nearFree(P.x+.8,P.y+.8);merc.bubble={text:'お待たせ！',t:2};msg('傭兵が戦線に復帰しました','sys')}return}
   const st=mercStats(),job=merc.job;merc.moving=false;merc.atkT-=dt;merc.healT-=dt;merc.buffT-=dt;merc.swing=Math.max(0,merc.swing-dt);
   merc.hp=Math.min(st.mhp,merc.hp+st.mhp*.01*dt);
   const dP=Math.hypot(P.x-merc.x,P.y-merc.y);
   if(dP>14){[merc.x,merc.y]=nearFree(P.x+.8,P.y+.8);merc.path=[]}
+  // バード：そばにいる間「ブラギの詩」で詠唱と間隔を短くする
+  if(job==='bard'){
+    if(dP<=8&&!P.dead){P.bragi=time+.6;merc.songT-=dt;if(merc.songT<=0){merc.songT=1.2;fx.push({type:'note',x:merc.x,y:merc.y,t:0,life:1.6,k:rnd()})}
+      if(rnd()<dt*.08)merc.bubble={text:'♪ ブラギの詩 ♪',t:1.6}}
+  }
   // アコライトは回復と支援
   if(job==='aco'&&!P.dead){const s=S();
     if(merc.healT<=0&&P.hp<s.mhp*.7){const a=st.heal;P.hp=Math.min(s.mhp,P.hp+a);float(P.x,P.y,a,'#7dff8a',18);fx.push({type:'heal',t:0,life:.8});merc.bubble={text:'ヒール！',t:1};merc.healT=2.5;sfx('heal')}
@@ -1458,15 +1690,18 @@ function updateMerc(dt){
   if(!t&&P.target&&P.target.kind==='mob'&&P.target.ref.state!=='dead')t=P.target.ref;
   if(!t){let bd=81;for(const m of mobs){if(m.state!=='chase')continue;const dd=(m.x-P.x)**2+(m.y-P.y)**2;if(dd<bd){bd=dd;t=m}}}
   merc.target=t;
-  const range=job==='aco'?1.4:job==='hunter'?8:8.5;
+  const range=job==='aco'?1.4:job==='mage'?8.5:8;
+  // バードは演奏が本業なので、自分から離れすぎない範囲でだけ戦う
+  if(t&&job==='bard'&&Math.hypot(t.x-P.x,t.y-P.y)>7)t=null;
   if(t){const d=Math.hypot(t.x-merc.x,t.y-merc.y);
-    if(d>range||(range>2&&!los(merc.x,merc.y,t.x,t.y)))mercMove(t.x,t.y,dt);
+    if(d>range||(range>2&&!los(merc.x,merc.y,t.x,t.y)))mercMove(merc,t.x,t.y,dt);
     else{const dx=t.x-merc.x,dy=t.y-merc.y;if(Math.abs(dx-dy)>.05)merc.face=(dx-dy)>0?1:-1;merc.path=[];
       if(merc.atkT<=0){merc.swing=.2;
         if(job==='aco'){hurtMob(t,mercDmg(t,st.atk),'#d0e8ff',17,false,'aco');sfx('hit');merc.atkT=.6}
         else if(job==='hunter'){const m=t,n=rnd()<.25?2:1;for(let i=0;i<n;i++)shoot(m,()=>hurtMob(m,mercDmg(m,st.atk*(n>1?1.3:1)),'#d0e8ff',17,false,'hunter'),i*.12,merc);if(n>1)merc.bubble={text:'ダブルストレイフィング！',t:.8};merc.atkT=.7}
+        else if(job==='bard'){const m=t;shoot(m,()=>hurtMob(m,mercDmg(m,st.atk*.6),'#d0e8ff',15,false,'hunter'),0,merc);merc.atkT=1}
         else{merc.castN++;merc.cast={t:1,m:t,big:merc.castN%4===0}}}}}
-  else if(dP>2.5)mercMove(P.x,P.y,dt);
+  else if(dP>2.5)mercMove(merc,P.x,P.y,dt);
   if(merc.moving)merc.walk+=dt;
 }
 /* ---------- ハーヴェスト（収集係） ---------- */
@@ -1514,14 +1749,16 @@ function drawHvUnit(u){
     if(g.id==='zeny'){ctx.fillStyle='#f2c94c';ctx.strokeStyle='#a37a14';ctx.lineWidth=1;ctx.beginPath();ctx.ellipse(x,cy,3.5,2.8,0,0,7);ctx.fill();ctx.stroke()}
     else{ctx.fillStyle=ITEMS[g.id].c;ctx.strokeStyle='rgba(255,255,255,.9)';ctx.lineWidth=1;ctx.beginPath();ctx.roundRect(x-3.5,cy-3.5,7,7,2);ctx.fill();ctx.stroke()}}
 }
-function mobHitMerc(m){
+function mobHitMerc(m,merc){
   m.lunge=.2;if(rnd()<.15){float(merc.x,merc.y,'Miss','#bfe3ff',14);return}
   const dmg=Math.max(1,Math.round(irand(m.def.atk[0],m.def.atk[1])*.8-P.lv*.3));merc.hp-=dmg;float(merc.x,merc.y,dmg,'#ff9a8c',15,1,true);
-  if(merc.hp<=0){merc.down=20;merc.cast=null;merc.target=null;msg(`傭兵 ${MERC_LOOK[merc.job].name} が倒れた…（20秒後に復帰）`,'warn')}
+  if(merc.hp<=0)mercDown(merc);
 }
-function drawMerc(){
-  if(!merc||merc.down>0)return;const L=MERC_LOOK[merc.job],[x,y]=iso(merc.x,merc.y);
+function mercDown(merc){merc.down=20;merc.cast=null;merc.target=null;msg(`傭兵 ${MERC_LOOK[merc.job].name} が倒れた…（20秒後に復帰）`,'warn')}
+function drawMerc(merc){
+  if(merc.down>0)return;const L=MERC_LOOK[merc.job],[x,y]=iso(merc.x,merc.y);
   drawHuman(x,y,{...L,face:merc.face,walk:merc.walk,moving:merc.moving,swing:merc.swing});
+  if(merc.job==='bard'){ctx.fillStyle='#c8a050';ctx.strokeStyle='#6a4a2a';ctx.lineWidth=1.2;ctx.beginPath();ctx.ellipse(x-9*merc.face,y-20,5,6.5,.4*merc.face,0,7);ctx.fill();ctx.stroke();ctx.fillStyle='#6a4a2a';ctx.fillRect(x-9*merc.face-1,y-36,2,12)}
   if(merc.cast){ctx.save();ctx.translate(x,y);ctx.scale(1,.5);ctx.rotate(time*2);ctx.strokeStyle='rgba(180,160,255,.85)';ctx.lineWidth=2;ctx.beginPath();ctx.arc(0,0,22,0,7);ctx.stroke();ctx.restore()}
   const st=mercStats();ctx.fillStyle='rgba(10,14,22,.75)';ctx.fillRect(x-16,y+6,32,5);ctx.fillStyle='#5ad0a0';ctx.fillRect(x-15,y+7,30*clamp(merc.hp/st.mhp,0,1),3);
   label(`傭兵 ${L.name}`,x,y+24,'#bff0d8',11);
@@ -1543,7 +1780,7 @@ function blitz(m,lv){
 }
 function hunterShot(m){
   shoot(m,()=>{const s=S();playerAttack(m,s,1,0,false);
-    if(P.skills.blitz>0&&m.state!=='dead'&&rnd()*100<10+s.luk/3){P.bubble={text:'ブリッツビート!!',t:.8};blitz(m,P.skills.blitz)}});
+    if(P.skills.blitz>0&&tierOf('hunter')>=2&&m.state!=='dead'&&rnd()*100<10+s.luk/3){P.bubble={text:'ブリッツビート!!',t:.8};blitz(m,P.skills.blitz)}});
 }
 function doSkill(id,m){
   const lv=P.skills[id],sk=SK[id],cost=sk.sp(lv);
@@ -1671,12 +1908,12 @@ addEventListener('keydown',e=>{
   if(k==='q'){switchJob('aco');return}
   if(k==='w'){switchJob('hunter');return}
   if(k==='r'){switchJob('mage');return}
-  if(k==='a')toggleWin('status');else if(k==='e')toggleWin('inv');else if(k==='s')toggleWin('skill');
+  if(k==='a')toggleWin('status');else if(k==='e')toggleWin('inv');else if(k==='s')toggleWin('skill');else if(k==='j')toggleWin('story');
   else if(e.key==='Escape'){aiming=null;for(const w of document.querySelectorAll('.win'))w.hidden=true;dirty=true}
 });
 
 /* ---------- ウィンドウ ---------- */
-const WPOS={status:[16,214],inv:[-16,140],skill:[260,120],shop:[0,0],talk:[0,0]};
+const WPOS={status:[16,214],inv:[-16,140],skill:[260,120],shop:[0,0],talk:[0,0],story:[0,0]};
 function toggleWin(id,force){
   const w=$('w-'+id),open=force!=null?force:w.hidden;
   if(open&&w.hidden){w.hidden=false;const r=w.getBoundingClientRect();
@@ -1725,8 +1962,8 @@ function renderInv(){
 }
 function renderSkill(){
   const rows=Object.keys(SK).filter(id=>SK[id].job===P.job).map(id=>{const sk=SK[id],lv=P.skills[id],nl=Math.max(1,lv);
-    const mx=skillMax(id),dis=P.skillPts<1||lv>=mx?'disabled':'';
-    return `<div class="it">${icon(sk.g,sk.c)}<div class="tx"><div class="nm">${sk.n} <span class="ds">Lv ${lv}/${mx}</span></div><div class="ds">${sk.d(nl)} ・ SP ${sk.sp(nl)}</div></div><div class="btns"><button class="btn plus" data-act="skill" data-k="${id}" data-n="1" ${dis} aria-label="${sk.n}を1上げる">+</button><button class="btn plus10" data-act="skill" data-k="${id}" data-n="99" ${dis} aria-label="${sk.n}を上限まで上げる">MAX</button></div></div>`}).join('');
+    const lock=skillLocked(id),mx=skillMax(id),dis=lock||P.skillPts<1||lv>=mx?'disabled':'';
+    return `<div class="it${lock?' locked':''}">${icon(lock?'封':sk.g,lock?'#8a8f9a':sk.c)}<div class="tx"><div class="nm">${sk.n} <span class="ds">${lock?`${JOB_NAMES[sk.job][sk.tier-1]}で解放`:`Lv ${lv}/${mx}`}</span></div><div class="ds">${sk.d(nl)} ・ SP ${sk.sp(nl)}</div></div><div class="btns"><button class="btn plus" data-act="skill" data-k="${id}" data-n="1" ${dis} aria-label="${sk.n}を1上げる">+</button><button class="btn plus10" data-act="skill" data-k="${id}" data-n="99" ${dis} aria-label="${sk.n}を上限まで上げる">MAX</button></div></div>`}).join('');
   const nb=skillCapBonus(),next=(nb+1)*30;
   $('b-skill').innerHTML=`<p class="note">残りスキルポイント：<b>${P.skillPts}</b>　スキル上限 +${nb}（Job Lv ${next} で +${nb+1}）</p><div class="list">${rows}</div>`;
 }
@@ -1744,10 +1981,30 @@ let talkNpc=null;
 function openNpc(n){
   talkNpc=n;
   const st=storyStep();if(st&&st.type==='talk'&&st.npc===n.id){showStoryTalk(st.lines,()=>{storyAdvance();storyAfter(st.after)});return}
+  if(storyTalk){clearInterval(storyTalk.timer);storyTalk=null}
   $('talkName').textContent=n.n;
   if(n.id==='shop'||n.shop){shopTab='buy';toggleWin('shop',true);return}
   let html;
-  if(n.id==='sailor'){
+  if(n.sign){$('b-talk').innerHTML=boardHTML();toggleWin('talk',true);return}
+  if(n.id==='jobmaster'){$('b-talk').innerHTML=jobMasterHTML();toggleWin('talk',true);return}
+  if(n.id==='villager'){
+    html=villageThawed()?`<p class="talk-t">${{'村の子ども':'さむいけど、もう平気！ 焚き火、あったかいね！','リラの母':'リラがお世話になりました。あの子、あなたの話ばかりするのよ。','猟師':'百年分眠ってた気分だ。腕がなまってなきゃいいが。','リラの弟':'ねえちゃんと、あなたが助けてくれたんでしょ？ ありがとう！'}[n.n]||'ありがとう！'}</p><div class="btns"><button class="btn" data-close>どういたしまして</button></div>`
+      :`<p class="talk-t">（氷の中で、時が止まっている……。まばたきひとつしない）</p><div class="btns"><button class="btn" data-close>そっとしておく</button></div>`;
+  }
+  else if(n.id==='nomad'){
+    const open=P.story&&(P.story.done||P.story.ch>=12);
+    html=curMap.id==='snow'
+      ?`<p class="talk-t">ルーンの草原へ戻るかい？ 犬ぞりならひとっ走りだ。</p><div class="btns"><button class="btn" data-act="warp-rune">ルーンの草原へ帰る</button><button class="btn" data-close>まだ村にいる</button></div>`
+      :open?`<p class="talk-t">北のフロスト村行きの犬ぞりだ。しっかり着込んでいきな！</p><div class="btns"><button class="btn" data-act="warp-snow">フロスト村へ行く</button><button class="btn" data-close>また今度</button></div>`
+      :`<p class="talk-t">北は吹雪がひどくてな、今は犬ぞりを出せねぇんだ。<br><span class="note">（第3部が始まると、北の雪の村へ行けるようになります）</span></p><div class="btns"><button class="btn" data-close>わかった</button></div>`;
+  }
+  else if(n.id==='elder') html=`<p class="talk-t">${villageThawed()?'村に時が戻った。旅の方、本当にありがとう。いつでも温かいスープを用意して待っておるぞ。':'村の者を、どうか……。〈時の霜〉の正体さえわかれば……。'}</p><div class="btns"><button class="btn" data-close>また来ます</button></div>`;
+  else if(n.id==='lila'){
+    const can=count('icekey')||(P.story&&(P.story.done||P.story.ch>=15));
+    html=can?`<p class="talk-t">${villageThawed()?'村のみんなが元気になって、ほんとうによかった！ 城にはまだ魔物がいるみたい。修行に行くなら送るよ。':'お城へ行くの？ わたしの魔法で、門の前まで飛ばしてあげる！'}</p><div class="btns"><button class="btn" data-act="warp-castle">氷晶の城へ行く</button><button class="btn" data-close>また今度</button></div>`
+      :`<p class="talk-t">お城の窓の明かり……あれが村を凍らせた原因なんだと思う。でも、雪原の主が道をふさいでいるの。</p><div class="btns"><button class="btn" data-close>わかった</button></div>`;
+  }
+  else if(n.id==='sailor'){
     const open=P.reb>=1||(P.story&&P.story.ch>=6);
     html=curMap.id==='port'
       ?`<p class="talk-t">よう、ルーンの草原に戻るかい？ 潮の具合はばっちりだ。</p><div class="btns"><button class="btn" data-act="warp-rune">ルーンの草原へ帰る</button><button class="btn" data-close>まだ港にいる</button></div>`
@@ -1761,14 +2018,14 @@ function openNpc(n){
   else if(n.id==='heal'||n.heal) html=`<p class="talk-t">神のご加護を。傷を癒やしてさしあげましょう。</p><div class="btns"><button class="btn" data-act="doheal">回復してもらう</button><button class="btn" data-close>また今度</button></div>`;
   else if(n.id==='gate') html=`<p class="talk-t">……来たか。砂に埋もれたピラミッドへ案内しよう。<br>中の魔物は、お前の強さ（Base Lv ${P.lv}）に合わせて目を覚ます。数も多く、気づけばすぐ襲ってくるぞ。<br>安全なのは入口の光る9マスだけだ。</p><div class="btns"><button class="btn" data-act="warp-dg">ピラミッドへ行く</button><button class="btn" data-close>やめておく</button></div>`;
   else if(n.id==='merc'){
-    const cur=merc?`<p class="note">契約中：${MERC_LOOK[merc.job].name}（${JOBS[merc.job].n}）残り ${fmtTime(merc.end-time)}。同じ職業を選ぶと10分延長、別の職業を選ぶと入れ替えになります。</p>`:'';
-    const desc={aco:'回復とブレッシング・速度増加で支えつつ、メイスで殴る',hunter:'離れた位置から矢で攻撃。ときどき2連射',mage:'3種類のボルトとファイアーボールで攻撃'};
-    html=`<p class="talk-t">腕利きの傭兵がそろってるぜ。1人 ${MERC_PRICE.toLocaleString()}z で10分間、一緒に戦ってくれる。</p>${cur}<div class="list">`+
-      Object.keys(JOBS).map(j=>{const L=MERC_LOOK[j],same=merc&&merc.job===j;
-        return `<div class="it">${icon(j==='aco'?'聖':j==='hunter'?'弓':'魔',L.body)}<div class="tx"><div class="nm">${L.name}（${JOBS[j].n}）</div><div class="ds">${desc[j]}</div></div><button class="btn" data-act="hire" data-job="${j}" ${P.zeny<MERC_PRICE?'disabled':''}>${same?'延長':'雇う'}</button></div>`}).join('')+
-      `</div><p class="note" style="margin:10px 0 4px">戦わない収集係（上の傭兵と同時に雇える）${harvest?`　契約中：残り ${fmtTime(harvest.end-time)}`:''}</p><div class="list">`+
-      `<div class="it">${icon('収','#d9a52c')}<div class="tx"><div class="nm">ハーヴェスト</div><div class="ds">小さな8匹の群れ。まわりに落ちたアイテムとZenyを拾って届けてくれる。戦闘はしない</div></div><button class="btn" data-act="hire-hv" ${P.zeny<MERC_PRICE?'disabled':''}>${harvest?'延長':'雇う'}</button></div></div>`+
-      `<div class="foot"><span>所持金 <b class="price">${P.zeny.toLocaleString()} z</b></span><span class="btns">${merc?'<button class="btn warn" data-act="fire-merc">傭兵を解除</button>':''}${harvest?'<button class="btn warn" data-act="fire-hv">ハーヴェストを解除</button>':''}${!merc&&!harvest?'<button class="btn" data-close>やめておく</button>':''}</span></div>`;
+    const slotPrice=mercPrice(mercs.length);
+    const cur=mercs.length?`<p class="note">契約中：${mercs.map(m=>`${MERC_LOOK[m.job].name}（${MERC_LOOK[m.job].jn}）残り ${fmtTime(m.end-time)}`).join(' ／ ')}。雇っている傭兵を選ぶと、その料金で10分延長。</p>`:'';
+    html=`<p class="talk-t">腕利きの傭兵がそろってるぜ。同時に雇えるのは2人まで。1人目は ${MERC_PRICE.toLocaleString()}z、2人目は特別料金で ${mercPrice(1).toLocaleString()}z（1000倍）だ。</p>${cur}<div class="list">`+
+      Object.keys(MERC_LOOK).map(j=>{const L=MERC_LOOK[j],hired=mercs.find(m=>m.job===j),price=hired?mercPrice(mercs.indexOf(hired)):slotPrice,full=!hired&&mercs.length>=MERC_MAX;
+        return `<div class="it">${icon({aco:'聖',hunter:'弓',mage:'魔',bard:'詩'}[j],L.body)}<div class="tx"><div class="nm">${L.name}（${L.jn}）</div><div class="ds">${L.desc}<br>${full?'2人まで雇っています':`料金 ${price.toLocaleString()}z`}</div></div><button class="btn" data-act="hire" data-job="${j}" ${full||P.zeny<price?'disabled':''}>${hired?'延長':'雇う'}</button></div>`}).join('')+
+      `</div><p class="note" style="margin:10px 0 4px">戦わない収集係（傭兵とは別枠）${harvest?`　契約中：残り ${fmtTime(harvest.end-time)}`:''}</p><div class="list">`+
+      `<div class="it">${icon('収','#d9a52c')}<div class="tx"><div class="nm">ハーヴェスト</div><div class="ds">小さな8匹の群れ。まわりに落ちたアイテムとZenyを拾って届けてくれる。戦闘はしない<br>料金 ${MERC_PRICE.toLocaleString()}z</div></div><button class="btn" data-act="hire-hv" ${P.zeny<MERC_PRICE?'disabled':''}>${harvest?'延長':'雇う'}</button></div></div>`+
+      `<div class="foot"><span>所持金 <b class="price">${P.zeny.toLocaleString()} z</b></span><span class="btns">${mercs.map((m,i)=>`<button class="btn warn" data-act="fire-merc" data-i="${i}">${MERC_LOOK[m.job].name}を解除</button>`).join('')}${harvest?'<button class="btn warn" data-act="fire-hv">ハーヴェストを解除</button>':''}${!mercs.length&&!harvest?'<button class="btn" data-close>やめておく</button>':''}</span></div>`;
   }
   else if(n.id==='ice'){
     html=P.lv>=ICE_LV
@@ -1786,7 +2043,16 @@ function openNpc(n){
   $('b-talk').innerHTML=html;toggleWin('talk',true);
 }
 /* ---------- ストーリー ---------- */
-const NARR='語り部',ROU='案内人 ロウ',EMA='シスター・エマ',NEF='待ち人 ネフェル',CHR='時の番人 クロノ';
+const NARR='語り部',ROU='案内人 ロウ',EMA='シスター・エマ',NEF='待ち人 ネフェル',CHR='時の番人 クロノ',
+  YOR='北の行商人 ヨルン',BRG='村長 ベルグ',LIL='見習い魔導士 リラ',CEL='氷晶の女王 セルシア';
+// 会話の顔アイコン用の見た目
+const PORTRAIT={
+  [ROU]:{body:'#8a4b3a',hair:'#2b2b33'},[EMA]:{body:'#2f3e66',hair:'#e9d9a8'},[NEF]:{body:'#c9a24a',hair:'#1a1a2a',hat:'pharaoh'},
+  [CHR]:{body:'#2a2a4a',hair:'#e8e8ff',hat:'witch'},'船乗り ガスパル':{body:'#2a3a6a',hair:'#3a2a1a'},'町長 シーラ':{body:'#2a6a8a',hair:'#c86a3a'},
+  '灯台守 オルカ':{body:'#3a4a6a',hair:'#e8e8e8'},'時喰らいの海竜 タラッサ':{monster:true,body:'#123a4a',eye:'#3affd0'},
+  [YOR]:{body:'#7a4a2a',hair:'#c87a3a'},[BRG]:{body:'#5a3a2a',hair:'#f0f0f0'},[LIL]:{body:'#4a6ac0',hair:'#f0c070',hat:'witch'},
+  [CEL]:{body:'#cfe0ff',hair:'#ffffff',skin:'#eef4ff',eye:'#3ad0ff',hat:'crown'},'冒険者':{body:'#2f3658',hair:'#8a4a1f',spiky:true},
+};
 const PROLOGUE=[
   [NARR,'遥か昔、この大地には時を刻む石〈ルーン〉があった。'],
   [NARR,'ルーンが脈打つかぎり、季節はめぐり、命は生まれ、やがて眠りにつく。'],
@@ -1922,7 +2188,88 @@ const STORY=[
       ['町長 シーラ','漁師たちも海へ戻ったわ。浜には子どもたちの笑い声。マリナを救ってくれて、本当にありがとう。'],
       ['町長 シーラ','これは町からのお礼よ。……また、いつでも遊びに来てね。']]},
   ]},
+  // ===== 第3部「白銀の章」 =====
+  {t:'白い便り',part:'第3部「白銀の章」',steps:[
+    {type:'talk',npc:'chrono',goal:'時の番人 クロノに話しかけよう',lines:[
+      [CHR,'……戻ったか。マリナの海は静まったようじゃな。'],
+      [CHR,'だが、タラッサの言葉どおりじゃった。北の雪原で、村ひとつがまるごと“止まって”おる。'],
+      [CHR,'雪も、風も、人の時間も……すべてが凍りついたまま動かんのだそうじゃ。',[
+        {t:'すぐに向かう',reply:[[CHR,'頼もしいのう。北へ向かう行商人のヨルンが、噴水の東で荷をまとめておる。']]},
+        {t:'時が止まるって、どういうこと？',reply:[[CHR,'時を喰らう者は、喰らった時を自分のものにできる。止めることも、巻き戻すこともな。'],
+          [CHR,'喰われた村は、目覚めることのない冬に閉じ込められておるのじゃ。……行商人のヨルンを訪ねよ。噴水の東じゃ。']]}]]]},
+    {type:'talk',npc:'nomad',after:'snow',goal:'北の行商人 ヨルンに話しかけよう',lines:[
+      [YOR,'おう、あんたが噂の冒険者か。フロスト村まで犬ぞりで送ってやるよ。'],
+      [YOR,'ただな……三日前に村へ届けた荷が、そのままの形で凍りついてたんだ。人も、焚き火の炎までな。'],
+      [YOR,'気味が悪いが、放っちゃおけねぇ。しっかり着込んでいきな！']]},
+  ]},
+  {t:'凍りついた村',steps:[
+    {type:'talk',npc:'elder',goal:'村長 ベルグに話しかけよう',lines:[
+      [BRG,'……旅の方か。よう来てくだすった。わしは村長のベルグじゃ。'],
+      [BRG,'見ての通り、村の者はみな氷の中じゃ。わしだけは、守り石を握っておったおかげで凍らずにすんだ。'],
+      [BRG,'村を覆っておるのは、ただの氷ではない。“時の霜”じゃ。雪原の魔物どもが、その霜を体にまとっておる。'],
+      [BRG,'霜を5つ集めてきてくだされ。見習い魔導士のリラが、霜の出どころを調べられるはずじゃ。']]},
+    {type:'collect',item:'tfrost',count:5,goal:'白銀の雪原の魔物から〈時の霜〉を集めよう'},
+    {type:'talk',npc:'lila',goal:'見習い魔導士 リラに霜を見せよう',lines:[
+      [LIL,'あなたが霜を集めてくれたの？ ……見せて。'],
+      [LIL,'やっぱり。この霜、北の山にある“氷晶の城”の魔力と同じ匂いがする。',[
+        {t:'氷晶の城？',reply:[[LIL,'百年前に滅んだ王国のお城。今は誰も住んでいないはず……なのに、ひと月前から城の窓に明かりが灯るようになったの。']]},
+        {t:'君は凍らなかったんだね',reply:[[LIL,'うん。あの日、わたしは城を見張りに山へ出てたから。……戻ってきたら、お母さんも、弟も、みんな氷の中だった。'],
+          [LIL,'だから、絶対に取り戻すって決めたの。']]}]],
+      [LIL,'でも城への道は、雪原の主“氷牙の王 グラキエス”が守ってる。あいつを倒さないと、城の門には近づけない。']]},
+  ]},
+  {t:'氷牙の王',steps:[
+    {type:'boss',boss:'glacies',give:'icekey',goal:'白銀の雪原で、氷牙の王 グラキエスを倒そう'},
+    {type:'talk',npc:'lila',after:'castle',goal:'見習い魔導士 リラに報告しよう',lines:[
+      [LIL,'グラキエスを倒したの！？ その〈氷晶の鍵〉……お城の門の鍵だよ！'],
+      [LIL,'わたしの魔法で、お城の前まで飛ばしてあげる。……お願い、村のみんなを助けて。']]},
+    {type:'enter',map:'castle',goal:'氷晶の城へ向かおう'},
+  ]},
+  {t:'氷晶の城',steps:[
+    {type:'kill',count:25,map:'castle',goal:'氷晶の城の魔物を倒そう'},
+    {type:'boss',boss:'celsia',give:'tdrop',goal:'城の玉座で、氷晶の女王 セルシアを倒そう'},
+    {type:'talk',npc:'lila',auto:true,goal:'女王の最期の言葉を聞こう',lines:[
+      [CEL,'……どうして。どうして、止めさせてくれないの。'],
+      [CEL,'百年前のあの冬……王国が滅ぶ前の、最後の幸せな冬。わたしはずっと、その時の中にいたかった。'],
+      [CEL,'“始まりの者”が言ったの。時を喰らえば、幸せな時間を永遠にできるって……。'],
+      [CEL,'東の……砂の海……あの方は、そこで……すべての時を……。'],
+      [NARR,'女王の姿は、雪のように崩れて消えた。手のひらに、冷たい〈時の雫〉がひとつ残った。'],
+      [LIL,'（遠くから、リラの声が聞こえる）……村の氷が、溶けていく！ 早く戻ってきて！']]},
+  ]},
+  {t:'雪解け',end:true,ending:'ENDING3',steps:[
+    {type:'talk',npc:'elder',reward:{zeny:100000,items:[['relic',5],['blue',10]]},goal:'フロスト村へ戻り、村長 ベルグに報告しよう',lines:[
+      [BRG,'おお……おお！ 村の者が、動いておる！ 焚き火も、また燃えはじめた！'],
+      [LIL,'お母さん！ ……みんな、おかえり！'],
+      [BRG,'旅の方、村を代表して礼を言わせてくだされ。これはほんの気持ちじゃ。',[
+        {t:'ありがたく受け取る',reply:[[BRG,'うむ。またいつでも来なされ。村の皆で、温かいスープを用意して待っておるぞ。']]},
+        {t:'リラががんばったおかげです',reply:[[LIL,'えへへ……でも、ありがとう。あなたが来てくれなかったら、わたし、ひとりじゃ何もできなかった。'],
+          [BRG,'ほっほ。リラ、よう頑張ったな。旅の方、これはほんの気持ちじゃ。受け取ってくだされ。']]}]]]},
+  ]},
 ];
+const ENDING3=[
+  [NARR,'雪原に春の風が吹き、フロスト村の時計は、百年ぶりに正しい時を刻みはじめた。'],
+  [NARR,'女王が遺した〈時の雫〉は、ひとしずくの涙のように、冷たく、そして温かかった。'],
+  [NARR,'時を喰らう者たちを生んだ“始まりの者”——その影は、東の砂の海の向こうにある。'],
+  [NARR,'〜 第3部「白銀の章」・完 〜<br>（物語は、砂の海へと続く）'],
+];
+// 「物語」ウィンドウで読み返すあらすじ
+['ロウの依頼で草原の魔物を退治した。倒しても甦る魔物に、ルーンの異変を感じた。',
+ 'シスター・エマの祈りに導かれ、草原のボスから〈ルーンの欠片・翠〉を取り戻した。',
+ '砂の都の巫女ネフェルと出会い、ピラミッドの王ファラオンを眠らせて〈欠片・砂〉を得た。',
+ '時の番人クロノから、時を喰らう王アポカリオンの存在を聞き、Lv999を目指した。',
+ '終焉の神殿でアポカリオンを倒し、三つの欠片がそろった。',
+ '喰われた時は戻らず、世界は少しだけ巻き戻った。冒険者は転生し、新たな旅に出た。',
+ '港町マリナから、夜ごと海が光るという便りが届き、船乗りガスパルの船でマリナへ渡った。',
+ '浜の魔物を退け、海賊王バルバロから〈ルーンの灯〉を取り戻した。',
+ '灯台守オルカから、灯が海底神殿の扉の鍵であると聞き、海の底へ向かった。',
+ '海底神殿で深海の番人リヴァイアを倒し、〈潮の鍵〉を手に入れた。',
+ '最奥で目覚めた海竜タラッサを倒した。竜は「時を喰らう者は他にもいる」と言い残した。',
+ '灯台の光が戻ったマリナで、町の人々に感謝された。',
+ '北の雪原で村ひとつの時が止まったと聞き、行商人ヨルンの犬ぞりでフロスト村へ向かった。',
+ '村長ベルグの頼みで〈時の霜〉を集め、見習い魔導士リラから氷晶の城の話を聞いた。',
+ '雪原の主・氷牙の王グラキエスを倒し、〈氷晶の鍵〉を手に入れた。',
+ '氷晶の城で女王セルシアを倒した。女王は“始まりの者”と東の砂の海の名を遺した。',
+ '凍っていた村の時が動き出し、フロスト村に春が来た。',
+].forEach((s,i)=>{if(STORY[i])STORY[i].sum=s});
 const ENDING2=[
   [NARR,'海の底で、時を喰らう竜は静かに崩れ、泡となって消えた。'],
   [NARR,'灯台の光は再び夜の海を照らし、マリナの浜には潮騒と笑い声が戻った。'],
@@ -1932,13 +2279,17 @@ const ENDING2=[
 let storyTalk=null;
 function storyStep(){const s=P.story;if(!s||s.done)return null;const c=STORY[s.ch];return c?c.steps[s.step]:null}
 function initStory(){P.story={ch:0,step:0,kills:0,done:false};setTimeout(()=>showStoryTalk(PROLOGUE,()=>chapterBanner(0)),700)}
-function chapterBanner(i){const c=STORY[i];fx.push({type:'lvbig',t:0,life:3.4,title:c.part?'第2部':`第${i+1}章`,lines:c.part?[c.part.replace('第2部',''),`第${i+1}章「${c.t}」`]:[`「${c.t}」`]});msg(`${c.part?c.part+' ':''}第${i+1}章「${c.t}」`,'item');sfx('buff')}
+function chapterBanner(i){const c=STORY[i],pm=c.part&&c.part.match(/^(第\d部)(.*)$/);
+  fx.push({type:'lvbig',t:0,life:3.4,title:pm?pm[1]:`第${i+1}章`,lines:pm?[pm[2],`第${i+1}章「${c.t}」`]:[`「${c.t}」`]});msg(`${c.part?c.part+' ':''}第${i+1}章「${c.t}」`,'item');sfx('buff')}
 function storyAfter(a){
   if(a==='rebirth')openRebirth();
   else if(a==='port')enterMap(getPort(),PORT_ARR[0],PORT_ARR[1]);
   else if(a==='abyss')enterMap(getAbyss(),CX-.5,CY+1.5);
   else if(a==='thalassa')wakeThalassa();
+  else if(a==='snow')enterMap(getSnow(),SNOW_ARR[0],SNOW_ARR[1]);
+  else if(a==='castle')enterMap(getCastle(),CX-.5,CY+1.5);
 }
+const ENDINGS={ENDING2:()=>ENDING2,ENDING3:()=>ENDING3};
 function storyAdvance(){
   const s=P.story,st=storyStep();if(!st)return;
   if(st.give&&!count(st.give)){addItem(st.give);msg(`${ITEMS[st.give].n} を手に入れた！`,'item')}
@@ -1946,8 +2297,9 @@ function storyAdvance(){
     for(const [id,q] of st.reward.items||[]){addItem(id,q);msg(`${ITEMS[id].n} ×${q} をもらった！`,'item')}}
   s.step++;s.kills=0;
   if(s.step>=STORY[s.ch].steps.length){const fin=STORY[s.ch];s.ch++;s.step=0;
-    if(s.ch>=STORY.length){s.done=true;const E=fin.ending==='ENDING2'?ENDING2:ENDING;setTimeout(()=>showStoryTalk(E,()=>{msg('物語は完結しました。冒険はこれからも続く','item');fx.push({type:'lvbig',t:0,life:3.4,title:'COMPLETE!',lines:['第2部「潮騒の章」 完']});sfx('mvp')}),2500)}
-    else if(fin.end){const nc=s.ch;setTimeout(()=>showStoryTalk(ENDING,()=>{msg('第1部 完。……そして物語は、海の向こうへ','item');chapterBanner(nc)}),2500)}
+    const E=fin.ending&&ENDINGS[fin.ending]?ENDINGS[fin.ending]():ENDING;
+    if(s.ch>=STORY.length){s.done=true;setTimeout(()=>showStoryTalk(E,()=>{msg('物語は完結しました。冒険はこれからも続く','item');fx.push({type:'lvbig',t:0,life:3.4,title:'COMPLETE!',lines:['ここまでの物語 完']});sfx('mvp')}),2500)}
+    else if(fin.end){const nc=s.ch;setTimeout(()=>showStoryTalk(E,()=>{msg('……そして物語は、次の地へ','item');chapterBanner(nc)}),2500)}
     else chapterBanner(s.ch)}
   const nx=storyStep();
   if(nx&&nx.auto)setTimeout(()=>showStoryTalk(nx.lines,()=>{storyAdvance();storyAfter(nx.after)}),1800);
@@ -1959,17 +2311,116 @@ function storyEvent(type,arg){
   else if(type==='boss'){const m=arg,ok=st.boss==='field'?curMap.id==='field':st.boss==='final'?!!m.def.final:m.key===st.boss;if(ok)storyAdvance()}
   else if(type==='enter'&&arg===st.map)storyAdvance();
 }
-function storyCheck(){const st=storyStep();if(!st)return;if((st.type==='lv'&&P.lv>=st.lv)||(st.type==='reb'&&P.reb>=1))storyAdvance()}
-function showStoryTalk(lines,done){storyTalk={lines,i:0,done};renderStoryTalk();toggleWin('talk',true)}
+function storyCheck(){const st=storyStep();if(!st)return;
+  if((st.type==='lv'&&P.lv>=st.lv)||(st.type==='reb'&&P.reb>=1))storyAdvance();
+  else if(st.type==='collect'&&count(st.item)>=st.count){const e=P.inv.find(x=>x.id===st.item);removeEntry(e,st.count);msg(`${ITEMS[st.item].n} を${st.count}つ集めた！`,'item');storyAdvance()}}
+/* ---- 会話の演出：顔アイコン・文字送り・選択肢 ---- */
+function showStoryTalk(lines,done){if(storyTalk&&storyTalk.timer)clearInterval(storyTalk.timer);storyTalk={lines:lines.slice(),i:0,done};renderStoryTalk();toggleWin('talk',true)}
 function renderStoryTalk(){
-  const T=storyTalk,[who,text]=T.lines[T.i],last=T.i>=T.lines.length-1;
+  const T=storyTalk,[who,text,choices]=T.lines[T.i];if(T.timer)clearInterval(T.timer);
   $('talkName').textContent=who===NARR?'物語':who;
-  $('b-talk').innerHTML=`<p class="talk-t">${who===NARR?'':`<span class="who">${who}</span>`}${text}</p><div class="btns"><button class="btn" data-act="story-next">${last?'閉じる':'次へ ▶'}</button><span class="note" style="margin:0 0 0 auto">${T.i+1}/${T.lines.length}</span></div>`;
+  const pic=who!==NARR&&PORTRAIT[who];
+  $('b-talk').innerHTML=`<div class="st-row">${pic?'<canvas class="portrait" width="144" height="144"></canvas>':''}<p class="talk-t st-text" data-act="story-next">${who===NARR||pic?'':`<span class="who">${who}</span>`}<span id="stText"></span></p></div><div class="btns" id="stBtns"></div>`;
+  if(pic)drawFace($('b-talk').querySelector('.portrait'),pic);
+  // 文字を1つずつ表示（<br>はまとめて出す）
+  T.tokens=text.split(/(<br>)/).flatMap(p=>p==='<br>'?[p]:Array.from(p));T.n=0;T.typing=true;T.choices=choices||null;
+  const out=$('stText'),step=()=>{T.n=Math.min(T.tokens.length,T.n+2);out.innerHTML=T.tokens.slice(0,T.n).join('');if(T.n>=T.tokens.length)finishTyping()};
+  T.timer=setInterval(step,28);step();
 }
-function drawQuestMark(x,y){
-  const b=Math.abs(Math.sin(time*4))*4;ctx.fillStyle='#ffd84a';ctx.strokeStyle='#5a3a08';ctx.lineWidth=2;
+function finishTyping(){
+  const T=storyTalk;if(!T)return;clearInterval(T.timer);T.typing=false;const el=$('stText'),b=$('stBtns');if(!el||!b)return;el.innerHTML=T.tokens.join('');
+  const last=T.i>=T.lines.length-1;
+  b.innerHTML=T.choices?T.choices.map((c,k)=>`<button class="btn choice" data-act="story-choice" data-i="${k}">▶ ${c.t}</button>`).join('')
+    :`<button class="btn" data-act="story-next">${last?'閉じる':'次へ ▶'}</button><span class="note" style="margin:0 0 0 auto">${T.i+1}/${T.lines.length}</span>`;
+}
+function storyNext(){
+  const T=storyTalk;if(!T)return;
+  if(T.typing){finishTyping();return}
+  if(T.choices)return;
+  T.i++;if(T.i>=T.lines.length){storyTalk=null;$('w-talk').hidden=true;T.done&&T.done()}else renderStoryTalk();
+}
+function storyChoose(k){
+  const T=storyTalk;if(!T||!T.choices)return;const c=T.choices[k];
+  T.lines.splice(T.i+1,0,['冒険者',c.t],...(c.reply||[]));T.choices=null;T.i++;renderStoryTalk();
+}
+// 顔アイコン（会話窓の左に出す小さな肖像）
+function drawFace(cv2,L){
+  const g=cv2.getContext('2d'),W=cv2.width,s=W/64;g.clearRect(0,0,W,W);
+  const bg=g.createRadialGradient(W/2,W*.38,4,W/2,W/2,W*.7);bg.addColorStop(0,'#46526e');bg.addColorStop(1,'#1c2234');g.fillStyle=bg;g.beginPath();g.roundRect(0,0,W,W,12);g.fill();
+  g.save();g.translate(W/2,W*.6);g.scale(s,s);
+  if(L.monster){g.fillStyle=L.body;g.beginPath();g.ellipse(0,0,25,19,0,0,7);g.fill();g.beginPath();g.moveTo(-14,-14);g.lineTo(-20,-30);g.lineTo(-6,-17);g.moveTo(14,-14);g.lineTo(20,-30);g.lineTo(6,-17);g.fill();
+    g.fillStyle=L.eye;g.shadowColor=L.eye;g.shadowBlur=8;g.beginPath();g.ellipse(-9,-3,4,2.6,.2,0,7);g.ellipse(9,-3,4,2.6,-.2,0,7);g.fill();g.restore();return}
+  g.fillStyle=L.body;g.beginPath();g.ellipse(0,30,24,15,0,Math.PI,0);g.fill();g.fillRect(-24,30,48,8);
+  g.fillStyle='rgba(255,255,255,.18)';g.beginPath();g.ellipse(0,17,8,3,0,0,7);g.fill();
+  g.fillStyle=L.skin||'#f6d3b3';g.fillRect(-4,10,8,6);g.beginPath();g.arc(0,-3,15,0,7);g.fill();
+  g.fillStyle=L.hair;
+  if(L.spiky){const pts=[[-15,3],[-24,-8],[-14,-8],[-20,-24],[-7,-14],[-6,-34],[1,-15],[9,-32],[7,-13],[19,-24],[12,-7],[22,-8],[15,2],[11,-4],[7,2],[4,-5],[0,1],[-4,-5],[-8,1]];
+    g.beginPath();pts.forEach(([x,y],i)=>i?g.lineTo(x,y):g.moveTo(x,y));g.closePath();g.fill()}
+  else{g.beginPath();g.arc(0,-6,16,Math.PI*.95,Math.PI*2.05);g.fill();g.beginPath();g.moveTo(-16,-5);g.lineTo(-16,8);g.lineTo(-10,-4);g.moveTo(16,-5);g.lineTo(16,8);g.lineTo(10,-4);g.fill()}
+  if(L.hat==='witch'){g.fillStyle='#2e1a48';g.beginPath();g.ellipse(0,-14,22,5,0,0,7);g.fill();g.beginPath();g.moveTo(-13,-15);g.lineTo(13,-15);g.quadraticCurveTo(2,-30,-14,-44);g.quadraticCurveTo(-8,-28,-13,-15);g.fill();g.fillStyle='#e8c14a';g.fillRect(-12,-19,24,3)}
+  else if(L.hat==='pharaoh'){g.fillStyle='#e8c050';g.beginPath();g.arc(0,-6,17,Math.PI,0);g.lineTo(19,14);g.lineTo(12,14);g.lineTo(12,-4);g.lineTo(-12,-4);g.lineTo(-12,14);g.lineTo(-19,14);g.closePath();g.fill();
+    g.strokeStyle='#2a4aa0';g.lineWidth=2;g.beginPath();for(let k=0;k<4;k++){g.moveTo(-17,-16+k*4);g.lineTo(17,-16+k*4)}g.stroke()}
+  else if(L.hat==='crown'){g.fillStyle='#bfe8ff';g.strokeStyle='#5a8ac0';g.lineWidth=1.5;g.beginPath();g.moveTo(-11,-15);g.lineTo(-13,-28);g.lineTo(-5,-20);g.lineTo(0,-31);g.lineTo(5,-20);g.lineTo(13,-28);g.lineTo(11,-15);g.closePath();g.fill();g.stroke()}
+  g.fillStyle=L.eye||'#24202e';g.fillRect(-7,-4,3.2,5);g.fillRect(4,-4,3.2,5);
+  g.fillStyle='rgba(255,120,120,.3)';g.beginPath();g.ellipse(-9,4,3,1.6,0,0,7);g.ellipse(9,4,3,1.6,0,0,7);g.fill();
+  g.strokeStyle='rgba(60,30,30,.6)';g.lineWidth=1.2;g.beginPath();g.arc(0,5,3,.2,Math.PI-.2);g.stroke();
+  g.restore();
+}
+function drawQuestMark(x,y,ch='!'){
+  const b=Math.abs(Math.sin(time*4))*4,q=ch==='?';ctx.fillStyle=q?'#7ac8ff':'#ffd84a';ctx.strokeStyle=q?'#0a3a6a':'#5a3a08';ctx.lineWidth=2;
   ctx.beginPath();ctx.arc(x,y-b,9,0,7);ctx.fill();ctx.stroke();
-  ctx.fillStyle='#5a3a08';ctx.font='bold 13px "DotGothic16",monospace';ctx.textAlign='center';ctx.fillText('!',x,y-b+5);
+  ctx.fillStyle=q?'#0a3a6a':'#5a3a08';ctx.font='bold 13px "DotGothic16",monospace';ctx.textAlign='center';ctx.fillText(ch,x,y-b+5);
+}
+// 「物語」ウィンドウ：今の目的・受けている依頼・これまでのあらすじ
+function renderStoryLog(){
+  const s=P.story;if(!s){$('b-story').innerHTML='<p class="note">物語はまだ始まっていない。</p>';return}
+  const st=storyStep(),cur=STORY[s.ch];
+  let html=`<div class="sl-now">${s.done?'<b>物語は完結した。冒険はこれからも続く。</b>':`<span class="qc">今の目的　第${s.ch+1}章「${cur.t}」</span><b>${st?st.goal:''}</b>`}</div>`;
+  const act=SIDE.filter(q=>q.id in sideState().act);
+  if(act.length)html+=`<h4 class="sl-h">受けている依頼</h4>`+act.map(q=>`<p class="sl-p">${q.t}：${sideProg(q)}/${q.count}${sideDone(q)?'（報告できる）':''}</p>`).join('');
+  html+=`<h4 class="sl-h">これまでの物語</h4>`;
+  let part='第1部「ルーンの章」';html+=`<p class="sl-part">${part}</p>`;
+  const upto=s.done?STORY.length:s.ch;
+  for(let i=0;i<upto;i++){const c=STORY[i];if(c.part){html+=`<p class="sl-part">${c.part}</p>`}html+=`<p class="sl-p"><b>第${i+1}章「${c.t}」</b><br>${c.sum||''}</p>`}
+  if(!upto)html+='<p class="note">まだ最初の章の途中。</p>';
+  $('b-story').innerHTML=html;
+}
+function drawBoard(x,y){
+  shadow(x,y,16,6);ctx.fillStyle='#6a4a2a';ctx.fillRect(x-14,y-26,3,26);ctx.fillRect(x+11,y-26,3,26);
+  ctx.fillStyle='#a8784a';ctx.fillRect(x-18,y-44,36,22);ctx.strokeStyle='#5a3a1a';ctx.lineWidth=2;ctx.strokeRect(x-18,y-44,36,22);
+  ctx.fillStyle='#f4ecd8';ctx.fillRect(x-13,y-41,11,8);ctx.fillRect(x+1,y-40,12,9);ctx.fillRect(x-8,y-31,14,6);
+  ctx.fillStyle='#c84a3a';for(const [px,py] of [[-8,-41],[7,-40],[-1,-31]]){ctx.beginPath();ctx.arc(x+px,y+py,1.3,0,7);ctx.fill()}
+}
+
+/* ---------- サブクエスト（町の依頼掲示板） ---------- */
+const SIDE=[
+  {id:'s1',town:'field',t:'プルン退治',d:'町の外のプルンを20体退治してほしい。',type:'kill',mob:'prun',count:20,reward:{zeny:3000,items:[['red',10]]}},
+  {id:'s2',town:'field',t:'ゼリー集め',d:'ぷるぷるゼリーを10個集めてほしい。薬の材料になる。',type:'collect',item:'jelly',count:10,reward:{zeny:500,items:[['yellow',10]]}},
+  {id:'s3',town:'port',t:'浜のカニ退治',d:'ハサミガニを15体追い払ってほしい。網が切られて困っている。',type:'kill',mob:'crab',count:15,reward:{zeny:20000}},
+  {id:'s4',town:'port',t:'海賊骸骨の掃除',d:'海賊骸骨を10体倒してほしい。夜の浜が怖くて歩けない。',type:'kill',mob:'pskel',count:10,reward:{items:[['relic',2]]}},
+  {id:'s5',town:'snow',t:'雪狼の群れ',d:'雪狼を15体倒してほしい。家畜が襲われている。',type:'kill',mob:'swolf',count:15,reward:{zeny:50000}},
+  {id:'s6',town:'snow',t:'ヒエティの足あと',d:'ヒエティを8体倒してほしい。森へ薪を取りに行けない。',type:'kill',mob:'yeti',count:8,reward:{items:[['blue',5],['relic',2]]}},
+];
+function sideState(){if(!P.side)P.side={act:{},done:{}};return P.side}
+const sideProg=q=>q.type==='collect'?Math.min(q.count,count(q.item)):Math.min(q.count,sideState().act[q.id]||0);
+const sideDone=q=>q.id in sideState().act&&sideProg(q)>=q.count;
+function boardMark(){const S2=sideState();return SIDE.some(q=>q.town===curMap.id&&(!(q.id in S2.act)||sideDone(q)))}
+const rewardText=r=>[r.zeny?`${r.zeny.toLocaleString()}z`:'',...(r.items||[]).map(([id,q])=>`${ITEMS[id].n}×${q}`)].filter(Boolean).join('・');
+function boardHTML(){
+  $('talkName').textContent='依頼掲示板';const S2=sideState();
+  const rows=SIDE.filter(q=>q.town===curMap.id).map(q=>{const act=q.id in S2.act,done=sideDone(q),n=S2.done[q.id]||0;
+    const btn=!act?`<button class="btn" data-act="side-accept" data-q="${q.id}">受ける</button>`:done?`<button class="btn" data-act="side-report" data-q="${q.id}">報告する</button>`:`<button class="btn" disabled>${sideProg(q)}/${q.count}</button>`;
+    return `<div class="it"><span class="ic" style="background:${done?'#3db54d':act?'#3b78dc':'#a8784a'}">${done?'済':act?'中':'依'}</span><div class="tx"><div class="nm">${q.t}${n?` <span class="ds">（${n}回達成）</span>`:''}</div><div class="ds">${q.d}<br>報酬：${rewardText(q.reward)}</div></div>${btn}</div>`}).join('');
+  return `<p class="note">町の人からの頼みごと。何度でも受けられる。</p><div class="list">${rows||'<p class="note">この町の依頼はまだない。</p>'}</div>`;
+}
+function sideKill(m){const S2=sideState();for(const q of SIDE)if(q.type==='kill'&&q.id in S2.act&&q.mob===m.key){const before=S2.act[q.id];if(before>=q.count)continue;S2.act[q.id]=before+1;
+  if(S2.act[q.id]>=q.count)msg(`依頼「${q.t}」の条件を満たした！ 掲示板へ報告しよう`,'item');dirty=true}}
+function sideAccept(id){const S2=sideState();S2.act[id]=0;msg(`依頼「${SIDE.find(q=>q.id===id).t}」を受けた`,'sys');sfx('pick');dirty=true}
+function sideReport(id){const S2=sideState(),q=SIDE.find(x=>x.id===id);if(!sideDone(q))return;
+  if(q.type==='collect'){const e=P.inv.find(x=>x.id===q.item);removeEntry(e,q.count)}
+  delete S2.act[id];S2.done[id]=(S2.done[id]||0)+1;
+  if(q.reward.zeny)P.zeny+=q.reward.zeny;for(const [it,n] of q.reward.items||[])addItem(it,n);
+  msg(`依頼「${q.t}」を達成！ 報酬：${rewardText(q.reward)}`,'item');sfx('buff');fx.push({type:'heal',t:0,life:1,col:'#ffe08a'});dirty=true;save();
 }
 
 /* ---------- 転生 ---------- */
@@ -1996,7 +2447,7 @@ document.addEventListener('click',e=>{
   const c=e.target.closest('[data-close]');if(c){c.closest('.win').hidden=true;return}
   const a=e.target.closest('[data-act]');if(!a)return;const act=a.dataset.act;
   if(act==='stat'){const k=a.dataset.k;for(let i=0;i<(+a.dataset.n||1);i++){const c=statCost(P[k]);if(P.statPts<c||P[k]>=MAX_STAT)break;P.statPts-=c;P[k]++}}
-  else if(act==='skill'){const k=a.dataset.k,before=P.skills[k];
+  else if(act==='skill'){const k=a.dataset.k,before=P.skills[k];if(skillLocked(k))return;
     for(let i=0;i<(+a.dataset.n||1)&&P.skillPts>0&&P.skills[k]<skillMax(k);i++){P.skillPts--;P.skills[k]++}
     if(P.skills[k]>before)msg(`${SK[k].n} Lv${P.skills[k]} を習得`,'sys')}
   else if(act==='inv'){const e2=P.inv[+a.dataset.i];if(!e2)return;const it=ITEMS[e2.id];
@@ -2012,24 +2463,33 @@ document.addEventListener('click',e=>{
   else if(act==='doheal'){const s=S();P.hp=s.mhp;P.sp=s.msp;fx.push({type:'heal',t:0,life:1});msg('HPとSPが全回復した','item');$('w-talk').hidden=true}
   else if(act==='tip'){openNpc(talkNpc);return}
   else if(act==='warp-dg'){$('w-talk').hidden=true;enterMap(getDungeon(),CX-.5,CY+1.5);return}
-  else if(act==='hire'){const j=a.dataset.job;if(P.zeny<MERC_PRICE){msg('Zenyが足りません','warn');return}
-    P.zeny-=MERC_PRICE;if(merc&&merc.job===j){merc.end+=MERC_TIME;msg(`契約を10分延長しました（-${MERC_PRICE}z）`,'item')}else hireMerc(j);
+  else if(act==='hire'){const j=a.dataset.job,hired=mercs.find(m=>m.job===j),price=hired?mercPrice(mercs.indexOf(hired)):mercPrice(mercs.length);
+    if(!hired&&mercs.length>=MERC_MAX){msg('傭兵は2人までしか雇えません','warn');return}
+    if(P.zeny<price){msg(`Zenyが足りません（${price.toLocaleString()}z 必要）`,'warn');return}
+    P.zeny-=price;if(hired){hired.end+=MERC_TIME;msg(`${MERC_LOOK[j].name}の契約を10分延長しました（-${price.toLocaleString()}z）`,'item')}else hireMerc(j);
     openNpc(talkNpc);dirty=true;return}
   else if(act==='hire-hv'){if(P.zeny<MERC_PRICE){msg('Zenyが足りません','warn');return}
     P.zeny-=MERC_PRICE;if(harvest){harvest.end+=MERC_TIME;msg(`ハーヴェストの契約を10分延長しました（-${MERC_PRICE}z）`,'item')}else hireHarvest();
     openNpc(talkNpc);dirty=true;return}
   else if(act==='fire-hv'){if(harvest){for(const u of harvest.units)if(u.carry)hvDeliver(u.carry);harvest=null;msg('ハーヴェストとの契約を解除しました','sys')}openNpc(talkNpc);dirty=true;return}
-  else if(act==='fire-merc'){if(merc){msg(`傭兵 ${MERC_LOOK[merc.job].name} との契約を解除しました`,'sys');merc=null}openNpc(talkNpc);dirty=true;return}
+  else if(act==='fire-merc'){const m=mercs[+a.dataset.i];if(m){msg(`傭兵 ${MERC_LOOK[m.job].name} との契約を解除しました`,'sys');mercs.splice(+a.dataset.i,1)}openNpc(talkNpc);dirty=true;return}
   else if(act==='warp-port'){$('w-talk').hidden=true;enterMap(getPort(),PORT_ARR[0],PORT_ARR[1]);return}
   else if(act==='warp-rune'){$('w-talk').hidden=true;enterMap(FIELD,CX+5.5,CY-3.5);return}
   else if(act==='warp-ice'){$('w-talk').hidden=true;if(P.lv<ICE_LV)return;enterMap(getIce(),CX-.5,CY+1.5);return}
   else if(act==='warp-final'){$('w-talk').hidden=true;if(P.lv<MAX_LV)return;enterMap(getFinal(),CX-.5,CY+1.5);return}
-  else if(act==='story-next'){const T=storyTalk;if(!T)return;T.i++;if(T.i>=T.lines.length){storyTalk=null;$('w-talk').hidden=true;T.done&&T.done()}else renderStoryTalk();return}
+  else if(act==='side-accept'){sideAccept(a.dataset.q);$('b-talk').innerHTML=boardHTML();return}
+  else if(act==='side-report'){sideReport(a.dataset.q);$('b-talk').innerHTML=boardHTML();return}
+  else if(act==='promote'){promote(a.dataset.job);$('b-talk').innerHTML=jobMasterHTML();return}
+  else if(act==='story-next'){storyNext();return}
+  else if(act==='story-choice'){storyChoose(+a.dataset.i);return}
   else if(act==='rebirth'){$('w-talk').hidden=true;doRebirth();return}
+  else if(act==='warp-snow'){$('w-talk').hidden=true;enterMap(getSnow(),SNOW_ARR[0],SNOW_ARR[1]);return}
+  else if(act==='warp-castle'){$('w-talk').hidden=true;enterMap(getCastle(),CX-.5,CY+1.5);return}
+  else if(act==='warp-home'&&curMap.home==='snow'){$('w-talk').hidden=true;enterMap(getSnow(),SNOW_ARR[0],SNOW_ARR[1]);return}
   else if(act==='warp-home'){$('w-talk').hidden=true;if(curMap.home==='port')enterMap(getPort(),PORT_ARR[0],PORT_ARR[1]);else enterMap(FIELD,CX-3.5,CY+3.5);return}
   else if(act==='warp-abyss'){$('w-talk').hidden=true;enterMap(getAbyss(),CX-.5,CY+1.5);return}
   else if(act==='reset'){if(!resetArm){resetArm=true;dirty=true;setTimeout(()=>{resetArm=false;dirty=true},4000);return}
-    resetArm=false;try{localStorage.removeItem(SAVE_KEY)}catch(_){}if(curMap.id!=='field'){useMap(FIELD);bgmSwitch('town')}merc=null;harvest=null;freshStart();initMobs();groundItems=[];traps=[];buildHotbar();msg('データを初期化しました','sys');initStory()}
+    resetArm=false;try{localStorage.removeItem(SAVE_KEY)}catch(_){}if(curMap.id!=='field'){useMap(FIELD);bgmSwitch('town')}mercs=[];harvest=null;freshStart();initMobs();groundItems=[];traps=[];buildHotbar();msg('データを初期化しました','sys');initStory()}
   dirty=true;
 });
 document.addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&e.target.matches&&e.target.matches('.it[data-act]')){e.preventDefault();e.target.click()}});
@@ -2063,12 +2523,12 @@ function buildHotbar(){
   HOT=[...JOBS[P.job].hot.map(id=>['s',id]),['i','red'],['i','yellow'],['i','blue']];
   hotbar.innerHTML=HOT.map(([k,id],i)=>{const d=k==='s'?SK[id]:ITEMS[id];return `<button class="slot" data-slot="${i}" aria-label="${d.n}" title="${d.n}"><span class="k">${i+1}</span>${icon(d.g,d.c,k==='i')}<span class="n" id="hn${i}"></span></button>`}).join('');
 }
-for(const b of document.querySelectorAll('[data-job]'))b.addEventListener('click',()=>switchJob(b.dataset.job));
+for(const b of document.querySelectorAll('.jobsw [data-job]'))b.addEventListener('click',()=>switchJob(b.dataset.job));
 hotbar.addEventListener('click',e=>{const b=e.target.closest('[data-slot]');if(b)useSlot(+b.dataset.slot)});
 function hud(){
   const s=S();
   $('hJob').textContent=JOBS[P.job].n+(P.reb?` ★${P.reb}`:'');
-  for(const b of document.querySelectorAll('[data-job]'))b.setAttribute('aria-pressed',String(b.dataset.job===P.job));
+  for(const b of document.querySelectorAll('.jobsw [data-job]')){b.setAttribute('aria-pressed',String(b.dataset.job===P.job));const nm=JOBS[b.dataset.job].n;if(b.firstChild.nodeValue!==nm)b.firstChild.nodeValue=nm}
   $('hLv').textContent=P.lv;$('hJlv').textContent=P.jlv;
   $('hpBar').style.width=(P.hp/s.mhp*100)+'%';$('hpTxt').textContent=`HP ${Math.ceil(P.hp)} / ${s.mhp}`;
   $('hpWrap').classList.toggle('low',P.hp/s.mhp<.25);
@@ -2081,24 +2541,27 @@ function hud(){
   if(P.story&&P.story.done)hq.innerHTML=`<span class="qc">物語</span><b>完結（${P.reb?`★${P.reb} `:''}旅は続く）</b>`;
   else if(sq){const ch=STORY[P.story.ch];let g=sq.goal;
     if(sq.type==='kill')g+=`（${P.story.kills}/${sq.count}）`;else if(sq.type==='lv')g+=`（現在 Lv ${P.lv}）`;
+    if(sq.type==='collect')g+=`（${Math.min(count(sq.item),sq.count)}/${sq.count}）`;
     hq.innerHTML=`<span class="qc">第${P.story.ch+1}章「${ch.t}」</span><b>${g}</b>`}
+  const sideLines=SIDE.filter(q=>q.id in sideState().act).map(q=>`<span class="qs">依頼：${q.t} ${sideProg(q)}/${q.count}${sideDone(q)?' ✔':''}</span>`).join('');
+  if(sideLines)hq.insertAdjacentHTML('beforeend',sideLines);
   hq.hidden=!P.story;
   const hm=$('hMerc'),rows=[];
-  if(merc){const st=mercStats(),L=MERC_LOOK[merc.job];
-    rows.push(`<div class="mrow"><span>傭兵 ${L.name}（${JOBS[merc.job].n}）</span><span>${merc.down>0?`復帰まで ${Math.ceil(merc.down)}秒`:`残り ${fmtTime(merc.end-time)}`}</span><i style="width:${merc.down>0?0:clamp(merc.hp/st.mhp,0,1)*100}%"></i></div>`)}
+  for(const merc of mercs){const st=mercStats(),L=MERC_LOOK[merc.job];
+    rows.push(`<div class="mrow"><span>${L.name}（${L.jn}）</span><span>${merc.down>0?`復帰まで ${Math.ceil(merc.down)}秒`:`残り ${fmtTime(merc.end-time)}`}</span><i style="width:${merc.down>0?0:clamp(merc.hp/st.mhp,0,1)*100}%"></i></div>`)}
   if(harvest){const busy=harvest.units.filter(u=>u.st!=='idle').length;
     rows.push(`<div class="mrow hv"><span>ハーヴェスト</span><span>${busy?`${busy}匹収集中　`:''}残り ${fmtTime(harvest.end-time)}</span><i style="width:${clamp((harvest.end-time)/MERC_TIME,0,1)*100}%"></i></div>`)}
   hm.hidden=!rows.length;hm.innerHTML=rows.join('');
-  $('hBuff').innerHTML=BUFFS.filter(([k])=>P.buff[k]>0).map(([k,n])=>`<span>${n} ${Math.ceil(P.buff[k])}s</span>`).join('');
+  $('hBuff').innerHTML=BUFFS.filter(([k])=>P.buff[k]>0).map(([k,n])=>`<span>${n} ${Math.ceil(P.buff[k])}s</span>`).join('')+(P.bragi>time?'<span style="background:#2a7a5a">♪ ブラギの詩</span>':'');
   const bAlive=mobs.filter(m=>m.def.boss&&m.state!=='dead').length,bt=Math.ceil(bossTimer);
   $('mmTxt').textContent=`${curMap.name} (${Math.floor(P.x)}, ${Math.floor(P.y)})`;
   $('mmBoss').textContent=curMap.id==='field'?`ボス段階${bossTier()+1} ${bAlive}体　`+(bAlive<BOSS_MAX_ALIVE?`次 ${Math.floor(bt/60)}:${String(bt%60).padStart(2,'0')}`:'最大数')
     :`敵 ${mobs.filter(m=>m.state!=='dead').length}体　${((mobs.find(m=>m.def.boss)||{def:{n:'ボス'}}).def.n).split(/[ の]/).pop()}${bAlive?'出現中':'不在'}`;
   HOT.forEach(([k,id],i)=>{const el=$('hn'+i),b=el.parentElement;
-    if(k==='s'){const lv=P.skills[id];el.textContent=lv?'Lv'+lv:'';b.classList.toggle('off',!lv||P.sp<SK[id].sp(lv));b.classList.toggle('aim',aiming===id||(P.queued&&P.queued.id===id))}
+    if(k==='s'){const lv=P.skills[id],lock=skillLocked(id);el.textContent=lock?'封':lv?'Lv'+lv:'';b.classList.toggle('locked',lock);b.classList.toggle('off',lock||!lv||P.sp<SK[id].sp(lv));b.classList.toggle('aim',aiming===id||(P.queued&&P.queued.id===id))}
     else{const n=count(id);el.textContent=n;b.classList.toggle('off',!n)}});
   if(dirty){dirty=false;
-    if(!$('w-status').hidden)renderStatus();if(!$('w-inv').hidden)renderInv();if(!$('w-skill').hidden)renderSkill();if(!$('w-shop').hidden)renderShop();}
+    if(!$('w-status').hidden)renderStatus();if(!$('w-inv').hidden)renderInv();if(!$('w-skill').hidden)renderSkill();if(!$('w-shop').hidden)renderShop();if(!$('w-story').hidden)renderStoryLog();}
 }
 
 /* ---------- 描画 ---------- */
@@ -2138,6 +2601,7 @@ function drawHuman(x,y,o){
   if(o.hat==='pharaoh'){ctx.fillStyle='#e8c050';ctx.beginPath();ctx.moveTo(-11,-38-b);ctx.arc(0,-40-b,11.5,Math.PI,0);ctx.lineTo(13,-25-b);ctx.lineTo(8,-25-b);ctx.lineTo(8,-36-b);ctx.lineTo(-8,-36-b);ctx.lineTo(-8,-25-b);ctx.lineTo(-13,-25-b);ctx.closePath();ctx.fill();
     ctx.strokeStyle='#2a4aa0';ctx.lineWidth=1.6;ctx.beginPath();for(let i=0;i<4;i++){ctx.moveTo(-11.5,-45-b+i*3.5);ctx.lineTo(11.5,-45-b+i*3.5)}for(let i=0;i<3;i++){ctx.moveTo(-12.5,-33-b+i*3);ctx.lineTo(-8,-33-b+i*3);ctx.moveTo(8,-33-b+i*3);ctx.lineTo(12.5,-33-b+i*3)}ctx.stroke();
     ctx.fillStyle='#d83a2a';ctx.beginPath();ctx.arc(7,-50-b,2,0,7);ctx.fill()}
+  else if(o.hat==='crown'){drawCrown(0,-48-b)}
   else if(o.hat==='helm'){ctx.fillStyle='#6f7584';ctx.beginPath();ctx.arc(0,-40-b,11.5,Math.PI,0);ctx.lineTo(11.5,-36-b);ctx.lineTo(-11.5,-36-b);ctx.closePath();ctx.fill();
     ctx.fillStyle='#4a4f5c';ctx.fillRect(-11.5,-38-b,23,2.5);ctx.fillStyle='#a8303a';ctx.beginPath();ctx.moveTo(-2,-51-b);ctx.quadraticCurveTo(-12,-60-b,-16,-50-b);ctx.lineTo(-2,-48-b);ctx.fill()}
   else if(o.hat==='witch'){ctx.fillStyle='#2e1a48';ctx.beginPath();ctx.ellipse(0,-44-b,16,4.5,0,0,7);ctx.fill();
@@ -2302,6 +2766,10 @@ function drawItem(g){
   if(g.id==='zeny'){ctx.fillStyle='#f2c94c';ctx.strokeStyle='#a37a14';ctx.lineWidth=1.2;ctx.beginPath();ctx.ellipse(x,y-5-b,5,4,0,0,7);ctx.fill();ctx.stroke()}
   else{const it=ITEMS[g.id];ctx.fillStyle=it.c;ctx.strokeStyle='rgba(255,255,255,.85)';ctx.lineWidth=1.2;ctx.beginPath();ctx.roundRect(x-6,y-14-b,12,12,it.t==='use'?6:2);ctx.fill();ctx.stroke();
     if(it.t==='card'){ctx.fillStyle='#fff';ctx.fillRect(x-3,y-11-b,6,2)}}
+  // 落ちているカードは虹色にきらめき続ける
+  if(g.card){const pl=.6+Math.sin(time*5)*.4;ctx.strokeStyle=`hsla(${(time*120)%360},90%,70%,${pl})`;ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(x,y,12+pl*3,6+pl*1.5,0,0,7);ctx.stroke();
+    ctx.fillStyle='#ffffff';for(let k=0;k<3;k++){const a=time*3+k*2.1,sx=x+Math.cos(a)*11,sy=y-10+Math.sin(a*1.3)*7;ctx.beginPath();ctx.moveTo(sx,sy-4);ctx.lineTo(sx+1.2,sy);ctx.lineTo(sx,sy+4);ctx.lineTo(sx-1.2,sy);ctx.closePath();ctx.fill()}
+    label('CARD',x,y-22-b,'#ffe9a8',10)}
 }
 /* ---------- 街の発展（Base Lvで飾りが増える） ---------- */
 const TOWN_STAGES=[[30,'花壇'],[80,'街灯'],[150,'王国の旗'],[250,'黄金の噴水'],[350,'飾り石畳'],[500,'植え込み'],[650,'天使像'],[800,'光の粒'],[999,'虹']];
@@ -2423,12 +2891,16 @@ function draw(){
   for(const g of groundItems)objs.push([g.x+g.y-.3,()=>drawItem(g)]);
   for(const m of mobs)objs.push([m.x+m.y,()=>drawMob(m)]);
   if(curMap.id==='field'){objs.push([CX+CY,drawFountain]);addTownDeco(objs)}
-  if(merc&&!(merc.down>0))objs.push([merc.x+merc.y,drawMerc]);
+  for(const mc of mercs)if(!(mc.down>0))objs.push([mc.x+mc.y,()=>drawMerc(mc)]);
   for(const w of fwalls)for(const tl of w.tiles)if(tl.hits>0)objs.push([tl.x+tl.y+1,()=>drawFireTile(tl,w)]);
   if(P.swall)objs.push([P.swall.x+P.swall.y+1.1,drawSafetyWall]);
   if(harvest)for(const u of harvest.units)objs.push([u.x+u.y-.2,()=>drawHvUnit(u)]);
-  for(const n of NPCS)objs.push([n.x+n.y,()=>{const [x,y]=iso(n.x,n.y);drawHuman(x,y,{face:n.face,body:n.body,hair:n.hair,hat:n.hat});label(n.n,x,y-56,'#ffe9a8',12);
-    const st=storyStep();if(st&&st.type==='talk'&&st.npc===n.id)drawQuestMark(x,y-82)}]);
+  for(const n of NPCS)objs.push([n.x+n.y,()=>{const [x,y]=iso(n.x,n.y);
+    if(n.sign){drawBoard(x,y);label(n.n,x,y-50,'#ffe9a8',11);if(boardMark())drawQuestMark(x,y-70,'?')}
+    else{const frozen=n.frozenNpc&&!villageThawed();drawHuman(x,y,{face:n.face,body:n.body,hair:n.hair,hat:n.hat});
+      if(frozen){ctx.globalAlpha=.6;ctx.fillStyle='#bfe8ff';ctx.strokeStyle='#ffffff';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(x-16,y+2);ctx.lineTo(x-13,y-50);ctx.lineTo(x,y-60);ctx.lineTo(x+14,y-48);ctx.lineTo(x+16,y+2);ctx.closePath();ctx.fill();ctx.stroke();ctx.globalAlpha=1}
+      label(frozen?'凍った村人':n.n,x,y-56,frozen?'#bfe8ff':'#ffe9a8',12)}
+    const st=storyStep();if(st&&st.type==='talk'&&st.npc===n.id&&!st.auto)drawQuestMark(x,y-82)}]);
   if(!P.dead||true)objs.push([P.x+P.y,()=>{const [x,y]=iso(P.x,P.y);
     if(P.dead)ctx.globalAlpha=.5;
     const H=P.job==='hunter',M=P.job==='mage',wi=P.eq.weapon&&ITEMS[P.eq.weapon.id],wOk=wi&&wi.cls===JOBS[P.job].w;
@@ -2438,7 +2910,7 @@ function draw(){
       body:H?(P.eq.armor&&P.eq.armor.id==='leather'?'#4b5f2e':'#5f7d3c'):(P.eq.armor?(P.eq.armor.id==='leather'?'#6e2c44':'#2f3658'):'#55525e'),
       robe:!H,mace:!H,bow:H,quiver:H,
       weapon:wOk?(H?{bow:'#8a5a2c',cbow:'#46663a',hbow:'#c9a23a'}[P.eq.weapon.id]:(P.eq.weapon.id==='axe'?'#d1a93f':'#a9b0bc')):null});
-    if(H&&!fx.some(f=>f.type==='falcon'))drawFalcon(x-15*P.face,y-60+(P.sit?9:0)+Math.sin(time*3)*2,P.face,false);
+    if(H&&tierOf('hunter')>=2&&!fx.some(f=>f.type==='falcon'))drawFalcon(x-15*P.face,y-60+(P.sit?9:0)+Math.sin(time*3)*2,P.face,false);
     if(P.frozen>time){ctx.globalAlpha=.55;ctx.fillStyle='#bfe8ff';ctx.strokeStyle='#ffffff';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(x-16,y+2);ctx.lineTo(x-13,y-50);ctx.lineTo(x,y-60);ctx.lineTo(x+14,y-48);ctx.lineTo(x+16,y+2);ctx.closePath();ctx.fill();ctx.stroke();ctx.globalAlpha=1}
     ctx.globalAlpha=1;const s=S();
     ctx.fillStyle='rgba(10,14,22,.75)';ctx.fillRect(x-18,y+6,36,8);ctx.fillStyle=P.hp/s.mhp<.25?'#e9493f':'#4ecb5a';ctx.fillRect(x-17,y+7,34*clamp(P.hp/s.mhp,0,1),3);
@@ -2471,6 +2943,14 @@ function draw(){
       ctx.fillStyle='#f2ead4';ctx.fillRect(-14,-2.2,3.5,4.4);ctx.restore()}
     else if(f.type==='rain'){const [x,y]=iso(f.x,f.y);ctx.strokeStyle=`rgba(90,60,30,${1-p})`;ctx.lineWidth=1.5;
       for(let i=0;i<14;i++){const ox=((i*37)%60)-30,oy=((i*23)%30)-15,fall=clamp(p*1.6-(i%5)*.1,0,1),yy=y+oy-120*(1-fall);ctx.beginPath();ctx.moveTo(x+ox+6,yy-14);ctx.lineTo(x+ox,yy);ctx.stroke()}}
+    else if(f.type==='cardpillar'){const [x,y]=iso(f.x,f.y),a=p<.05?p/.05:p>.7?(1-p)/.3:1,h=(time*120)%360,H=260;
+      ctx.globalAlpha=a;const g=ctx.createLinearGradient(0,y-H,0,y);g.addColorStop(0,`hsla(${h},95%,75%,0)`);g.addColorStop(.6,`hsla(${(h+80)%360},95%,72%,.45)`);g.addColorStop(1,'rgba(255,255,255,.85)');
+      ctx.fillStyle=g;ctx.fillRect(x-14,y-H,28,H);ctx.fillStyle='rgba(255,255,255,.7)';ctx.fillRect(x-3,y-H,6,H);
+      for(let k=0;k<10;k++){const ph=(f.t*.8+k/10)%1,ang=k*1.9+f.t*2;ctx.fillStyle=`hsl(${(h+k*36)%360},95%,75%)`;ctx.beginPath();ctx.arc(x+Math.cos(ang)*18,y-ph*H,2.4,0,7);ctx.fill()}
+      if(f.t<.6){ctx.strokeStyle=`rgba(255,255,255,${1-f.t/.6})`;ctx.lineWidth=3;ctx.beginPath();ctx.ellipse(x,y,20+f.t*120,(20+f.t*120)*.5,0,0,7);ctx.stroke()}
+      ctx.globalAlpha=1}
+    else if(f.type==='note'){const [x,y]=iso(f.x,f.y);ctx.globalAlpha=Math.max(0,1-p);ctx.font='16px "DotGothic16",monospace';ctx.textAlign='center';
+      ctx.fillStyle=f.k<.5?'#ffd84a':'#7af0c0';ctx.fillText(f.k<.5?'♪':'♫',x+Math.sin(f.t*4+f.k*6)*14,y-40-p*40);ctx.globalAlpha=1}
     else if(f.type==='sgust'){const [x,y]=iso(f.x,f.y),a=p<.1?p/.1:p>.85?(1-p)/.15:1,rx=f.r*45,ry=f.r*22.6;
       ctx.globalAlpha=a;ctx.fillStyle='rgba(190,230,255,.22)';ctx.beginPath();ctx.ellipse(x,y,rx,ry,0,0,7);ctx.fill();
       ctx.strokeStyle='rgba(230,248,255,.7)';ctx.lineWidth=2;for(let k=0;k<3;k++){ctx.beginPath();ctx.ellipse(x,y-10,rx*(.4+k*.25),ry*(.4+k*.25),0,f.t*3+k,f.t*3+k+2.4);ctx.stroke()}
@@ -2500,7 +2980,7 @@ function draw(){
       ctx.closePath();ctx.fillStyle='#d8322a';ctx.fill();ctx.strokeStyle='#ffd23f';ctx.lineWidth=2;ctx.stroke();ctx.restore()}
     label(String(f.text),qx,qy,f.col,Math.round(f.size*pop));ctx.globalAlpha=1}
   for(const e of [P,...mobs])if(e.emote&&e.state!=='dead')drawEmote(e,e===P?(P.sit?62:72):40*e.def.size+14);
-  for(const n of [...NPCS,P,...(merc&&!(merc.down>0)?[merc]:[])]){if(n.bubble&&n.bubble.t>0){const [x,y]=iso(n.x,n.y);ctx.font='12px "Zen Maru Gothic",sans-serif';const w=Math.min(220,ctx.measureText(n.bubble.text).width+14);
+  for(const n of [...NPCS,P,...mercs.filter(mc=>!(mc.down>0))]){if(n.bubble&&n.bubble.t>0){const [x,y]=iso(n.x,n.y);ctx.font='12px "Zen Maru Gothic",sans-serif';const w=Math.min(220,ctx.measureText(n.bubble.text).width+14);
     ctx.fillStyle='rgba(255,255,255,.95)';ctx.beginPath();ctx.roundRect(x-w/2,y-84,w,20,6);ctx.fill();ctx.fillStyle='#232f47';ctx.textAlign='center';ctx.fillText(n.bubble.text,x,y-70,w-10)}}
   // ホバー表示
   if(mouse.x>=0&&!mouse.down){const m=pickMob(mouse.x,mouse.y);let cur=aiming?'cell':CUR.def;
@@ -2556,6 +3036,14 @@ function drawScreenFx(){
   ctx.setTransform(DPR,0,0,DPR,0,0);
   if(curMap.dark){const r=Math.max(VW,VH),g=ctx.createRadialGradient(VW/2,VH/2,r*.22,VW/2,VH/2,r*.72);
     const vg=curMap.vig||'20,10,0';g.addColorStop(0,`rgba(${vg},0)`);g.addColorStop(1,`rgba(${vg},.72)`);ctx.fillStyle=g;ctx.fillRect(0,0,VW,VH)}
+  // 雪の村：夜空のオーロラ
+  if(curMap.aurora){ctx.fillStyle='rgba(20,30,70,.16)';ctx.fillRect(0,0,VW,VH);
+    for(let k=0;k<3;k++){const col=['120,255,190','150,200,255','200,140,255'][k];ctx.beginPath();
+      for(let x=0;x<=VW;x+=20){const y=VH*(.08+k*.05)+Math.sin(x*.006+time*.4+k*1.7)*24+Math.sin(x*.017+time*.7)*8;x?ctx.lineTo(x,y):ctx.moveTo(x,y)}
+      for(let x=VW;x>=0;x-=20){const y=VH*(.08+k*.05)+Math.sin(x*.006+time*.4+k*1.7)*24+Math.sin(x*.017+time*.7)*8+44+Math.sin(x*.01+time)*10;ctx.lineTo(x,y)}
+      ctx.closePath();const g=ctx.createLinearGradient(0,VH*.05,0,VH*.35);g.addColorStop(0,`rgba(${col},0)`);g.addColorStop(.5,`rgba(${col},.16)`);g.addColorStop(1,`rgba(${col},0)`);ctx.fillStyle=g;ctx.fill()}}
+  // 雪が降る
+  if(curMap.snowfall){ctx.fillStyle='rgba(255,255,255,.85)';for(let i=0;i<70;i++){const sx=((i*131+17)%VW+Math.sin(time*.8+i)*18+time*12)%VW,sy=((time*(30+i%7*8)+i*71)%(VH+20))-10,r=1+i%3*.7;ctx.beginPath();ctx.arc(sx,sy,r,0,7);ctx.fill()}}
   if(curMap.bubbles){for(let i=0;i<28;i++){const bx=(i*97+13)%VW+Math.sin(time*1.3+i)*12,by=VH+20-((time*(28+i%5*6)+i*53)%(VH+60)),r=2+i%4;
     ctx.strokeStyle='rgba(210,255,250,.35)';ctx.lineWidth=1.2;ctx.beginPath();ctx.arc(bx,by,r,0,7);ctx.stroke();ctx.fillStyle='rgba(255,255,255,.35)';ctx.beginPath();ctx.arc(bx-r*.35,by-r*.35,r*.3,0,7);ctx.fill()}}
   for(const f of fx)if(f.type==='fade'){ctx.fillStyle=`rgba(0,0,0,${Math.max(0,1-f.t/f.life)})`;ctx.fillRect(0,0,VW,VH)}
@@ -2569,7 +3057,8 @@ function drawLvBanner(){
     const big=Math.min(60,VW/9);ctx.font=`${big}px "DotGothic16",monospace`;ctx.textAlign='center';ctx.lineJoin='round';
     const ttl=f.title||'LEVEL UP!';ctx.lineWidth=9;ctx.strokeStyle=f.job?'#3a1f5a':'#5a2a08';ctx.strokeText(ttl,0,0);
     const g=ctx.createLinearGradient(0,-big*.8,0,0);
-    if(f.job){g.addColorStop(0,'#f3e8ff');g.addColorStop(1,'#a873e6')}else{g.addColorStop(0,'#fffbe0');g.addColorStop(.5,'#ffd84a');g.addColorStop(1,'#e68a1c')}
+    if(f.card){const h=(time*90)%360;g.addColorStop(0,`hsl(${h},95%,85%)`);g.addColorStop(.5,`hsl(${(h+60)%360},95%,65%)`);g.addColorStop(1,`hsl(${(h+140)%360},90%,55%)`)}
+    else if(f.job){g.addColorStop(0,'#f3e8ff');g.addColorStop(1,'#a873e6')}else{g.addColorStop(0,'#fffbe0');g.addColorStop(.5,'#ffd84a');g.addColorStop(1,'#e68a1c')}
     ctx.fillStyle=g;ctx.fillText(ttl,0,0);
     // きらめき
     ctx.fillStyle='rgba(255,255,255,.85)';for(let i=0;i<5;i++){const a2=time*2+i*1.3,rx=Math.cos(a2)*big*2.6,ry=-big*.4+Math.sin(a2*1.7)*big*.5,r=2+Math.abs(Math.sin(time*6+i))*3;
@@ -2584,7 +3073,7 @@ function drawMini(){
   const sc=W/GW,dot=(x,y,c,r)=>{const [ix,iy]=iso(x,y);mctx.fillStyle=c;mctx.beginPath();mctx.arc(ix*sc,iy*(H/GH),r*DPR,0,7);mctx.fill()};
   for(const m of mobs)if(m.state!=='dead')dot(m.x,m.y,m.def.boss?'#ffd84a':m.def.aggro?'#ff5d4f':'#ff9fb3',m.def.boss?2.6:1.3);
   for(const n of NPCS)dot(n.x,n.y,'#ffe27a',1.6);
-  if(merc&&!(merc.down>0))dot(merc.x,merc.y,'#5af0c0',2);
+  for(const mc of mercs)if(!(mc.down>0))dot(mc.x,mc.y,'#5af0c0',2);
   dot(P.x,P.y,'#ffffff',2.4);
 }
 
@@ -2607,7 +3096,8 @@ function update(dt){
     if(mouse.down&&mouse.ground){mouse.holdT-=dt;if(mouse.holdT<=0){mouse.holdT=.25;const [wx,wy]=toWorld(mouse.x,mouse.y);moveTo(Math.floor(wx),Math.floor(wy))}}
   }
   if(P.bubble){P.bubble.t-=dt;if(P.bubble.t<=0)P.bubble=null}
-  for(const n of NPCS){if(n.bubble){n.bubble.t-=dt;if(n.bubble.t<=0)n.bubble=null}else if(rnd()<dt*.04){const L={shop:['ポーションあるよ〜','いらっしゃい！'],heal:['癒やしが必要な方は？'],guide:['困ったら話しかけてね'],gate:['砂の向こうで待っている…','ピラミッドへ行くかい？'],ret:['帰りたいか？','ここだけは安全だ'],merc:['腕利きの傭兵、いるぜ','5000zで10分だ！'],chrono:['時の果てを目指す者よ…','Lv999で会おう'],ice:['北の氷窟、行ってみる？','寒いのは平気？'],sailor:['海はいいぞぉ','マリナ行きの船だ！'],mayor:['ようこそマリナへ','今日もいい潮風ね'],orca:['灯台の灯は海の道しるべ…'],shop2:['新鮮な薬、あるよ'],heal2:['潮風に癒やしを']}[n.id]||['…'];n.bubble={text:L[Math.floor(rnd()*L.length)],t:3}}}
+  for(const n of NPCS){if(n.sign||(n.frozenNpc&&!villageThawed()))continue;if(n.bubble){n.bubble.t-=dt;if(n.bubble.t<=0)n.bubble=null}else if(rnd()<dt*.04){const L={shop:['ポーションあるよ〜','いらっしゃい！'],heal:['癒やしが必要な方は？'],guide:['困ったら話しかけてね'],gate:['砂の向こうで待っている…','ピラミッドへ行くかい？'],ret:['帰りたいか？','ここだけは安全だ'],merc:['腕利きの傭兵、いるぜ','5000zで10分だ！'],chrono:['時の果てを目指す者よ…','Lv999で会おう'],nomad:['北は寒いぞぉ','犬ぞり、乗ってくかい？'],jobmaster:['転職を望む者はおるか','Job Lv100で2次職じゃ'],
+  elder:['村の者たちよ……','温かいスープはいかがかな'],lila:['魔法の練習、がんばらなきゃ！','お城の明かり……'],shop3:['毛皮の手袋、あるよ'],heal3:['凍えた体を温めましょう'],villager:['あったかいね！','ありがとう！'],ice:['北の氷窟、行ってみる？','寒いのは平気？'],sailor:['海はいいぞぉ','マリナ行きの船だ！'],mayor:['ようこそマリナへ','今日もいい潮風ね'],orca:['灯台の灯は海の道しるべ…'],shop2:['新鮮な薬、あるよ'],heal2:['潮風に癒やしを']}[n.id]||['…'];n.bubble={text:L[Math.floor(rnd()*L.length)],t:3}}}
   updateMobs(dt,s);updateTraps(dt);updateFireWalls(dt);updateMerc(dt);updateHarvest(dt);
   for(const f of fx){f.t+=dt;
     if(f.cb&&!f.done&&f.t>=f.at){f.done=true;f.cb()}
@@ -2645,7 +3135,7 @@ function start(data){
   // 第1部を完結済みのデータは、第2部から再開する
   else if(P.story.done&&P.story.ch<STORY.length){P.story.done=false;setTimeout(()=>chapterBanner(P.story.ch),1200)}
   if(d&&d.harvest&&d.harvest.remain>1){hireHarvest(d.harvest.remain,true);msg(`ハーヴェストが合流しました（残り ${fmtTime(harvest.end-time)}）`,'item')}
-  if(d&&d.merc&&d.merc.remain>1&&MERC_LOOK[d.merc.job]){hireMerc(d.merc.job,d.merc.remain,true);msg(`傭兵 ${MERC_LOOK[merc.job].name} が合流しました（残り ${fmtTime(merc.end-time)}）`,'item')}
+  if(d)for(const sm of (d.mercs||(d.merc?[d.merc]:[])))if(sm&&sm.remain>1&&MERC_LOOK[sm.job]){hireMerc(sm.job,sm.remain,true);msg(`傭兵 ${MERC_LOOK[sm.job].name} が合流しました（残り ${fmtTime(sm.remain)}）`,'item')}
   msg('Qでアコライト、Wでハンター、Rでマジシャンに切り替え（左上のボタンでも可）','sys');
   buildHotbar();hud();requestAnimationFrame(t=>{last=t;requestAnimationFrame(frame)});
 }
