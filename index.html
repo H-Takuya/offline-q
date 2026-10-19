@@ -419,6 +419,12 @@ const ITEMS={
   c_barbaro:{n:'海賊王バルバロカード',t:'card',b:{str:10,luk:10,atk:30},sell:10,g:'札',c:'#5a1a1a',d:'STR+10 / LUK+10 / ATK+30'},
   tfrost:{n:'時の霜',t:'etc',sell:60,g:'霜',c:'#9ad8ff',d:'雪原の魔物がまとっていた、時を凍らせる霜。フロスト村の村長が探している'},
   icekey:{n:'氷晶の鍵',t:'key',g:'鍵',c:'#8ab8f0',d:'氷牙の王が守っていた鍵。氷晶の城の門を開く。だいじな物'},
+  seal_f:{n:'翠の封印',t:'key',g:'封',c:'#5ad06a',d:'樹海の巫女が守っていた封印。終焉の神殿の門を開く三つの封印のひとつ。だいじな物'},
+  seal_v:{n:'炎の封印',t:'key',g:'封',c:'#ff7a2a',d:'火山の炉の守り神が守っていた封印。終焉の神殿の門を開く三つの封印のひとつ。だいじな物'},
+  seal_t:{n:'刻の封印',t:'key',g:'封',c:'#ffd84a',d:'天空の時計塔の頂にあった封印。終焉の神殿の門を開く三つの封印のひとつ。だいじな物'},
+  c_dryad:{n:'樹海の魔女カード',t:'card',b:{vit:15,mhp:1200},sell:10,g:'札',c:'#3a8a3a',d:'VIT+15 / 最大HP+1200'},
+  c_ifrit:{n:'炎魔イフリートカード',t:'card',b:{str:15,atk:120},sell:10,g:'札',c:'#c03a1a',d:'STR+15 / ATK+120'},
+  c_hora:{n:'刻の守護騎士カード',t:'card',b:{dex:20,agi:10,int:10},sell:10,g:'札',c:'#d8b84a',d:'DEX+20 / AGI+10 / INT+10'},
   tdrop:{n:'時の雫',t:'key',g:'雫',c:'#d8f0ff',d:'氷晶の女王が遺した、涙のような雫。だいじな物'},
   c_glacies:{n:'氷牙の王カード',t:'card',b:{agi:15,atk:50,lb:1},sell:10,g:'札',c:'#8ab8e0',d:'AGI+15 / ATK+50 / ASPD上限が195に（限界突破）'},
   c_celsia:{n:'氷晶の女王カード',t:'card',b:{int:20,dex:10,mhp:800},sell:10,g:'札',c:'#cfe0ff',d:'INT+20 / DEX+10 / 最大HP+800'},
@@ -591,6 +597,9 @@ let NPCS=[
   {id:'board',n:'依頼掲示板',x:CX+.5,y:CY-5,sign:true},
   {id:'jobmaster',n:'転職官 ギルベルト',x:CX+.5,y:CY+6.2,body:'#3a2a5a',hair:'#d8c8a8',face:1,hat:'helm'},
   {id:'ice',n:'氷窟の案内人 ユキ',x:CX-4.5,y:CY+.5,body:'#4a7ab0',hair:'#f2f6ff',face:1},
+  {id:'leaf',n:'森の射手 リーフ',x:CX-5.5,y:CY-5.5,body:'#3a7a3a',hair:'#e8e0a0',face:1},
+  {id:'ganz',n:'鍛冶師 ガンツ',x:CX+5.5,y:CY+5.5,body:'#6a3a2a',hair:'#2a2a2a',face:-1,hat:'helm'},
+  {id:'stella',n:'星読み ステラ',x:CX-5.5,y:CY+5.5,body:'#3a3a7a',hair:'#c8d8ff',face:1,hat:'witch'},
   {id:'chrono',n:'時の番人 クロノ',x:CX+3.5,y:CY+4.5,body:'#2a2a4a',hair:'#e8e8ff',face:-1,hat:'witch'},
 ];
 
@@ -666,6 +675,61 @@ function finalDefs(){
   };
 }
 function initFinalMobs(){const defs=finalDefs();mobs=[];for(const k in defs){const def=defs[k];for(let i=0;i<def.count;i++){const m={key:k,def,seed:rnd()*10};spawnMob(m);mobs.push(m)}}}
+/* ---------- 封印の三章：古代樹海・灼熱の火山洞・天空の時計塔（第1部、ピラミッドと終焉の神殿のあいだ） ---------- */
+const PAL_FOREST={left:'#3a5a2a',right:'#4a6e34',top:'#7aa050',line:'rgba(20,40,10,.35)',glyph:'rgba(150,255,120,.7)',hi:'rgba(210,255,170,.35)',
+  bg:'#0c140a',wall:'#18241a',floor:s=>`hsl(${95+s*20},${30+s*10}%,${30+s*10}%)`,fline:'rgba(20,50,15,.35)',crack:'rgba(160,230,110,.35)',flame:['170,255,140','#7aff6a','#e8ffd0']};
+const PAL_LAVA={left:'#4a2a22',right:'#5e3428',top:'#7a4a3a',line:'rgba(255,120,40,.3)',glyph:'rgba(255,150,60,.85)',hi:'rgba(255,190,120,.35)',
+  bg:'#140806',wall:'#221210',floor:s=>`hsl(${12+s*14},${30+s*12}%,${20+s*9}%)`,fline:'rgba(255,90,30,.28)',crack:'rgba(255,140,40,.8)',flame:['255,140,60','#ff6a1a','#ffe08a']};
+const PAL_CLOCK={left:'#5a5070',right:'#6e6488',top:'#c8b88a',line:'rgba(255,230,160,.3)',glyph:'rgba(255,220,120,.85)',hi:'rgba(255,245,210,.5)',
+  bg:'#0a0a18',wall:'#181628',floor:s=>`hsl(${40+s*14},${22+s*10}%,${48+s*12}%)`,fline:'rgba(120,100,60,.35)',crack:'rgba(255,230,140,.55)',flame:['255,220,140','#ffd84a','#fff4c8']};
+const SEAL_DG={
+  forest:{lv:450,seed:5151,name:'古代樹海',pal:PAL_FOREST,vig:'4,20,6',fx:{leaves:true},guide:'leaf',
+    mobs:[['fwolf','樹海ウルフ','wolf','#4a7a3a',1.2,0,{count:14,speed:3}],['mkino','毒キノコン','kino','#8a3ab0',1.2,-20,{count:12}],['mprun','苔プルン','prun','#6ab04a',1.2,-30,{count:12}],
+      ['fspirit','森の精霊','ghost','#8ae0a0',1.1,30,{count:8,speed:2.6}],['farcher','樹海の狩人','human','#3a5a2a',1.1,20,{count:10,look:{hat:'helm',body:'#3a5a2a',hair:'#2a3a1a',skin:'#c8d8a0',eye:'#8aff6a'}}]],
+    boss:{key:'dryad',n:'樹海の魔女 ドリュアス',kind:'human',col:'#3a8a3a',size:1.9,hpMul:3,aura:'120,230,120',card:'c_dryad',look:{hat:'witch',body:'#2a6a2a',hair:'#9ae07a',skin:'#d8f0c0',eye:'#ff4a8a'},
+      special:{every:7,r:3.8,mult:1.2,col:'90,220,90',msg:'樹海の魔女が毒の花粉をまき散らす！ 緑の円の外へ逃げろ！'}}},
+  volcano:{lv:650,seed:6464,name:'灼熱の火山洞',pal:PAL_LAVA,vig:'40,8,0',fx:{embers:true},guide:'ganz',
+    mobs:[['lprun','溶岩プルン','prun','#e05a2a',1.3,-20,{count:12}],['hwolf','炎狼','wolf','#c04a2a',1.25,10,{count:14,speed:3.2}],['sdrake','火竜の幼体','dragon','#d04a2a',1.15,50,{count:8}],
+      ['askel','灰の骸骨兵','human','#5a4a4a',1.1,30,{count:10,look:{hat:'helm',body:'#5a4a4a',hair:'#3a3a3a',skin:'#c8b8a8',eye:'#ff8a2a'}}],['wisp','鬼火','ghost','#ff8a3a',1,20,{count:10,speed:2.8}]],
+    boss:{key:'ifrit',n:'炎魔イフリート',kind:'human',col:'#c03a1a',size:2.2,hpMul:3.5,aura:'255,120,40',card:'c_ifrit',look:{hat:'helm',body:'#a02a1a',hair:'#ffd04a',skin:'#ff9a5a',eye:'#ffff6a'},
+      special:{every:7,r:4.2,mult:1.6,col:'255,120,30',msg:'炎魔イフリートが炎を溜めている！ オレンジの円の外へ逃げろ！'}}},
+  tower:{lv:850,seed:8585,name:'天空の時計塔',pal:PAL_CLOCK,vig:'10,8,30',fx:{motes:true},guide:'stella',
+    mobs:[['cgtb','歯車ゴキ','gtb','#b8a060',1.1,0,{count:12,speed:3.4,delay:.9}],['tghost','時の亡霊','ghost','#c8b8ff',1.1,30,{count:10,speed:2.6}],
+      ['cwknight','時計仕掛けの騎士','human','#8a7a4a',1.15,40,{count:10,look:{hat:'helm',body:'#8a7a4a',hair:'#d8c890',skin:'#d8d0b8',eye:'#ffd84a'}}],
+      ['hprun','砂時計プルン','prun','#e8d08a',1.2,-30,{count:12}],['tdrake','時の幼竜','dragon','#8a8ad8',1.1,60,{count:8}]],
+    boss:{key:'hora',n:'刻の守護騎士 ホーラ',kind:'human',col:'#d8b84a',size:2.1,hpMul:4,aura:'255,220,120',card:'c_hora',look:{hat:'crown',body:'#c8a83a',hair:'#f0e8c8',skin:'#e8dcc0',eye:'#ffd84a'},
+      special:{every:8,r:4.4,mult:1.3,col:'255,210,90',freeze:2,msg:'刻の守護騎士が時を止めようとしている！ 金色の円の外へ逃げろ！'}}},
+};
+const SEAL_MAPS={};
+function getSealDungeon(id){
+  if(SEAL_MAPS[id])return SEAL_MAPS[id];const G=SEAL_DG[id],D=genDungeon(G.seed),imgs=[makeWall(false,G.pal),makeWall(true,G.pal)];
+  return SEAL_MAPS[id]={id,name:G.name,tiles:D.tiles,shade:D.shade,ground:renderDungeonGround(D,G.pal),objs:dungeonObjs(D,imgs,G.pal),safe:DG_SAFE,bgm:id,vig:G.vig,dark:true,...G.fx,
+    initMobs:()=>{const defs=sealDefs(id);mobs=[];for(const k in defs){const def=defs[k];for(let i=0;i<def.count;i++){const m={key:k,def,seed:rnd()*10};spawnMob(m);mobs.push(m)}}},
+    npcs:[{id:'ret',n:'帰還の神官 アニ',x:CX+1.5,y:CY-.5,body:'#efe6cc',hair:'#1a1a2a',face:-1}],
+    spawn:()=>{for(let i=0;i<600;i++){const x=irand(2,MW-3),y=irand(2,MH-3);if(D.tiles[y*MW+x]===SA&&Math.hypot(x+.5-CX,y+.5-CY)>6)return [x+.5,y+.5]}return [CX+.5,CY+8.5]},
+    bossSpawn:()=>{let best=null,bd=0;for(let i=0;i<800;i++){const x=irand(2,MW-3),y=irand(2,MH-3),dd=Math.hypot(x+.5-CX,y+.5-CY);if(D.tiles[y*MW+x]===SA&&dd>bd){bd=dd;best=[x+.5,y+.5]}}return best||[CX+.5,CY+12.5]}};
+}
+function sealDefs(id){
+  // 敵の強さは入場条件のLvか自分のLvの高いほうに合わせる（氷窟と同じ考え方）
+  const G=SEAL_DG[id],L=Math.round(Math.max(G.lv,P.lv)*1.1+50);
+  const mk=(n,kind,col,size,off,o={})=>{const lv=Math.max(5,L+off);
+    return {n,kind,lv,hp:Math.round(10*Math.pow(lv,1.35)+80),atk:[Math.round(lv*1.8),Math.round(lv*2.5)],def:Math.min(50,12+Math.floor(lv/25)),hit:lv+30,flee:Math.round(lv*.7),
+      exp:Math.round(Math.pow(lv,1.27)),jexp:Math.round(Math.pow(lv,1.27)*.7),speed:o.speed||2.4,delay:o.delay||1.1,aggro:true,aggroR:9,chaseR:20,col,size,
+      count:o.count||12,respawn:10,look:o.look||{},drops:[['yellow',.2],['blue',.1],['relic',.07],['gold',.06]],zeny:[lv*3,lv*7]}};
+  const out={};for(const [k,...a] of G.mobs)out[k]=mk(...a);
+  const B=G.boss,lv=L+90;
+  out[B.key]={n:B.n,kind:B.kind,lv,hp:Math.round(150*Math.pow(lv,1.3)*B.hpMul),atk:[Math.round(lv*2.6),Math.round(lv*3.5)],def:50,hit:lv+55,flee:Math.round(lv*.85),
+    exp:Math.round(Math.pow(lv,1.6)*2.5),jexp:Math.round(Math.pow(lv,1.6)*1.7),speed:2.3,delay:1.1,aggro:true,aggroR:10,chaseR:28,boss:true,far:true,tier:bossTier(),
+    col:B.col,size:B.size,aura:B.aura,look:B.look,special:B.special,
+    count:1,respawn:0,drops:[['relic',1],['relic',1],['gold',1],['blue',1],[B.card,.1]],zeny:[lv*150,lv*300],mvp:[[B.card,.06],['relic',1]]};
+  return out;
+}
+const SEAL_GUIDE={leaf:'forest',ganz:'volcano',stella:'tower'};
+const SEAL_TALK={
+  forest:{open:'東の古代樹海へ案内するわ。毒キノコや森の精霊、狩人の骸骨がうろついてる。<br>奥の「樹海の魔女ドリュアス」の緑の円——毒の花粉には近づかないで。',closed:'古代樹海は、森の木々まで人を襲う危ない場所なの。'},
+  volcano:{open:'火山洞へ連れてってやる。溶岩プルンに炎狼、火竜の幼体までいやがる。<br>奥の「炎魔イフリート」がオレンジの円を出したら、すぐ外へ逃げろ。',closed:'火山洞の熱は、生半可な腕じゃ耐えられねえ。'},
+  tower:{open:'星の道で、天空の時計塔へ送りましょう。歯車の魔物や時の亡霊がさまよっています。<br>頂の「刻の守護騎士ホーラ」の金色の円に入ると、時が止まって動けなくなります。',closed:'塔への星の道は、まだあなたには見えないようです。'},
+};
 /* ---------- 港町マリナと潮風の海岸（第2部） ---------- */
 const WOOD=8,PORT_ARR=[CX+.5,CY-4.5];let PT=null;
 function genPort(){
@@ -715,7 +779,7 @@ function makePalm(h){
   return c;
 }
 const palmImgs=[makePalm(-4),makePalm(2),makePalm(6)];
-function lighthouseLit(){const s=P.story;return !!(s&&(s.done||s.ch>9||(s.ch===9&&s.step>=1)))}
+function lighthouseLit(){const s=P.story;return !!(s&&(s.done||s.ch>chOf('灯台守の秘密')||(s.ch===chOf('灯台守の秘密')&&s.step>=1)))}
 function drawLighthouse(x,y){
   shadow(x,y,24,9);ctx.fillStyle='#8a8070';ctx.beginPath();ctx.ellipse(x,y-2,22,9,0,0,7);ctx.fill();
   for(let k=0;k<5;k++){const y0=y-4-k*22,w0=17-k*1.6,w1=17-(k+1)*1.6;ctx.fillStyle=k%2?'#d8443a':'#f4f0e8';ctx.beginPath();ctx.moveTo(x-w0,y0);ctx.lineTo(x+w0,y0);ctx.lineTo(x+w1,y0-22);ctx.lineTo(x-w1,y0-22);ctx.closePath();ctx.fill()}
@@ -776,7 +840,7 @@ function getAbyss(){
   return AB;
 }
 // タラッサは番人を倒したあと（第11章以降）に目を覚ます
-function thalassaAwake(){const s=P.story;return !!(s&&(s.done||s.ch>=11))}
+function thalassaAwake(){const s=P.story;return !!(s&&(s.done||s.ch>=chOf('目覚めるもの')))}
 function abyssDefs(){
   const L=Math.round(Math.max(60,effLv())*1.05+60);
   const mk=(n,kind,col,size,off,o={})=>{const lv=Math.max(5,L+off);
@@ -811,7 +875,7 @@ function wakeThalassa(){
 }
 /* ---------- 第3部：雪の村フロストと白銀の雪原 ---------- */
 const SNOW=9,ICE=10,SNOW_ARR=[CX+.5,CY+5.5];let SN=null,CA=null;
-function villageThawed(){const s=P.story;return !!(s&&(s.done||s.ch>=17))}
+function villageThawed(){const s=P.story;return !!(s&&(s.done||s.ch>=chOf('雪解け')))}
 function genSnow(){
   const R4=mulberry(80085),t=new Uint8Array(MW*MH),sh=new Float32Array(MW*MH);
   for(let i=0;i<MW*MH;i++)sh[i]=R4();
@@ -1039,6 +1103,8 @@ function deserialize(o){
   if(!o.tiers){const t=effJob()>=TIER_REQ[2]?3:effJob()>=TIER_REQ[1]?2:1;P.tiers={aco:t,hunter:t,mage:t};grantTierSkills(P.job,t,P.skills)}
   // ピラミッドのあとに「凍てつく氷窟」の章を追加した：旧データの章番号を1つずらす（旧「時の番人」は段階つきに）
   if(P.story&&!P.story.v){const st=P.story;if(st.ch===3)st.step=st.step>=2?4:st.step;if(st.ch>=3)st.ch++;st.v=2}
+  // さらに封印の三章（古代樹海・炎の封印・天空の時計塔）を追加した：旧「時の番人」の途中なら古代樹海の章から、Lv999到達後なら最後の報告から
+  if(P.story&&P.story.v===2){const st=P.story;if(st.ch===4){if(st.step>=4){st.ch=7;st.step=3}else st.step=0}else if(st.ch>4)st.ch+=3;st.v=3}
   // 旧職のスキル（強打・ファイアボルト）に振ったポイントは返却
   P.skillPts+=Math.max(0,(old.bash||0)+(old.bolt||0)-2);
   P.inv=(o.inv||[]).filter(e=>ITEMS[e.id]).map(e=>({id:e.id,qty:e.qty,cards:e.cards||[]}));
@@ -1155,6 +1221,20 @@ const SONG_ABYSS=[
   ['Dm',[[69,2],[72,1],[74,1]]],['Bb',[[74,1],[72,1],[70,2]]],['F',[[69,1],[72,1],[77,2]]],['A',[[76,3],[73,1]]],
   ['Dm',[[74,1.5],[76,.5],[77,2]]],['Bb',[[79,2],[77,1],[74,1]]],['Gm',[[74,1],[70,1],[67,2]]],['A',[[69,4]]],
 ];
+// 古代樹海：森の3拍子、火山洞：速い短調、時計塔：時を刻むピチカート
+const SONG_FOREST=[
+  ['Em',[[71,2],[74,1]]],['C',[[72,1],[71,1],[67,1]]],['G',[[67,2],[71,1]]],['D',[[74,3]]],
+  ['Em',[[76,1],[74,1],[71,1]]],['Am',[[72,2],[69,1]]],['B7',[[71,1],[75,1],[78,1]]],['Em',[[76,3]]],
+  ['C',[[79,2],[76,1]]],['G',[[74,1],[71,1],[74,1]]],['Am',[[72,1],[76,1],[81,1]]],['B7',[[78,3]]],
+];
+const SONG_VOLCANO=[
+  ['Dm',[[62,.5],[65,.5],[69,1],[67,.5],[65,.5],[64,1]]],['Bb',[[65,1],[70,1],[69,1],[67,1]]],['Gm',[[67,.5],[70,.5],[74,1],[72,1],[70,1]]],['A',[[69,2],[73,2]]],
+  ['Dm',[[74,1],[72,.5],[70,.5],[69,1],[65,1]]],['Eb',[[70,1],[67,1],[63,2]]],['A',[[64,1],[67,1],[69,1],[73,1]]],['Dm',[[74,4]]],
+];
+const SONG_TOWER=[
+  ['Am',[[69,1],[72,1],[76,1],[81,1]]],['F',[[77,2],[76,1],[72,1]]],['Dm',[[74,1],[77,1],[81,2]]],['E',[[80,2],[76,2]]],
+  ['Am',[[81,1],[79,1],[77,1],[76,1]]],['C',[[79,2],[72,2]]],['B',[[75,1],[78,1],[83,2]]],['E',[[80,4]]],
+];
 /* ---------- BGM エンジン：音色・残響・マップごとの編成 ---------- */
 let bgmSong='town',bgmLoop=0,bgmComp=null,bgmIR=null,bgmOut=null;
 // ホールの残響（ステレオのノイズを減衰させたインパルス応答を作る）
@@ -1210,6 +1290,29 @@ const I={
 const playMel=(mel,t,B,fn)=>{let bt=0;for(const [n,len] of mel){fn(t+bt*B,n,len*B);bt+=len}};
 /* ---- マップごとの編成 ---- */
 const ARR={
+  // 古代樹海：ハープとピチカートの木漏れ日、フルートの旋律。2周目は弦が加わる
+  forest:(i,t,B,mel,bass,tri)=>{const lp=bgmLoop%2;
+    I.cello(t,bass,B*2.8,.07);
+    for(let k=0;k<6;k++)I.harp(t+k*B/2,tri[k%3]+(k>=3?24:12),.022,-.5+k*.2);
+    for(const b of [1,2])I.pizz(t+b*B,tri[b]+12,.02,b===1?-.3:.3);
+    if(lp)for(const n of tri)I.strings(t,n+12,B*3,.014);
+    playMel(mel,t,B,(tt,n,d)=>{I.flute(tt,n,d,.11,.1);if(lp)I.bell(tt,n+12,1.2,.02,-.3)});
+  },
+  // 火山洞：太鼓とティンパニの連打、低い持続音、金管の速い旋律
+  volcano:(i,t,B,mel,bass,tri)=>{const lp=bgmLoop%2;
+    I.drone(t,bass-12,B*4.1,.06);I.cello(t,bass,B*4,.07);
+    for(let b=0;b<4;b++){I.drum(t+b*B,b%2?.12:.22,b%2?.3:-.3);I.drum(t+b*B+B/2,.08,0)}
+    I.timpani(t,bass+12,.24);if(i%2)for(const b of [3,3.25,3.5,3.75])I.timpani(t+b*B,bass+12,.09);
+    if(i===0)I.cymbal(t,2,.07);
+    playMel(mel,t,B,(tt,n,d)=>{I.brass(tt,n,d,.05,-.1);if(lp)I.strings(tt,n+12,d,.02)});
+  },
+  // 天空の時計塔：8分のピチカートで時を刻み、ベルと合唱が浮かぶ
+  tower:(i,t,B,mel,bass,tri)=>{const lp=bgmLoop%2;
+    I.sub(t,bass,B*3.8,.08);for(const n of tri)I.choir(t,n+12,B*4,.011);
+    for(let k=0;k<8;k++)I.pizz(t+k*B/2,(k%2?tri[2]:tri[0])+24,k%2?.012:.02,k%2?.4:-.4);
+    if(i%2===0)I.bell(t,tri[0]+36,2,.02,.5);
+    playMel(mel,t,B,(tt,n,d)=>{I.strings(tt,n,d,.022);if(lp)I.bell(tt,n+12,Math.max(1.2,d*1.4),.03,-.2);else I.flute(tt,n,d,.05,.2)});
+  },
   // 雪の村：チェレスタのようなベルと、やわらかい弦。ゆっくりした冬の夜
   snow:(i,t,B,mel,bass,tri)=>{const lp=bgmLoop%2;
     I.sub(t,bass,B*3.8,.08);for(const n of tri)I.strings(t,n,B*4,.013);
@@ -1282,6 +1385,9 @@ const SONGS={
   abyss:{beat:60/70,bpb:4,bars:SONG_ABYSS,rev:.62},
   snow:{beat:60/84,bpb:4,bars:SONG_SNOW,rev:.5},
   castle:{beat:60/92,bpb:4,bars:SONG_CASTLE,rev:.55},
+  forest:{beat:60/104,bpb:3,bars:SONG_FOREST,rev:.42},
+  volcano:{beat:60/132,bpb:4,bars:SONG_VOLCANO,rev:.3},
+  tower:{beat:60/100,bpb:4,bars:SONG_TOWER,rev:.58},
 };
 function scheduleBar(i,t){const S2=SONGS[bgmSong],[ch,mel]=S2.bars[i],[bass,tri]=CH[ch];ARR[bgmSong](i,t,S2.beat,mel,bass,tri)}
 function bgmTick(){if(!AC||!bgmGain||!bgmTimer)return;const S2=SONGS[bgmSong];
@@ -2001,7 +2107,7 @@ function openNpc(n){
       :`<p class="talk-t">（氷の中で、時が止まっている……。まばたきひとつしない）</p><div class="btns"><button class="btn" data-close>そっとしておく</button></div>`;
   }
   else if(n.id==='nomad'){
-    const open=P.story&&(P.story.done||P.story.ch>=13);
+    const open=P.story&&(P.story.done||P.story.ch>=chOf('白い便り'));
     html=curMap.id==='snow'
       ?`<p class="talk-t">ルーンの草原へ戻るかい？ 犬ぞりならひとっ走りだ。</p><div class="btns"><button class="btn" data-act="warp-rune">ルーンの草原へ帰る</button><button class="btn" data-close>まだ村にいる</button></div>`
       :open?`<p class="talk-t">北のフロスト村行きの犬ぞりだ。しっかり着込んでいきな！</p><div class="btns"><button class="btn" data-act="warp-snow">フロスト村へ行く</button><button class="btn" data-close>また今度</button></div>`
@@ -2009,12 +2115,12 @@ function openNpc(n){
   }
   else if(n.id==='elder') html=`<p class="talk-t">${villageThawed()?'村に時が戻った。旅の方、本当にありがとう。いつでも温かいスープを用意して待っておるぞ。':'村の者を、どうか……。〈時の霜〉の正体さえわかれば……。'}</p><div class="btns"><button class="btn" data-close>また来ます</button></div>`;
   else if(n.id==='lila'){
-    const can=count('icekey')||(P.story&&(P.story.done||P.story.ch>=16));
+    const can=count('icekey')||(P.story&&(P.story.done||P.story.ch>=chOf('氷晶の城')));
     html=can?`<p class="talk-t">${villageThawed()?'村のみんなが元気になって、ほんとうによかった！ 城にはまだ魔物がいるみたい。修行に行くなら送るよ。':'お城へ行くの？ わたしの魔法で、門の前まで飛ばしてあげる！'}</p><div class="btns"><button class="btn" data-act="warp-castle">氷晶の城へ行く</button><button class="btn" data-close>また今度</button></div>`
       :`<p class="talk-t">お城の窓の明かり……あれが村を凍らせた原因なんだと思う。でも、雪原の主が道をふさいでいるの。</p><div class="btns"><button class="btn" data-close>わかった</button></div>`;
   }
   else if(n.id==='sailor'){
-    const open=P.reb>=1||(P.story&&P.story.ch>=7);
+    const open=P.reb>=1||(P.story&&P.story.ch>=chOf('海からの便り'));
     html=curMap.id==='port'
       ?`<p class="talk-t">よう、ルーンの草原に戻るかい？ 潮の具合はばっちりだ。</p><div class="btns"><button class="btn" data-act="warp-rune">ルーンの草原へ帰る</button><button class="btn" data-close>まだ港にいる</button></div>`
       :open?`<p class="talk-t">東の港町マリナ行きの船だ。転生を越えた強者なら、荒れた海も怖くねぇだろ？</p><div class="btns"><button class="btn" data-act="warp-port">港町マリナへ出航</button><button class="btn" data-close>また今度</button></div>`
@@ -2036,6 +2142,11 @@ function openNpc(n){
       `<div class="it">${icon('収','#d9a52c')}<div class="tx"><div class="nm">ハーヴェスト</div><div class="ds">小さな8匹の群れ。まわりに落ちたアイテムとZenyを拾って届けてくれる。戦闘はしない<br>料金 ${MERC_PRICE.toLocaleString()}z</div></div><button class="btn" data-act="hire-hv" ${P.zeny<MERC_PRICE?'disabled':''}>${harvest?'延長':'雇う'}</button></div></div>`+
       `<div class="foot"><span>所持金 <b class="price">${P.zeny.toLocaleString()} z</b></span><span class="btns">${mercs.map((m,i)=>`<button class="btn warn" data-act="fire-merc" data-i="${i}">${MERC_LOOK[m.job].name}を解除</button>`).join('')}${harvest?'<button class="btn warn" data-act="fire-hv">ハーヴェストを解除</button>':''}${!mercs.length&&!harvest?'<button class="btn" data-close>やめておく</button>':''}</span></div>`;
   }
+  else if(SEAL_GUIDE[n.id]){const id=SEAL_GUIDE[n.id],G=SEAL_DG[id],T=SEAL_TALK[id];
+    html=P.lv>=G.lv
+      ?`<p class="talk-t">${T.open}<br>安全なのは入口の9マスだけ。敵の強さはあなたのLvに合わせて目を覚ます。</p><div class="btns"><button class="btn" data-act="warp-seal" data-id="${id}">${G.name}へ行く</button><button class="btn" data-close>やめておく</button></div>`
+      :`<p class="talk-t">${T.closed}<br>${G.name}へ行けるのは Base Lv ${G.lv} から。今のあなたは Lv ${P.lv}。</p><div class="btns"><button class="btn" data-close>わかった</button></div>`;
+  }
   else if(n.id==='ice'){
     html=P.lv>=ICE_LV
       ?`<p class="talk-t">北の山の奥に、凍てつく氷窟があるの。ピラミッドより手ごわい魔物ばかりよ。<br>敵の数が多くて足も速い。それに奥の「氷竜グレイシア」の冷気を浴びると、しばらく凍って動けなくなる。<br>安全なのは入口の9マスだけ。気をつけてね。</p><div class="btns"><button class="btn" data-act="warp-ice">氷窟へ行く</button><button class="btn" data-close>やめておく</button></div>`
@@ -2053,14 +2164,14 @@ function openNpc(n){
 }
 /* ---------- ストーリー ---------- */
 const NARR='語り部',ROU='案内人 ロウ',EMA='シスター・エマ',NEF='待ち人 ネフェル',CHR='時の番人 クロノ',
-  YOR='北の行商人 ヨルン',BRG='村長 ベルグ',LIL='見習い魔導士 リラ',CEL='氷晶の女王 セルシア',YUK='氷窟の案内人 ユキ';
+  YOR='北の行商人 ヨルン',BRG='村長 ベルグ',LIL='見習い魔導士 リラ',CEL='氷晶の女王 セルシア',YUK='氷窟の案内人 ユキ',LEAF='森の射手 リーフ',GANZ='鍛冶師 ガンツ',STE='星読み ステラ';
 // 会話の顔アイコン用の見た目
 const PORTRAIT={
   [ROU]:{body:'#8a4b3a',hair:'#2b2b33'},[EMA]:{body:'#2f3e66',hair:'#e9d9a8'},[NEF]:{body:'#c9a24a',hair:'#1a1a2a',hat:'pharaoh'},
   [CHR]:{body:'#2a2a4a',hair:'#e8e8ff',hat:'witch'},'船乗り ガスパル':{body:'#2a3a6a',hair:'#3a2a1a'},'町長 シーラ':{body:'#2a6a8a',hair:'#c86a3a'},
   '灯台守 オルカ':{body:'#3a4a6a',hair:'#e8e8e8'},'時喰らいの海竜 タラッサ':{monster:true,body:'#123a4a',eye:'#3affd0'},
   [YOR]:{body:'#7a4a2a',hair:'#c87a3a'},[BRG]:{body:'#5a3a2a',hair:'#f0f0f0'},[LIL]:{body:'#4a6ac0',hair:'#f0c070',hat:'witch'},
-  [YUK]:{body:'#4a7ab0',hair:'#f2f6ff'},[CEL]:{body:'#cfe0ff',hair:'#ffffff',skin:'#eef4ff',eye:'#3ad0ff',hat:'crown'},'冒険者':{body:'#2f3658',hair:'#8a4a1f',spiky:true},
+  [YUK]:{body:'#4a7ab0',hair:'#f2f6ff'},[LEAF]:{body:'#3a7a3a',hair:'#e8e0a0'},[GANZ]:{body:'#6a3a2a',hair:'#2a2a2a',hat:'helm'},[STE]:{body:'#3a3a7a',hair:'#c8d8ff',hat:'witch'},[CEL]:{body:'#cfe0ff',hair:'#ffffff',skin:'#eef4ff',eye:'#3ad0ff',hat:'crown'},'冒険者':{body:'#2f3658',hair:'#8a4a1f',spiky:true},
 };
 const PROLOGUE=[
   [NARR,'遥か昔、この大地には時を刻む石〈ルーン〉があった。'],
@@ -2132,21 +2243,76 @@ const STORY=[
       [YUK,'竜の胸には、欠片の光の名残があったわ。きっと終焉の神殿から漏れ出した力ね。'],
       [YUK,'クロノさんに伝えて。時の歪みは、もうすぐそこまで来てるって。']]},
   ]},
+  {t:'古代樹海の魔女',steps:[
+    {type:'talk',npc:'chrono',goal:'時の番人 クロノに話しかけよう',lines:[
+      [CHR,'ユキから聞いたぞ。グレイシアは、終焉の神殿から漏れ出した力に呑まれておったか。'],
+      [CHR,'よいか。終焉の神殿の門は、三つの〈封印〉で閉ざされておる。森・炎・刻——それぞれの番人が守ってきた封印じゃ。'],
+      [CHR,'だが番人たちも、漏れ出した力に蝕まれておるはず。封印を取り戻さねば、門は永遠に開かん。'],
+      [CHR,'まずは東の古代樹海へ。森の射手リーフが道を知っておる。町のはずれにおる。樹海は Base Lv 450 からじゃぞ。']]},
+    {type:'lv',lv:450,goal:'Base Lv 450 に到達しよう'},
+    {type:'talk',npc:'leaf',goal:'森の射手 リーフに話しかけよう',lines:[
+      [LEAF,'あなたがクロノ様の言っていた冒険者？ 私はリーフ、樹海の見張り役よ。'],
+      [LEAF,'封印を守っていた森の巫女ドリュアス様が、ある日突然、魔女に変わってしまったの。森の木々まで人を襲うようになって…。'],
+      [LEAF,'まずは樹海の魔物を減らして。魔女の毒の花粉——緑の円には気をつけてね。'],
+      [LEAF,'準備ができたら、もう一度話しかけて。樹海へ案内するわ。']]},
+    {type:'enter',map:'forest',goal:'リーフに頼んで古代樹海へ行こう'},
+    {type:'kill',count:30,map:'forest',goal:'古代樹海の魔物を倒そう'},
+    {type:'boss',boss:'dryad',give:'seal_f',goal:'樹海の魔女ドリュアスを倒そう'},
+    {type:'talk',npc:'leaf',goal:'町へ戻り、リーフに報告しよう',reward:{zeny:500000},lines:[
+      [LEAF,'ドリュアス様…元の優しい顔に戻って、眠りについたのね。'],
+      [LEAF,'それが〈翠の封印〉。巫女様が命がけで守っていたものよ。大切にして。'],
+      [LEAF,'次は炎の封印ね。南の火山には、鍛冶師のガンツさんが詳しいわ。町のはずれで鉄を打ってるはずよ。']]},
+  ]},
+  {t:'炎の封印',steps:[
+    {type:'talk',npc:'ganz',goal:'鍛冶師 ガンツに話しかけよう',lines:[
+      [GANZ,'おう、樹海の封印を取り戻したってのはお前か。'],
+      [GANZ,'火山の奥には炎魔イフリートがいる。昔は封印を守る炉の守り神だったんだが…今じゃ火山ごと暴れてやがる。'],
+      [GANZ,'火山洞は Base Lv 650 からだ。生半可な腕じゃ、あの熱で骨まで溶けちまうぞ。']]},
+    {type:'lv',lv:650,goal:'Base Lv 650 に到達しよう'},
+    {type:'talk',npc:'ganz',goal:'鍛冶師 ガンツに話しかけよう',lines:[
+      [GANZ,'いい面構えになったな。よし、火山洞へ連れてってやる。'],
+      [GANZ,'イフリートが火を溜めたら、でかいオレンジの円が出る。その中にいたら一撃で黒焦げだ。'],
+      [GANZ,'準備ができたら、もう一度声をかけな。']]},
+    {type:'enter',map:'volcano',goal:'ガンツに頼んで灼熱の火山洞へ行こう'},
+    {type:'kill',count:30,map:'volcano',goal:'火山洞の魔物を倒そう'},
+    {type:'boss',boss:'ifrit',give:'seal_v',goal:'炎魔イフリートを倒そう'},
+    {type:'talk',npc:'ganz',goal:'町へ戻り、ガンツに報告しよう',reward:{zeny:800000},lines:[
+      [GANZ,'……火山が静かになった。やったな！'],
+      [GANZ,'〈炎の封印〉か。あいつの熱で、お前の武器も鍛えてやりたいところだが…それは全部終わってからだな。'],
+      [GANZ,'最後は〈刻の封印〉だ。空に浮かぶ時計塔にある。星読みのステラに会ってこい。町のはずれにいるはずだ。']]},
+  ]},
+  {t:'天空の時計塔',steps:[
+    {type:'talk',npc:'stella',goal:'星読み ステラに話しかけよう',lines:[
+      [STE,'星が告げていました。三つ目の封印を求める人が来る、と。'],
+      [STE,'刻の封印は、天空の時計塔の頂。守護騎士ホーラが、ずっと塔の時を守ってきました。'],
+      [STE,'けれど今、塔の時計は逆さに回っている…ホーラはもう、誰の言葉も聞きません。'],
+      [STE,'塔への星の道が開くのは Base Lv 850 から。それまで、力を蓄えてください。']]},
+    {type:'lv',lv:850,goal:'Base Lv 850 に到達しよう'},
+    {type:'talk',npc:'stella',goal:'星読み ステラに話しかけよう',lines:[
+      [STE,'星の道が見えました。あなたを塔へ送りましょう。'],
+      [STE,'ホーラが時を止める金色の円に入ると、しばらく動けなくなります。止まった時の中で斬られないように。'],
+      [STE,'準備ができたら、もう一度話しかけてください。']]},
+    {type:'enter',map:'tower',goal:'ステラに頼んで天空の時計塔へ行こう'},
+    {type:'kill',count:30,map:'tower',goal:'時計塔の魔物を倒そう'},
+    {type:'boss',boss:'hora',give:'seal_t',goal:'刻の守護騎士ホーラを倒そう'},
+    {type:'talk',npc:'stella',goal:'町へ戻り、ステラに報告しよう',reward:{zeny:1200000},lines:[
+      [STE,'塔の時計が…正しい向きに戻った。'],
+      [STE,'ホーラは最期に「時を喰らう王を止めてくれ」と。これで三つの封印がそろいましたね。'],
+      [STE,'クロノさんのもとへ。神殿の門が、あなたを待っています。']]},
+  ]},
   {t:'時の番人',steps:[
     {type:'talk',npc:'chrono',goal:'時の番人 クロノに話しかけよう',lines:[
-      [CHR,'グレイシアを鎮めたか。だが、あれは終焉の王が漏らした力のほんの一滴にすぎん。'],
-      [CHR,'魔物が何度でも甦るのも、ルーンが乱れるのも、すべてあやつが時を喰らっているせいじゃ。'],
-      [CHR,'神殿へは、時の果て——Base Lv 999 に至った者しか入れん。'],
-      [CHR,'道は長い。まずは Lv 600 を目指せ。そこまで来たら、シスター・エマを訪ねるとよい。']]},
-    {type:'lv',lv:600,goal:'Base Lv 600 に到達しよう'},
-    {type:'talk',npc:'heal',goal:'シスター・エマに話しかけよう',lines:[
-      [EMA,'ずいぶん遠くまで来ましたね。ルーンの声が、あなたの名前を呼んでいる気がします。'],
-      [EMA,'終焉の神殿の前には、時が逆巻く「時の果て」があるそうです。そこに立てるのは、Lv 999 に至った者だけ。'],
-      [EMA,'あなたに祝福を。…クロノさんが待っています。']]},
+      [CHR,'……三つの封印がそろったか。翠、炎、刻——たしかに、神殿の門の紋と同じ光じゃ。'],
+      [CHR,'魔物が何度でも甦るのも、ルーンが乱れるのも、すべてアポカリオンが時を喰らっているせいじゃ。'],
+      [CHR,'あとは、お前自身が門の重さに耐えられるか。時の果て——Base Lv 999 に至れ。'],
+      [CHR,'シスター・エマが、お前のために祈りの準備をしておる。至ったら、まず彼女を訪ねよ。']]},
     {type:'lv',lv:999,goal:'Base Lv 999 に到達しよう'},
+    {type:'talk',npc:'heal',goal:'シスター・エマに話しかけよう',lines:[
+      [EMA,'ついに、時の果てに…。ルーンの声が、あなたの名前を呼んでいます。'],
+      [EMA,'三つの封印と、あなたにルーンの祝福を。…クロノさんが待っています。']]},
     {type:'talk',npc:'chrono',goal:'時の番人 クロノに話しかけよう',lines:[
       [CHR,'……よくぞ時の果てに至った。'],
-      [CHR,'終焉の神殿への門を開こう。アポカリオンを倒し、最後の欠片を取り戻すのじゃ。'],
+      [CHR,'三つの封印で、終焉の神殿の門を開こう。アポカリオンを倒し、最後の欠片を取り戻すのじゃ。'],
       [CHR,'行け、冒険者。終焉を、終わらせてこい。']]},
   ]},
   {t:'終焉の王',steps:[
@@ -2290,7 +2456,10 @@ const ENDING3=[
  'シスター・エマの祈りに導かれ、草原のボスから〈ルーンの欠片・翠〉を取り戻した。',
  '砂の都の巫女ネフェルと出会い、ピラミッドの王ファラオンを眠らせて〈欠片・砂〉を得た。',
  'クロノの導きで北の凍てつく氷窟へ。案内人ユキとともに、暴れる氷竜グレイシアを鎮めた。',
- '時を喰らう王アポカリオンの存在を聞き、シスター・エマの祝福を受けて、時の果て Lv999 に至った。',
+ '神殿の門を閉ざす三つの封印を求め、古代樹海で魔女に変わった巫女ドリュアスを眠らせ、〈翠の封印〉を手にした。',
+ '鍛冶師ガンツと火山洞へ。炉の守り神だった炎魔イフリートを鎮め、〈炎の封印〉を手にした。',
+ '星読みステラの導きで天空の時計塔へ。守護騎士ホーラを倒し、〈刻の封印〉を取り戻した。',
+ '三つの封印をそろえ、シスター・エマの祝福を受けて、時の果て Lv999 に至った。',
  '終焉の神殿でアポカリオンを倒し、三つの欠片がそろった。',
  '喰われた時は戻らず、世界は少しだけ巻き戻った。冒険者は転生し、新たな旅に出た。',
  '港町マリナから、夜ごと海が光るという便りが届き、船乗りガスパルの船でマリナへ渡った。',
@@ -2313,7 +2482,7 @@ const ENDING2=[
 ];
 let storyTalk=null;
 function storyStep(){const s=P.story;if(!s||s.done)return null;const c=STORY[s.ch];return c?c.steps[s.step]:null}
-function initStory(){P.story={ch:0,step:0,kills:0,done:false,v:2};setTimeout(()=>showStoryTalk(PROLOGUE,()=>chapterBanner(0)),700)}
+function initStory(){P.story={ch:0,step:0,kills:0,done:false,v:3};setTimeout(()=>showStoryTalk(PROLOGUE,()=>chapterBanner(0)),700)}
 function chapterBanner(i){const c=STORY[i],pm=c.part&&c.part.match(/^(第\d部)(.*)$/);
   fx.push({type:'lvbig',t:0,life:3.4,title:pm?pm[1]:`第${i+1}章`,lines:pm?[pm[2],`第${i+1}章「${c.t}」`]:[`「${c.t}」`]});msg(`${c.part?c.part+' ':''}第${i+1}章「${c.t}」`,'item');sfx('buff')}
 function storyAfter(a){
@@ -2324,6 +2493,7 @@ function storyAfter(a){
   else if(a==='snow')enterMap(getSnow(),SNOW_ARR[0],SNOW_ARR[1]);
   else if(a==='castle')enterMap(getCastle(),CX-.5,CY+1.5);
 }
+const chOf=t=>STORY.findIndex(c=>c.t===t);
 const ENDINGS={ENDING2:()=>ENDING2,ENDING3:()=>ENDING3};
 function storyAdvance(){
   const s=P.story,st=storyStep();if(!st)return;
@@ -2510,6 +2680,7 @@ document.addEventListener('click',e=>{
   else if(act==='fire-merc'){const m=mercs[+a.dataset.i];if(m){msg(`傭兵 ${MERC_LOOK[m.job].name} との契約を解除しました`,'sys');mercs.splice(+a.dataset.i,1)}openNpc(talkNpc);dirty=true;return}
   else if(act==='warp-port'){$('w-talk').hidden=true;enterMap(getPort(),PORT_ARR[0],PORT_ARR[1]);return}
   else if(act==='warp-rune'){$('w-talk').hidden=true;enterMap(FIELD,CX+5.5,CY-3.5);return}
+  else if(act==='warp-seal'){$('w-talk').hidden=true;const id=a.dataset.id;if(!SEAL_DG[id]||P.lv<SEAL_DG[id].lv)return;enterMap(getSealDungeon(id),CX-.5,CY+1.5);return}
   else if(act==='warp-ice'){$('w-talk').hidden=true;if(P.lv<ICE_LV)return;enterMap(getIce(),CX-.5,CY+1.5);return}
   else if(act==='warp-final'){$('w-talk').hidden=true;if(P.lv<MAX_LV)return;enterMap(getFinal(),CX-.5,CY+1.5);return}
   else if(act==='side-accept'){sideAccept(a.dataset.q);$('b-talk').innerHTML=boardHTML();return}
@@ -3081,6 +3252,16 @@ function drawScreenFx(){
   if(curMap.snowfall){ctx.fillStyle='rgba(255,255,255,.85)';for(let i=0;i<70;i++){const sx=((i*131+17)%VW+Math.sin(time*.8+i)*18+time*12)%VW,sy=((time*(30+i%7*8)+i*71)%(VH+20))-10,r=1+i%3*.7;ctx.beginPath();ctx.arc(sx,sy,r,0,7);ctx.fill()}}
   if(curMap.bubbles){for(let i=0;i<28;i++){const bx=(i*97+13)%VW+Math.sin(time*1.3+i)*12,by=VH+20-((time*(28+i%5*6)+i*53)%(VH+60)),r=2+i%4;
     ctx.strokeStyle='rgba(210,255,250,.35)';ctx.lineWidth=1.2;ctx.beginPath();ctx.arc(bx,by,r,0,7);ctx.stroke();ctx.fillStyle='rgba(255,255,255,.35)';ctx.beginPath();ctx.arc(bx-r*.35,by-r*.35,r*.3,0,7);ctx.fill()}}
+  // 古代樹海：舞い落ちる木の葉
+  if(curMap.leaves){for(let i=0;i<34;i++){const lx=((i*137+29)%VW+Math.sin(time*.9+i)*30+time*10)%VW,ly=((time*(22+i%6*5)+i*83)%(VH+30))-15;
+    ctx.save();ctx.translate(lx,ly);ctx.rotate(time*1.5+i);ctx.fillStyle=['rgba(120,200,80,.7)','rgba(200,190,70,.65)','rgba(90,160,60,.7)'][i%3];ctx.beginPath();ctx.ellipse(0,0,5,2.4,0,0,7);ctx.fill();ctx.restore()}}
+  // 火山洞：立ちのぼる火の粉
+  if(curMap.embers){ctx.fillStyle='rgba(255,60,0,.08)';ctx.fillRect(0,0,VW,VH);
+    for(let i=0;i<46;i++){const ex=(i*113+7)%VW+Math.sin(time*2+i)*14,ey=VH+10-((time*(40+i%7*12)+i*61)%(VH+40)),al=.5+.4*Math.sin(time*6+i);
+      ctx.fillStyle=`rgba(255,${120+i%5*25},40,${al})`;ctx.beginPath();ctx.arc(ex,ey,1.2+i%3*.7,0,7);ctx.fill()}}
+  // 時計塔：漂う金色の光の粒
+  if(curMap.motes){for(let i=0;i<40;i++){const mx=(i*151+41)%VW+Math.sin(time*.5+i*1.3)*40,my=(i*89+17)%VH+Math.cos(time*.4+i)*30,al=.35+.35*Math.sin(time*2+i);
+    ctx.fillStyle=`rgba(255,225,140,${al})`;ctx.beginPath();ctx.arc(mx,my,1.5+i%3*.6,0,7);ctx.fill()}}
   for(const f of fx)if(f.type==='fade'){ctx.fillStyle=`rgba(0,0,0,${Math.max(0,1-f.t/f.life)})`;ctx.fillRect(0,0,VW,VH)}
 }
 function drawLvBanner(){
@@ -3131,7 +3312,7 @@ function update(dt){
     if(mouse.down&&mouse.ground){mouse.holdT-=dt;if(mouse.holdT<=0){mouse.holdT=.25;const [wx,wy]=toWorld(mouse.x,mouse.y);moveTo(Math.floor(wx),Math.floor(wy))}}
   }
   if(P.bubble){P.bubble.t-=dt;if(P.bubble.t<=0)P.bubble=null}
-  for(const n of NPCS){if(n.sign||(n.frozenNpc&&!villageThawed()))continue;if(n.bubble){n.bubble.t-=dt;if(n.bubble.t<=0)n.bubble=null}else if(rnd()<dt*.04){const L={shop:['ポーションあるよ〜','いらっしゃい！'],heal:['癒やしが必要な方は？'],guide:['困ったら話しかけてね'],gate:['砂の向こうで待っている…','ピラミッドへ行くかい？'],ret:['帰りたいか？','ここだけは安全だ'],merc:['腕利きの傭兵、いるぜ','5000zで10分だ！'],chrono:['時の果てを目指す者よ…','Lv999で会おう'],nomad:['北は寒いぞぉ','犬ぞり、乗ってくかい？'],jobmaster:['転職を望む者はおるか','Job Lv100で2次職じゃ'],
+  for(const n of NPCS){if(n.sign||(n.frozenNpc&&!villageThawed()))continue;if(n.bubble){n.bubble.t-=dt;if(n.bubble.t<=0)n.bubble=null}else if(rnd()<dt*.04){const L={shop:['ポーションあるよ〜','いらっしゃい！'],heal:['癒やしが必要な方は？'],guide:['困ったら話しかけてね'],gate:['砂の向こうで待っている…','ピラミッドへ行くかい？'],ret:['帰りたいか？','ここだけは安全だ'],merc:['腕利きの傭兵、いるぜ','5000zで10分だ！'],chrono:['時の果てを目指す者よ…','Lv999で会おう'],leaf:['森がざわめいてる…','樹海は東よ'],ganz:['カーン、カーン…','いい鉄だ'],stella:['星が瞬いています','時計塔は空の上に'],nomad:['北は寒いぞぉ','犬ぞり、乗ってくかい？'],jobmaster:['転職を望む者はおるか','Job Lv100で2次職じゃ'],
   elder:['村の者たちよ……','温かいスープはいかがかな'],lila:['魔法の練習、がんばらなきゃ！','お城の明かり……'],shop3:['毛皮の手袋、あるよ'],heal3:['凍えた体を温めましょう'],villager:['あったかいね！','ありがとう！'],ice:['北の氷窟、行ってみる？','寒いのは平気？'],sailor:['海はいいぞぉ','マリナ行きの船だ！'],mayor:['ようこそマリナへ','今日もいい潮風ね'],orca:['灯台の灯は海の道しるべ…'],shop2:['新鮮な薬、あるよ'],heal2:['潮風に癒やしを']}[n.id]||['…'];n.bubble={text:L[Math.floor(rnd()*L.length)],t:3}}}
   updateMobs(dt,s);updateTraps(dt);updateFireWalls(dt);updateMerc(dt);updateHarvest(dt);
   for(const f of fx){f.t+=dt;
