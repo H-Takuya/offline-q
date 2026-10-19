@@ -878,6 +878,7 @@ function getPort(){
       {id:'shop2',n:'道具屋 マーリン',x:CX-4.5,y:CY+2.5,body:'#3a8a7a',hair:'#f0d080',face:1,shop:true},
       {id:'heal2',n:'修道士 ルカ',x:CX+4.5,y:CY+2.5,body:'#e8e4d8',hair:'#5a3a2a',face:-1,heal:true},
       {id:'board',n:'依頼掲示板',x:CX+.5,y:CY+4.5,sign:true},
+      {id:'nox',n:'夢幻の門番 ノクス',x:CX+3.5,y:CY-2.5,body:'#2a1a3a',hair:'#d8c8ff',face:-1,hat:'witch'},
     ],
     spawn:()=>{for(let i=0;i<600;i++){const x=irand(2,MW-3),y=irand(2,MH-3),v=D.tiles[y*MW+x];if(v!==WA&&v!==TR&&v!==WOOD&&!townXY(x+.5,y+.5)&&cheb(x+.5,y+.5)>9)return [x+.5,y+.5]}return [CX+.5,CY+12.5]},
     bossSpawn:()=>{for(let i=0;i<600;i++){const x=irand(2,MW-3),y=irand(14,19),v=D.tiles[y*MW+x];if(v===SA&&Math.abs(x-CX)>10)return [x+.5,y+.5]}return [CX+14.5,16.5]}};
@@ -1027,6 +1028,7 @@ function getSnow(){
       {id:'shop3',n:'雑貨屋 ミーナ',x:CX-4.5,y:CY+2.5,body:'#8a3a3a',hair:'#3a2a1a',face:1,shop:true},
       {id:'heal3',n:'治療師 オーラ',x:CX+4.5,y:CY+2.5,body:'#e8e4d8',hair:'#c8c8d8',face:-1,heal:true},
       {id:'board',n:'依頼掲示板',x:CX+2.5,y:CY+5.5,sign:true},
+      {id:'nox',n:'夢幻の門番 ノクス',x:CX+.5,y:CY-4.5,body:'#2a1a3a',hair:'#d8c8ff',face:-1,hat:'witch'},
       vil('村の子ども',CX-1.5,CY+1.8,'#c84a4a','#5a3a2a',1),vil('リラの母',CX+1.8,CY-1.2,'#6a4a8a','#f0c070',-1),
       vil('猟師',CX+1.8,CY+1.8,'#4a6a3a','#3a2a1a',-1),vil('リラの弟',CX-1.2,CY-1.6,'#3a7ac0','#f0c070',1),
     ],
@@ -1628,6 +1630,8 @@ function killMob(m){
   if(combo.n>(P.maxCombo||0))P.maxCombo=combo.n;
   if(combo.n%5===0){combo.pop=1;sfx('combo');float(P.x,P.y,`${combo.n} COMBO! EXP+${Math.round(bonus*100)}%`,'#7af0ff',18,.7)}
   gainExp(m.def.exp*(1+bonus),m.def.jexp*(1+bonus));
+  // 物語の途中で終焉の王を倒したときは、その章まで進めてから討伐を数える（転生後に第1部をくり返さないため）
+  if(m.def.final)storySkipTo(chOf('終焉の王'));
   storyEvent('kill',m);if(m.def.boss)storyEvent('boss',m);sideKill(m);
   for(const [id,r] of m.def.drops) if(rnd()<r) dropItem(id,1,m);
   dropItem('zeny',irand(m.def.zeny[0],m.def.zeny[1]),m);
@@ -2575,6 +2579,10 @@ const ENDING2=[
   [NARR,'〜 第2部「潮騒の章」・完 〜<br>（冒険はまだまだ続く）'],
 ];
 let storyTalk=null;
+// 物語の途中を飛ばして先の章へ進める（飛ばした章で手に入るはずだった大事な物は渡す）
+function storySkipTo(ci){const s=P.story;if(!s||s.done||ci<0||s.ch>=ci)return false;
+  for(let c=s.ch;c<ci;c++)STORY[c].steps.forEach((st,i)=>{if(c===s.ch&&i<s.step)return;if(st.give&&!count(st.give))addItem(st.give)});
+  s.ch=ci;s.step=0;s.kills=0;dirty=true;return true}
 function storyStep(){const s=P.story;if(!s||s.done)return null;const c=STORY[s.ch];return c?c.steps[s.step]:null}
 function initStory(){P.story={ch:0,step:0,kills:0,done:false,v:3};setTimeout(()=>showStoryTalk(PROLOGUE,()=>chapterBanner(0)),700)}
 function chapterBanner(i){const c=STORY[i],pm=c.part&&c.part.match(/^(第\d部)(.*)$/);
@@ -2733,7 +2741,7 @@ function openRebirth(){
 function doRebirth(){
   if(!P.finalClear)return;
   const bl=P.lv,jl=P.jlv;
-  P.rebLv+=P.lv-1;P.rebJ+=P.jlv-1;P.lv=1;P.jlv=1;P.exp=0;P.jexp=0;P.reb++;P.finalClear=false;
+  P.rebLv+=P.lv-1;P.rebJ+=P.jlv-1;P.lv=1;P.jlv=1;P.exp=0;P.jexp=0;P.reb++;P.finalClear=false;storySkipTo(chOf('めぐる時'));
   if(curMap.id!=='field')enterMap(FIELD,SPAWN[0],SPAWN[1]);
   const s=S();P.hp=s.mhp;P.sp=s.msp;
   fx.push({type:'lv',t:0,life:2.4,angel:true,rgb:'200,170,255'},{type:'shock',t:0,life:1.2,rgb:'200,170,255'});
@@ -3446,6 +3454,8 @@ function start(data){
   msg(`【経験値 ${EXP_RATE}倍】 Zキーで座る / チャットで /! /? /ho /lv /thx のエモーション`,'sys');
   cv.style.cursor=CUR.def;
   if(d)msg('前回の続きから再開しました','item');
+  // 転生済みなのに第1部の途中で止まっているデータは、第2部の手前（めぐる時）まで進める
+  if(P.reb>=1)storySkipTo(chOf('めぐる時'));
   if(!P.story)initStory();
   // 第1部を完結済みのデータは、第2部から再開する
   else if(P.story.done&&P.story.ch<STORY.length){P.story.done=false;setTimeout(()=>chapterBanner(P.story.ch),1200)}
