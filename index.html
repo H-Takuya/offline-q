@@ -1451,15 +1451,20 @@ function dropItem(id,qty,m){const g={id,qty,x:m.x+(rnd()-.5)*.9,y:m.y+(rnd()-.5)
   if(id!=='zeny'&&ITEMS[id].t==='card'){g.card=true;fx.push({type:'cardpillar',x:g.x,y:g.y,t:0,life:6});
     fx.push({type:'lvbig',t:0,life:3.6,title:'CARD!',card:true,lines:[ITEMS[id].n,ITEMS[id].d]});sfx('card');msg(`★ ${ITEMS[id].n} がドロップした！ ★`,'item')}}
 
+// 初回（転生前）の旅は Base Lv200 から経験値2倍：Lv600・999 までの道のりを短くする
+const FIRST_BOOST_LV=200;
+const expBoost=()=>P.reb===0&&P.lv>=FIRST_BOOST_LV?2:1;
 function gainExp(b,j){
-  P.exp+=Math.round(b*EXP_RATE);P.jexp+=Math.round(j*EXP_RATE);
+  const wasBoost=expBoost()>1,eb=expBoost();
+  P.exp+=Math.round(b*EXP_RATE*eb);P.jexp+=Math.round(j*EXP_RATE*eb);
   let bl=0,jl=0;
   const others=Object.values(P.jobData);
   while(P.lv<MAX_LV&&P.exp>=needBase(P.lv)){P.exp-=needBase(P.lv);P.lv++;const g=3+Math.floor(P.lv/5);P.statPts+=g;for(const d of others)d.statPts+=g;bl++}
   while(P.jlv<MAX_LV&&P.jexp>=needJob(P.jlv)){P.jexp-=needJob(P.jlv);P.jlv++;P.skillPts++;for(const d of others)d.skillPts++;jl++}
   if(P.lv>=MAX_LV)P.exp=0; if(P.jlv>=MAX_LV)P.jexp=0;
   if(bl){const s=S();P.hp=s.mhp;P.sp=s.msp;
-    msg(`ベースレベルが ${P.lv} になりました！${bl>1?`（+${bl}）`:''} ステータスポイントを振れます (A)`,'sys')}
+    msg(`ベースレベルが ${P.lv} になりました！${bl>1?`（+${bl}）`:''} ステータスポイントを振れます (A)`,'sys');
+    if(!wasBoost&&expBoost()>1){msg('★ 初回の旅ボーナス：Base Lv200 から経験値が2倍になりました（転生まで） ★','item');fx.push({type:'lvbig',t:0,life:3.2,title:'EXP ×2',lines:['初回の旅ボーナス','転生まで経験値2倍']})}}
   if(jl)msg(`ジョブレベルが ${P.jlv} になりました！ スキルポイント+${jl} (S)`,'sys');
   if(bl&&!P.reb){const s0=TOWN_STAGES.filter(([l])=>P.lv-bl>=l).length,s1=townStage();
     for(let i=s0;i<s1;i++)msg(`街が発展した！ ${TOWN_STAGES[i][1]}ができました`,'item')}
@@ -1950,6 +1955,7 @@ function renderStatus(){
    <div><span>DEF</span><b>${s.def} + ${s.vdef}</b></div><div><span>HIT</span><b>${s.hit}</b></div>
    <div><span>FLEE</span><b>${s.flee}</b></div><div><span>CRI</span><b>${s.crit.toFixed(1)}</b></div>
    <div><span>ASPD</span><b>${Math.round(200-s.delay*50)} <small>(${sec(s.delay)})</small></b></div><div><span>最大HP</span><b>${s.mhp}</b></div>
+   ${expBoost()>1?`<div><span>経験値</span><b>×2 <small>(初回ボーナス)</small></b></div>`:''}
    ${P.reb?`<div><span>転生</span><b>${P.reb}回 <small>(Lv+${P.rebLv})</small></b></div>`:''}
   </div></div>
   <div class="foot"><span class="note" style="margin:0">STR:物理 / AGI:回避・速度 / VIT:HP / INT:魔法 / DEX:命中 / LUK:会心</span></div>
