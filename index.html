@@ -420,13 +420,13 @@ const ITEMS={
   tfrost:{n:'時の霜',t:'etc',sell:60,g:'霜',c:'#9ad8ff',d:'雪原の魔物がまとっていた、時を凍らせる霜。フロスト村の村長が探している'},
   icekey:{n:'氷晶の鍵',t:'key',g:'鍵',c:'#8ab8f0',d:'氷牙の王が守っていた鍵。氷晶の城の門を開く。だいじな物'},
   tdrop:{n:'時の雫',t:'key',g:'雫',c:'#d8f0ff',d:'氷晶の女王が遺した、涙のような雫。だいじな物'},
-  c_glacies:{n:'氷牙の王カード',t:'card',b:{agi:15,atk:50},sell:10,g:'札',c:'#8ab8e0',d:'AGI+15 / ATK+50'},
+  c_glacies:{n:'氷牙の王カード',t:'card',b:{agi:15,atk:50,lb:1},sell:10,g:'札',c:'#8ab8e0',d:'AGI+15 / ATK+50 / ASPD上限が195に（限界突破）'},
   c_celsia:{n:'氷晶の女王カード',t:'card',b:{int:20,dex:10,mhp:800},sell:10,g:'札',c:'#cfe0ff',d:'INT+20 / DEX+10 / 最大HP+800'},
   tidekey:{n:'潮の鍵',t:'key',g:'鍵',c:'#3a9ab0',d:'深海の番人が守っていた鍵。海底神殿の最奥の扉を開く。だいじな物'},
   pearl:{n:'潮騒の真珠',t:'key',g:'珠',c:'#c8f0f0',d:'時喰らいの海竜が抱えていた真珠。耳を当てると波の音がする。だいじな物'},
-  c_thalassa:{n:'時喰らいの海竜カード',t:'card',b:{int:15,dex:15,mhp:600},sell:10,g:'札',c:'#1a6a7a',d:'INT+15 / DEX+15 / 最大HP+600'},
+  c_thalassa:{n:'時喰らいの海竜カード',t:'card',b:{int:15,dex:15,mhp:600,cast:1},sell:10,g:'札',c:'#1a6a7a',d:'INT+15 / DEX+15 / 最大HP+600 / 詠唱時間が半分'},
   lamp:{n:'ルーンの灯',t:'key',g:'灯',c:'#f0c040',d:'港町マリナの灯台に灯っていた光。海賊王が奪っていた。だいじな物'},
-  c_glacia:{n:'氷竜グレイシアカード',t:'card',b:{agi:12,dex:12,mhp:400},sell:10,g:'札',c:'#6ab8f0',d:'AGI+12 / DEX+12 / 最大HP+400'},
+  c_glacia:{n:'氷竜グレイシアカード',t:'card',b:{agi:12,dex:12,mhp:400,spd:1},sell:10,g:'札',c:'#6ab8f0',d:'AGI+12 / DEX+12 / 最大HP+400 / 移動速度+30%'},
   c_gtb:{n:'黄金ゴキカード',t:'card',b:{def:15,mhp:300},sell:10,g:'札',c:'#b8901e',d:'DEF+15 / 最大HP+300'},
   relic:{n:'古代の秘宝',t:'etc',sell:3000,g:'宝',c:'#c9a23a',d:'ピラミッドで見つかる秘宝。高く売れる'},
   shard1:{n:'ルーンの欠片・翠',t:'key',g:'欠',c:'#3aa86a',d:'草原のボスが抱えていたルーンの欠片。だいじな物'},
@@ -992,7 +992,7 @@ function removeEntry(e,q=1){e.qty-=q;if(e.qty<=0){P.inv.splice(P.inv.indexOf(e),
 const count=id=>{const e=P.inv.find(e=>e.id===id);return e?e.qty:0};
 
 function S(){
-  const b={str:0,agi:0,vit:0,int:0,dex:0,luk:0,atk:0,mhp:0,def:0};
+  const b={str:0,agi:0,vit:0,int:0,dex:0,luk:0,atk:0,mhp:0,def:0,cast:0,lb:0,spd:0};
   for(const e of [P.eq.weapon,P.eq.armor]) if(e) for(const c of e.cards){const bb=ITEMS[c].b;for(const k in bb)b[k]+=bb[k]}
   const agiB=P.buff.agi>0?2+P.buff.agiLv:0,bl=P.buff.bless>0?P.buff.blessLv:0,cc=P.buff.conc>0?2+P.buff.concLv:0;
   const str=P.str+b.str+bl,agi=P.agi+b.agi+agiB+cc,vit=P.vit+b.vit,int=P.int+b.int+bl,dex=P.dex+b.dex+bl+cc,luk=P.luk+b.luk;
@@ -1002,12 +1002,13 @@ function S(){
     atk:Math.floor(hunter?dex*2.6+str/5:P.job==='aco'?str*2.3+dex/5:str*1.4+dex/5)+Math.floor(luk/5)+w+b.atk+EL,
     range:hunter?8.5:0,
     matk:int*3+Math.floor(int*int/25)+EL+(wi&&wi.cls===JOBS[P.job].w&&wi.matk?wi.matk:0),
-    castMul:Math.max(.15,1-dex/150)*(P.bragi>time?.5:1),
+    castMul:Math.max(.15,1-dex/150)*(P.bragi>time?.5:1)*(b.cast?.5:1),
     def:a,vdef:Math.floor(vit*.6),hit:EL+dex,flee:EL+agi,crit:1+luk*.3,
-    delay:Math.max(.16,.85-agi*.012-dex*.003)*(P.buff.agi>0?.9:1)*(P.bragi>time?.85:1),
+    // 氷牙の王カード：ASPD上限195（攻撃間隔0.1秒）まで限界突破
+    delay:Math.max(b.lb?.1:0,Math.max(b.lb?.1:.16,.85-agi*.012-dex*.003)*(P.buff.agi>0?.9:1)*(P.bragi>time?.85:1)),
     mhp:Math.floor((38+EL*11)*(1+vit*.02))+b.mhp,
     msp:Math.floor((12+EL*3)*(1+int*.025)),
-    speed:4.2*(P.buff.agi>0?1.3:1)};
+    speed:4.2*(P.buff.agi>0?1.3:1)*(b.spd?1.3:1)};
 }
 // ヒール：INTとレベルで大きく伸びる（アコライトの回復役としての柱）
 const healAmt=l=>{const s=P?S():{int:5};return Math.floor(((P?effLv():1)+s.int*3)*(.6+.5*l)+20*l)};
