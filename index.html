@@ -582,13 +582,18 @@ const EXP_RATE=300, MAX_LV=999, MAX_STAT=999;
 
 // 魔力増幅の倍率：Lv10で×1.5、そこからはゆっくり伸びてLv1000で×2.0（それ以上は伸びない）
 const ampMul=l=>l<=10?1+.05*l:Math.min(2,1.5+.5*(l-10)/990);
+// 気功弾1つあたりのATK上昇（%）。Lv10で6%、その先はゆっくり伸びてLv1000で2倍
+const lvGrow=l=>l<=10?1:Math.min(2,1+(l-10)/990);
+const kiPct=l=>(2+4*Math.min(l,10)/10)*lvGrow(l);
+// 阿修羅覇凰拳の倍率：Lv1で×12、Lv10で×30、Lv1000で×60
+const asuraMul=l=>(10+2*Math.min(l,10))*lvGrow(l);
 const SK={
   bless:{job:'aco',n:'ブレッシング',max:10,sp:l=>10+2*l,target:false,g:'祝',c:'#d4a12a',d:l=>`${40+20*l}秒間 STR・INT・DEX+${l}`},
   agi:{job:'aco',n:'速度増加',max:10,sp:l=>10+3*l,target:false,g:'速',c:'#3e82d6',d:l=>`60秒間 移動+30% / AGI+${2+l}`},
   heal:{job:'aco',n:'ヒール',max:10,sp:l=>10+3*l,target:false,g:'癒',c:'#4aae63',d:l=>`HPを約${healAmt(l)}回復`},
-  angelus:{job:'aco',n:'エンジェラス',max:10,sp:l=>10+2*l,target:false,g:'天',c:'#c98fd0',d:l=>`${30*l}秒間 DEF+${2*l}`},
+  kiko:{job:'aco',n:'気功',max:10,sp:l=>8,target:false,g:'気',c:'#e0a030',d:l=>`気功弾を1つ作る（最大5つ・10分）。1つにつき ATK+${kiPct(l).toFixed(1)}% / 攻撃速度+${(kiPct(l)/2).toFixed(1)}%`},
   magni:{job:'aco',n:'マグニフィカート',max:5,sp:l=>12+2*l,cast:l=>1.2,target:false,g:'讃',c:'#7d8fe0',d:l=>`${30*l}秒間 HPとSPの自然回復が2倍（詠唱1.2秒）`},
-  gx:{job:'aco',n:'グランドクロス',max:10,sp:l=>12+3*l,cast:l=>.5,target:false,g:'十',c:'#c99a22',d:l=>`足元に聖なる十字。ATK+MATKの${35+12*l}%を3回 / 現在HPの20%を消費`},
+  asura:{job:'aco',n:'阿修羅覇凰拳',max:10,sp:l=>1,cast:l=>.8,target:true,g:'阿',c:'#d0402a',d:l=>`気功弾5つと残りのSPをすべて使い、目の前の敵に ATK×${asuraMul(l).toFixed(0)} の一撃（防御無視・SPが多いほど強い）`},
   conc:{job:'hunter',n:'集中力向上',max:10,sp:l=>10+l,target:false,g:'集',c:'#3f9a6a',d:l=>`${40+20*l}秒間 AGI・DEX+${2+l}`},
   ds:{job:'hunter',n:'ダブルストレイフィング',max:10,sp:l=>12,target:true,g:'双',c:'#c8702e',d:l=>`矢を2連射（単体）。ATK ${150+25*l}%×2`},
   as:{job:'hunter',n:'アローシャワー',max:10,sp:l=>15,target:true,g:'雨',c:'#4f86c9',d:l=>`対象の周囲3×3に矢の雨。ATK ${75+5*l}%`},
@@ -603,16 +608,16 @@ const SK={
   mine:{job:'hunter',n:'ランドマイン',max:5,sp:l=>10,target:false,g:'爆',c:'#c94a3a',d:l=>`足元に地雷を置く。踏んだ敵にDEXとINT依存の大ダメージ`},
 };
 const JOBS={
-  aco:{n:'アコライト',w:'mace',skills:{bless:1,heal:1,agi:0,angelus:0,magni:0,gx:0},hot:['bless','heal','agi','angelus','magni','gx']},
+  aco:{n:'アコライト',w:'mace',skills:{bless:1,heal:1,agi:0,magni:0,kiko:0,asura:0},hot:['bless','heal','agi','magni','kiko','asura']},
   hunter:{n:'アーチャー',w:'bow',skills:{ds:1,conc:1,ankle:0,blitz:0,as:0,mine:0},hot:['ds','conc','ankle','blitz','as','mine']},
   mage:{n:'マジシャン',w:'staff',skills:{fb:1,amp:1,tstorm:0,fwall:0,sgust:0,swall:0},hot:['fb','amp','tstorm','fwall','sgust','swall']},
 };
 let HOT=[];
 /* ---------- 転職：1次職 → 2次職（Job Lv100）→ 3次職（Job Lv200） ---------- */
-const JOB_NAMES={aco:['アコライト','プリースト','ハイプリースト'],hunter:['アーチャー','ハンター','スナイパー'],mage:['マジシャン','ウィザード','ハイウィザード']};
+const JOB_NAMES={aco:['アコライト','プリースト','阿修羅'],hunter:['アーチャー','ハンター','スナイパー'],mage:['マジシャン','ウィザード','ハイウィザード']};
 const TIER_REQ=[0,100,200];
 // スキルを覚えられる職の段階
-const SK_TIER={bless:1,heal:1,agi:2,angelus:2,magni:3,gx:3, ds:1,conc:1,ankle:2,blitz:2,as:3,mine:3, fb:1,amp:1,tstorm:2,fwall:2,sgust:3,swall:3};
+const SK_TIER={bless:1,heal:1,agi:2,magni:2,kiko:3,asura:3, ds:1,conc:1,ankle:2,blitz:2,as:3,mine:3, fb:1,amp:1,tstorm:2,fwall:2,sgust:3,swall:3};
 for(const k in SK)SK[k].tier=SK_TIER[k]||1;
 const tierOf=j=>(P&&P.tiers&&P.tiers[j])||1;
 const effJob=()=>P.jlv+(P.rebJ||0);
@@ -636,7 +641,7 @@ function jobMasterHTML(){
     return `<div class="it"><div class="tx"><div class="nm">${cur} → ${nx}</div><div class="ds">条件：Job Lv ${need}（現在 ${effJob()}）<br>覚えるスキル：${newSk}</div></div><button class="btn" data-act="promote" data-job="${j}" ${ok?'':'disabled'}>転職する</button></div>`}).join('');
   return `<p class="talk-t">わしは転職官ギルベルト。Job Lv ${TIER_REQ[1]} で2次職、Job Lv ${TIER_REQ[2]} で3次職へ導こう。<br>転職すると、新しいスキルを覚えられるようになるぞ。</p><div class="list">${rows}</div>`;
 }
-const BUFFS=[['bless','ブレッシング'],['agi','速度増加'],['angelus','エンジェラス'],['magni','マグニフィカート'],['conc','集中力向上']];
+const BUFFS=[['bless','ブレッシング'],['agi','速度増加'],['magni','マグニフィカート'],['conc','集中力向上']];
 const earnedStatPts=lv=>{let s=0;for(let l=2;l<=lv;l++)s+=3+Math.floor(l/5);return s};
 const GXS=[];for(let dy=-3;dy<=3;dy++)for(let dx=-3;dx<=3;dx++)if(((dx===0||dy===0)&&Math.abs(dx+dy)<=3)||(Math.abs(dx)===1&&Math.abs(dy)===1))GXS.push([dx,dy]);
 const needBase=l=>Math.floor(18*Math.pow(l,1.85)+10);
@@ -846,8 +851,8 @@ const nmLv=()=>600+P.reb*200+nmState().k*NM_STEP;
 function nmDef(key){
   const [,n,kind,col,size,off,o]=NM_MOBS.find(a=>a[0]===key),k=nmState().k,lv=nmLv()+off,mul=1+k*.01;
   return {n,kind,lv,hp:Math.round((10*Math.pow(lv,1.35)+80)*mul),atk:[Math.round(lv*1.8*mul),Math.round(lv*2.5*mul)],def:Math.min(60,15+Math.floor(lv/30)),hit:lv+35,flee:Math.round(lv*.75),
-    exp:Math.round(Math.pow(lv,1.27)*(1+k*.005)),jexp:Math.round(Math.pow(lv,1.27)*.7),speed:o.speed||2.5,delay:o.delay||1.05,aggro:true,aggroR:10,chaseR:24,col,size,
-    count:6,respawn:6,look:o.look||{},drops:[['yellow',.2],['blue',.1],['relic',.08],['gold',.08]],zeny:[lv*4,lv*8]};
+    exp:Math.round(Math.pow(lv,1.27)*(1+k*.005)),jexp:Math.round(Math.pow(lv,1.27)*.7),speed:o.speed||2.5,delay:o.delay||1.05,aggro:true,aggroR:16,chaseR:60,col,size,
+    count:7,respawn:6,look:o.look||{},drops:[['yellow',.2],['blue',.1],['relic',.08],['gold',.08]],zeny:[lv*4,lv*8]};
 }
 // 50体ごとに現れる「悪夢の化身」。どこかのボスのカードをひとつ持っている
 function nmAvatar(){
@@ -858,11 +863,20 @@ function nmAvatar(){
     count:1,respawn:0,look:{},drops:[['relic',1],['relic',1],['gold',1],[card,.35]],zeny:[lv*200,lv*400],mvp:[[card,.15],['relic',1]]};
 }
 let NMAP=null;
+// ナイトメア回廊：広く開けた八角形の広間。柱が点々とあるだけで、敵がまっすぐ寄ってくる
+function genNightHall(seed){
+  const R2=mulberry(seed),t=new Uint8Array(MW*MH).fill(WL),sh=new Float32Array(MW*MH);for(let i=0;i<MW*MH;i++)sh[i]=R2();
+  const R=23;
+  for(let y=2;y<MH-2;y++)for(let x=2;x<MW-2;x++){const dx=x+.5-CX,dy=y+.5-CY;if(Math.abs(dx)<=R&&Math.abs(dy)<=R&&Math.abs(dx)+Math.abs(dy)<=R*1.45)t[y*MW+x]=SA}
+  for(let gy=-18;gy<=18;gy+=6)for(let gx=-18;gx<=18;gx+=6){if(Math.abs(gx)<6&&Math.abs(gy)<6)continue;if(R2()<.35)continue;
+    const x=CX+gx+Math.floor(R2()*3)-1,y=CY+gy+Math.floor(R2()*3)-1;if(t[y*MW+x]!==SA)continue;t[y*MW+x]=WL;if(R2()<.3&&t[y*MW+x+1]===SA)t[y*MW+x+1]=WL}
+  return {tiles:t,shade:sh};
+}
 function getNightmare(){
-  if(NMAP)return NMAP;const D=genDungeon(1313),imgs=[makeWall(false,PAL_NIGHT),makeWall(true,PAL_NIGHT)];
+  if(NMAP)return NMAP;const D=genNightHall(1313),imgs=[makeWall(false,PAL_NIGHT),makeWall(true,PAL_NIGHT)];
   return NMAP={id:'nightmare',name:'ナイトメア',tiles:D.tiles,shade:D.shade,ground:renderDungeonGround(D,PAL_NIGHT,null),objs:dungeonObjs(D,imgs,PAL_NIGHT),safe:noSafe,noSafe:true,bgm:'nightmare',vig:'40,0,12',dark:true,nightmare:true,
     npcs:[],spawn:()=>farFloor(D,7),bossSpawn:()=>farFloor(D,8),
-    initMobs:()=>{mobs=[];for(const [key] of NM_MOBS)for(let i=0;i<6;i++){const m={key,def:nmDef(key),seed:rnd()*10};spawnMob(m);mobs.push(m)}
+    initMobs:()=>{mobs=[];for(const [key] of NM_MOBS)for(let i=0;i<7;i++){const m={key,def:nmDef(key),seed:rnd()*10};spawnMob(m);mobs.push(m)}
       const av={key:'nmavatar',def:nmAvatar(),seed:rnd()*10};spawnMob(av);av.state='dead';av.fade=9;av.respawnAt=Infinity;mobs.push(av)},
     onKill:m=>{const S0=nmState();
       if(m.key==='nmavatar'){m.def=nmAvatar();m.respawnAt=Infinity;msg('悪夢の化身を打ち倒した！ 悪夢はなおも深まる…','item');return}
@@ -1199,6 +1213,8 @@ function addItem(id,q=1){
 function removeEntry(e,q=1){e.qty-=q;if(e.qty<=0){P.inv.splice(P.inv.indexOf(e),1);if(P.eq.weapon===e)P.eq.weapon=null;if(P.eq.armor===e)P.eq.armor=null}dirty=true}
 const count=id=>{const e=P.inv.find(e=>e.id===id);return e?e.qty:0};
 
+// 気功弾によるATK上昇（%）。アコライト系のときだけ
+const kiBonus=()=>P.job==='aco'&&P.spheres>0?P.spheres*kiPct(P.skills.kiko||1):0;
 // 装備に挿したカードの効果の合計
 function cardBonus(){
   const b={str:0,agi:0,vit:0,int:0,dex:0,luk:0,atk:0,mhp:0,def:0,cast:0,lb:0,spd:0,crit:0,hpPct:0,reduce:0,drop:0,mdmg:0,pdmg:0,exp:0,sdelay:0,
@@ -1213,13 +1229,13 @@ function S(){
   const EL=effLv(),hunter=P.job==='hunter',wi=P.eq.weapon&&ITEMS[P.eq.weapon.id],w=wi&&wi.cls===JOBS[P.job].w?wi.atk:0,a=(P.eq.armor?ITEMS[P.eq.armor.id].def:0)+(P.buff.angelus>0?2*P.buff.angelusLv:0)+b.def;
   return {str,agi,vit,int,dex,luk,b,agiB,
     // 職業ごとの物理攻撃：ハンター（DEX）＞アコライト（STR）＞マジシャン（ほぼ魔法頼み）
-    atk:Math.floor((Math.floor(hunter?dex*2.6+str/5:P.job==='aco'?str*2.3+dex/5:str*1.4+dex/5)+Math.floor(luk/5)+w+b.atk+EL)*(1+b.pdmg/100)),
+    atk:Math.floor((Math.floor(hunter?dex*2.6+str/5:P.job==='aco'?str*2.3+dex/5:str*1.4+dex/5)+Math.floor(luk/5)+w+b.atk+EL)*(1+b.pdmg/100)*(1+kiBonus()/100)),
     range:hunter?8.5:0,
     matk:Math.floor((int*3+Math.floor(int*int/25)+EL+(wi&&wi.cls===JOBS[P.job].w&&wi.matk?wi.matk:0))*(1+b.mdmg/100)),
     castMul:Math.max(.1,1-dex/120)*(P.bragi>time?.8:1)*(b.cast?.5:1),
     def:a,vdef:Math.floor(vit*.6),hit:EL+dex,flee:Math.floor((EL+agi)*(1-fleePen())),crit:1+luk*.3+b.crit,
     // 氷牙の王カード：ASPD上限195（攻撃間隔0.1秒）まで限界突破
-    delay:Math.max(b.lb?.1:0,Math.max(b.lb?.1:.16,(.85-agi*.012-dex*.003)*(1-Math.min(30,b.aspd)/100))*(P.buff.agi>0?.9:1)),
+    delay:Math.max(b.lb?.1:0,Math.max(b.lb?.1:.16,(.85-agi*.012-dex*.003)*(1-Math.min(30,b.aspd+kiBonus()/2)/100))*(P.buff.agi>0?.9:1)),
     // ブラギの詩：スキルを使ったあとのディレイが60%短くなる（通常攻撃の間隔＝ASPDはそのまま）
     bragi:P.bragi>time,
     mhp:Math.floor((38+EL*11)*(1+vit*.02)*(1+b.hpPct/100))+b.mhp,
@@ -1250,8 +1266,12 @@ function deserialize(o){
   if(!JOBS[P.job])P.job='aco';
   const old=o.skills||{};
   // ファイアーボールは魔力増幅になった：振っていたレベルをそのまま移す
+  // エンジェラスとグランドクロスは廃止：振っていたポイントを返す
+  const dropAco=(sk,dj)=>{if(!sk)return 0;let r=0;for(const k of ['angelus','gx'])if(k in sk){r+=sk[k]||0;delete sk[k]}return r};
+  {const r=dropAco(old);if(P.job==='aco')P.skillPts+=r}
+  for(const j in o.jobData||{})if(j==='aco'&&o.jobData[j].skills){o.jobData[j].skillPts=(o.jobData[j].skillPts||0)+dropAco(o.jobData[j].skills)}
   const fb2amp=sk=>{if(sk&&'fball' in sk){if(!('amp' in sk))sk.amp=sk.fball;delete sk.fball}};fb2amp(old);for(const j in o.jobData||{})fb2amp(o.jobData[j].skills);
-  for(const j in o.hotOrder||{})o.hotOrder[j]=o.hotOrder[j].map(x=>x==='s:fball'?'s:amp':x);if(o.hotOrder)P.hotOrder=o.hotOrder;
+  for(const j in o.hotOrder||{})o.hotOrder[j]=o.hotOrder[j].map(x=>x==='s:fball'?'s:amp':x==='s:angelus'?'s:kiko':x==='s:gx'?'s:asura':x);if(o.hotOrder)P.hotOrder=o.hotOrder;
   P.skills={...JOBS[P.job].skills};
   for(const k in P.skills) if(k in old) P.skills[k]=old[k];
   // 転職システム以前のデータ：今のJob Lvに応じた職の段階を与え、使っていたスキルをそのまま使えるようにする
@@ -1290,7 +1310,7 @@ function createJob(j){
 function switchJob(j){
   if(j===P.job||!JOBS[j])return;
   if(P.dead||P.casting){msg('今は職業を切り替えられません','warn');return}
-  stashJob();if(!P.jobData[j])createJob(j);
+  stashJob();if(!P.jobData[j])createJob(j);P.spheres=0;
   const d=P.jobData[j];P.job=j;
   for(const k of STATS)P[k]=d[k];P.statPts=d.statPts;P.skillPts=d.skillPts;P.skills={...JOBS[j].skills,...d.skills};
   P.eq.weapon=d.weapon&&P.inv.includes(d.weapon)?d.weapon:(P.inv.find(e=>ITEMS[e.id].cls===JOBS[j].w)||null);
@@ -1827,14 +1847,13 @@ function useSkill(id){
   if(trap){traps.push({k:id,x:tx,y:ty,lv,t:0});if(traps.length>4)traps.shift();sfx('pick')}
   if(id==='conc'){P.buff.conc=40+20*lv;P.buff.concLv=lv;fx.push({type:'heal',t:0,life:1,col:'#a8f0b8'});msg(`集中力向上！ AGI・DEX+${2+lv}`,'sys')}
   if(sk.cast){P.path=[];
-    if(id==='gx'){const c=Math.floor(P.hp*.2);if(c>0){P.hp-=c;float(P.x,P.y,c,'#ff6a5c',16)}}
     P.casting={id,t:0,dur:castTime(id,lv)};dirty=true;return}
   if(id==='heal'){const a=healAmt(lv);P.hp=Math.min(s.mhp,P.hp+a);float(P.x,P.y,a,'#7dff8a',20);fx.push({type:'heal',t:0,life:1});sfx('heal')}
   if(id!=='heal')sfx('buff');
   if(id==='agi'){P.buff.agi=60;P.buff.agiLv=lv;fx.push({type:'heal',t:0,life:1,col:'#9cd0ff'});msg('速度増加！ 足が軽くなった','sys')}
   if(id==='bless'){P.buff.bless=40+20*lv;P.buff.blessLv=lv;fx.push({type:'lv',t:0,life:1.4,rgb:'255,240,180'});msg(`ブレッシング！ STR・INT・DEX+${lv}`,'sys')}
   if(id==='amp'){P.amp={mul:ampMul(lv),t:30};fx.push({type:'lv',t:0,life:1.2,rgb:'200,120,255'});msg(`魔力増幅！ 次の魔法の威力 ×${P.amp.mul.toFixed(2)}`,'sys')}
-  if(id==='angelus'){P.buff.angelus=30*lv;P.buff.angelusLv=lv;fx.push({type:'heal',t:0,life:1,col:'#f2d6ff'});msg(`エンジェラス！ DEF+${2*lv}`,'sys')}
+  if(id==='kiko'){P.spheres=Math.min(5,(P.spheres||0)+1);P.sphereT=600;fx.push({type:'heal',t:0,life:.8,col:'#ffd27a'});msg(`気功！ 気功弾 ${P.spheres}/5`,'sys')}
   P.bubble={text:sk.n+'!!',t:1.2};dirty=true;
 }
 function useItem(id){
@@ -1851,7 +1870,18 @@ function updateCast(dt){
   P.casting=null;const lv=P.skills[c.id];P.bubble={text:SK[c.id].n+'!!',t:1.2};
   if(SK[c.id].job==='mage'){castSpell(c,lv);return}
   if(c.id==='magni'){P.buff.magni=30*lv;fx.push({type:'lv',t:0,life:1.6,rgb:'170,205,255'});msg('マグニフィカート！ 自然回復が2倍になった','sys');dirty=true;sfx('buff')}
-  else if(c.id==='gx'){sfx('gx');fx.push({type:'gx',x:Math.floor(P.x),y:Math.floor(P.y),t:0,life:1.1,lv,hits:0})}
+  else if(c.id==='asura')asuraStrike(c.m,lv);
+}
+// 阿修羅覇凰拳：気功弾5つと残りのSPをすべて使う一撃。防御無視、SPが多いほど強い
+function asuraStrike(m,lv){
+  if((P.spheres||0)<5){msg('気功弾が足りない','warn');return}
+  const s=S(),spr=s.msp>0?P.sp/s.msp:0;
+  P.spheres=0;P.sp=0;P.asuraLock=5;
+  if(!m||m.state==='dead')return;
+  const dmg=Math.max(1,Math.round(s.atk*asuraMul(lv)*(.5+.5*spr)*(.95+rnd()*.1)));
+  fx.push({type:'shock',t:0,life:1.1,rgb:'255,120,60'},{type:'boom',x:m.x,y:m.y,t:0,life:.8,big:true},{type:'ring',x:m.x,y:m.y,t:0,life:.5,col:'#ffb347',r:60});
+  sfx('gx');sfx('crit');P.bubble={text:'阿修羅覇凰拳!!',t:1.6};
+  hurtMob(m,dmg,'#ff7a3a',34,true);
 }
 /* ---------- マジシャンの魔法 ---------- */
 const mdmg=(m,mult)=>Math.max(1,Math.round(S().matk*mult*(.9+rnd()*.2)-m.def.def*.3));
@@ -2115,6 +2145,7 @@ function hunterShot(m){
 }
 function doSkill(id,m){
   const lv=P.skills[id],sk=SK[id],cost=spCost(id,lv);
+  if(id==='asura'&&(P.spheres||0)<5){msg('阿修羅覇凰拳には気功弾が5つ必要です','warn');return}
   if(P.sp<cost){msg('SPが足りません','warn');if(P.job==='hunter')hunterShot(m);return}
   if(sk.cast){P.sp-=cost;P.casting={id,t:0,dur:castTime(id,lv),m,x:m.x,y:m.y};return}
   P.sp-=cost;P.bubble={text:sk.n+'!!',t:1};
@@ -3064,7 +3095,7 @@ function hud(){
   if(harvest){const busy=harvest.units.filter(u=>u.st!=='idle').length;
     rows.push(`<div class="mrow hv"><span>ハーヴェスト</span><span>${busy?`${busy}匹収集中　`:''}残り ${fmtTime(harvest.end-time)}</span><i style="width:${clamp((harvest.end-time)/MERC_TIME,0,1)*100}%"></i></div>`)}
   hm.hidden=!rows.length;hm.innerHTML=rows.join('');
-  $('hBuff').innerHTML=BUFFS.filter(([k])=>P.buff[k]>0).map(([k,n])=>`<span>${n} ${Math.ceil(P.buff[k])}s</span>`).join('')+(P.bragi>time?'<span style="background:#2a7a5a">♪ ブラギの詩</span>':'')+(P.amp?`<span style="background:#8a3ab0">魔力増幅 ×${P.amp.mul.toFixed(2)}</span>`:'')+(fleePen()>0?`<span style="background:#a8322a">囲まれ ${P.mobbed}体 FLEE-${Math.round(fleePen()*100)}%</span>`:'');
+  $('hBuff').innerHTML=BUFFS.filter(([k])=>P.buff[k]>0).map(([k,n])=>`<span>${n} ${Math.ceil(P.buff[k])}s</span>`).join('')+(P.bragi>time?'<span style="background:#2a7a5a">♪ ブラギの詩</span>':'')+(P.spheres>0&&P.job==='aco'?`<span style="background:#b07a1a">気功弾 ${'●'.repeat(P.spheres)}${'○'.repeat(5-P.spheres)}</span>`:'')+(P.amp?`<span style="background:#8a3ab0">魔力増幅 ×${P.amp.mul.toFixed(2)}</span>`:'')+(fleePen()>0?`<span style="background:#a8322a">囲まれ ${P.mobbed}体 FLEE-${Math.round(fleePen()*100)}%</span>`:'');
   const bAlive=mobs.filter(m=>m.def.boss&&m.state!=='dead').length,bt=Math.ceil(bossTimer);
   $('hName').textContent=pname();
   $('mmTxt').textContent=`${curMap.name} (${Math.floor(P.x)}, ${Math.floor(P.y)})`;
@@ -3072,7 +3103,7 @@ function hud(){
   $('mmBoss').textContent=curMap.id==='nightmare'?`深度 ${nmState().k}　敵Lv${nmLv()}　最高 ${nmState().best}`:curMap.id==='rush'?`ボス ${bAlive}体　カード2倍`:curMap.id==='field'?`ボス段階${bossTier()+1} ${bAlive}体　`+(bAlive<BOSS_MAX_ALIVE?`次 ${Math.floor(bt/60)}:${String(bt%60).padStart(2,'0')}`:'最大数')
     :`敵 ${mobs.filter(m=>m.state!=='dead').length}体　${((mobs.find(m=>m.def.boss)||{def:{n:'ボス'}}).def.n).split(/[ の]/).pop()}${bAlive?'出現中':'不在'}`;
   HOT.forEach(([k,id],i)=>{const el=$('hn'+i),b=el.parentElement;
-    if(k==='s'){const lv=P.skills[id],lock=skillLocked(id);el.textContent=lock?'封':lv?'Lv'+lv:'';b.classList.toggle('locked',lock);b.classList.toggle('off',lock||!lv||P.sp<spCost(id,lv));b.classList.toggle('aim',aiming===id||(P.queued&&P.queued.id===id))}
+    if(k==='s'){const lv=P.skills[id],lock=skillLocked(id);el.textContent=lock?'封':lv?'Lv'+lv:'';b.classList.toggle('locked',lock);b.classList.toggle('off',lock||!lv||P.sp<spCost(id,lv)||(id==='asura'&&(P.spheres||0)<5));b.classList.toggle('aim',aiming===id||(P.queued&&P.queued.id===id))}
     else{const n=count(id);el.textContent=n;b.classList.toggle('off',!n)}});
   if(dirty){dirty=false;
     if(!$('w-status').hidden)renderStatus();if(!$('w-inv').hidden)renderInv();if(!$('w-skill').hidden)renderSkill();if(!$('w-shop').hidden)renderShop();if(!$('w-story').hidden)renderStoryLog();}
@@ -3375,6 +3406,8 @@ function draw(){
     ctx.beginPath();for(let i=0;i<=5;i++){const a=i*Math.PI*4/5;ctx.lineTo(Math.cos(a)*48,Math.sin(a)*48)}ctx.stroke();ctx.restore()}
   for(const merc of mercs)if(merc.job==='bard'&&merc.down<=0)drawBragiArea(merc);
   if(P.bragi>time&&!P.dead)drawBragiAura();
+  if(P.spheres>0&&P.job==='aco'&&!P.dead){const [x,y]=iso(P.x,P.y);for(let i=0;i<P.spheres;i++){const a=time*2.4+i*Math.PI*2/5,ox=x+Math.cos(a)*20,oy=y-26+Math.sin(a)*8;
+    const g=ctx.createRadialGradient(ox,oy,0,ox,oy,7);g.addColorStop(0,'rgba(255,250,210,1)');g.addColorStop(.5,'rgba(255,200,80,.9)');g.addColorStop(1,'rgba(255,160,40,0)');ctx.fillStyle=g;ctx.beginPath();ctx.arc(ox,oy,7,0,7);ctx.fill()}}
   if(P.amp&&!P.dead){const [x,y]=iso(P.x,P.y),pl=1+Math.sin(time*6)*.1;ctx.strokeStyle='rgba(200,110,255,.9)';ctx.lineWidth=2.5;ctx.beginPath();ctx.ellipse(x,y,26*pl,13*pl,0,0,7);ctx.stroke();
     ctx.fillStyle='rgba(220,150,255,.9)';for(let i=0;i<4;i++){const a=time*3+i*Math.PI/2;ctx.beginPath();ctx.arc(x+Math.cos(a)*26*pl,y+Math.sin(a)*13*pl-2,2.5,0,7);ctx.fill()}}
   for(const tr of traps){const [x,y]=iso(tr.x+.5,tr.y+.5);
@@ -3615,13 +3648,15 @@ let last=0,saveT=0,hudT=0;
 function update(dt){
   time+=dt;const s=S();
   if(P.hp>s.mhp)P.hp=s.mhp;if(P.sp>s.msp)P.sp=s.msp;
+  if(P.spheres>0){P.sphereT=(P.sphereT||600)-dt;if(P.sphereT<=0){P.spheres=0;msg('気功弾が消えました','sys');dirty=true}}
   if(P.amp){P.amp.t-=dt;if(P.amp.t<=0){P.amp=null;msg('魔力増幅の効果が切れました','sys');dirty=true}}
   for(const [k,n] of BUFFS) if(P.buff[k]>0){P.buff[k]-=dt;if(P.buff[k]<=0){P.buff[k]=0;msg(`${n}の効果が切れました`,'sys');dirty=true}}
   if(!P.dead){
     const fast=(safeXY(P.x,P.y)?2:1)*(P.buff.magni>0?2:1)*(P.sit?2:1);
     if(P.emote){P.emote.t-=dt;if(P.emote.t<=0)P.emote=null}P.rh=(P.rh||0)+dt*fast;P.rs=(P.rs||0)+dt*fast;
     if(P.rh>=6){P.rh=0;if(P.hp<s.mhp)P.hp=Math.min(s.mhp,P.hp+Math.max(1,Math.floor((s.mhp/40+s.vit/4)*(1+s.b.hpRegen/100))))}
-    if(P.rs>=8){P.rs=0;if(P.sp<s.msp)P.sp=Math.min(s.msp,P.sp+Math.floor((1+Math.floor(s.msp/60)+Math.floor(s.int/6))*(1+s.b.spRegen/100)))}
+    if(P.asuraLock>0)P.asuraLock-=dt;
+    if(P.rs>=8){P.rs=0;if(P.sp<s.msp&&!(P.asuraLock>0))P.sp=Math.min(s.msp,P.sp+Math.floor((1+Math.floor(s.msp/60)+Math.floor(s.int/6))*(1+s.b.spRegen/100)))}
     P.atkT=Math.max(0,P.atkT-dt);P.swingT=Math.max(0,P.swingT-dt);P.moving=false;
     const frozen=P.frozen>time;
     if(!frozen){updateGroundCast();updateCast(dt);updateTarget(dt,s)}
