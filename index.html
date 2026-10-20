@@ -526,7 +526,7 @@ const TIER_BOSSES=[
 // フィールドボスのカード（TIER_BOSSESと同じ順）。段階5以上は特殊効果つき
 const TB_CARDS=[
   {vit:5,reduce:5,heal:10},{agi:5,aspd:5,r_wolf:15},
-  {str:6,hpPct:10,hpRegen:30},{vit:6,r_ghost:20,heal:15},{dex:8,r_wolf:20,crit:5},
+  {str:10,asuraSp:1},{vit:6,r_ghost:20,heal:15},{dex:8,r_wolf:20,crit:5},
   {int:8,r_kino:25,spRegen:40},{agi:8,aspd:8,drain:1},{vit:8,reduce:8,surround:1},
   {int:10,mdmg:10,r_human:15},{luk:10,r_ghost:30,crit:8},{agi:10,crit:12,aspd:5},
   {str:10,r_dragon:25,hpPct:10},{vit:12,merc:40,reduce:5},{dex:12,pdmg:10,r_ghost:15},
@@ -550,7 +550,7 @@ function cardDesc(b){const out=[],st=['str','agi','vit','int','dex','luk'];
   if(b.reduce)out.push(`受けるダメージ-${b.reduce}%`);if(b.aoe)out.push(`ボスの範囲攻撃ダメージ-${b.aoe}%`);if(b.surround)out.push('囲まれたときのFLEE低下が半分');
   if(b.heal)out.push(`ヒール回復量+${b.heal}%`);if(b.hpRegen)out.push(`HP自然回復+${b.hpRegen}%`);if(b.spRegen)out.push(`SP自然回復+${b.spRegen}%`);if(b.spcost)out.push(`SP消費-${b.spcost}%`);
   if(b.merc)out.push(`傭兵の能力+${b.merc}%`);if(b.zeny)out.push(`Zeny獲得+${b.zeny}%`);if(b.drop)out.push(`ドロップ率+${b.drop}%`);if(b.exp)out.push(`経験値+${b.exp}%`);
-  if(b.sdelay)out.push('スキルのディレイが半分');if(b.cast)out.push('詠唱時間が半分');if(b.lb)out.push('ASPD上限が195に（限界突破）');if(b.spd)out.push('移動速度+30%');if(b.nofreeze)out.push('凍結しない');if(b.nocancel)out.push('詠唱が中断されない（詠唱時間+1秒）');
+  if(b.sdelay)out.push('スキルのディレイが半分');if(b.cast)out.push('詠唱時間が半分');if(b.lb)out.push('ASPD上限が195に（限界突破）');if(b.spd)out.push('移動速度+30%');if(b.nofreeze)out.push('凍結しない');if(b.nocancel)out.push('詠唱が中断されない（詠唱時間+1秒）');if(b.asuraSp)out.push('阿修羅覇凰拳でSPを消費しない');
   return out.join(' / ')}
 TIER_BOSSES.forEach(([tier,n,kind,col,size,resist,look],i)=>{
   ITEMS['c_tb'+i]={n:n+'カード',t:'card',b:TB_CARDS[i],sell:0,g:'札',c:col,d:cardDesc(TB_CARDS[i])};
@@ -1218,7 +1218,7 @@ const kiBonus=()=>P.job==='aco'&&P.spheres>0?P.spheres*kiPct(P.skills.kiko||1):0
 // 装備に挿したカードの効果の合計
 function cardBonus(){
   const b={str:0,agi:0,vit:0,int:0,dex:0,luk:0,atk:0,mhp:0,def:0,cast:0,lb:0,spd:0,crit:0,hpPct:0,reduce:0,drop:0,mdmg:0,pdmg:0,exp:0,sdelay:0,
-    aspd:0,boss:0,drain:0,aoe:0,surround:0,heal:0,hpRegen:0,spRegen:0,spcost:0,merc:0,zeny:0,nofreeze:0,nocancel:0,r_wolf:0,r_kino:0,r_human:0,r_ghost:0,r_dragon:0,r_prun:0,r_gtb:0};
+    aspd:0,boss:0,drain:0,aoe:0,surround:0,heal:0,hpRegen:0,spRegen:0,spcost:0,merc:0,zeny:0,nofreeze:0,nocancel:0,asuraSp:0,r_wolf:0,r_kino:0,r_human:0,r_ghost:0,r_dragon:0,r_prun:0,r_gtb:0};
   for(const e of [P.eq.weapon,P.eq.armor]) if(e) for(const c of e.cards){const bb=ITEMS[c].b;for(const k in bb)b[k]+=bb[k]}
   return b;
 }
@@ -1882,7 +1882,8 @@ function shake(mag,dur){shakeMag=mag;shakeDur=dur;shakeEnd=time+dur}
 function asuraStrike(m,lv){
   if((P.spheres||0)<5){msg('気功弾が足りない','warn');return}
   const s=S(),spr=s.msp>0?P.sp/s.msp:0;
-  P.spheres=0;P.sp=0;P.asuraLock=5;
+  // 覇王プルンカード：SPを使わない（SP回復も止まらない）
+  P.spheres=0;if(!cardBonus().asuraSp){P.sp=0;P.asuraLock=5}
   if(!m||m.state==='dead')return;
   const dmg=Math.max(1,Math.round(s.atk*asuraMul(lv)*(.5+.5*spr)*(.95+rnd()*.1)));
   // 破片：外へ飛び散って落ちる
