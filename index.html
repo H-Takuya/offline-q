@@ -1340,7 +1340,10 @@ function noise(dur,vol=.15,freq=900){const a=AC,n=Math.floor(a.sampleRate*dur),b
 const SFX={hit:()=>{noise(.07,.35,1200);tone(150,.09,'square',.06,0,.5)},crit:()=>{noise(.12,.45,1800);tone(440,.14,'square',.07,0,.4)},hurt:()=>{noise(.08,.25,500);tone(100,.14,'sawtooth',.07,0,.6)},
   lv:()=>[523,659,784,1047].forEach((f,i)=>tone(f,.28,'triangle',.11,i*.09)),heal:()=>{tone(523,.3,'sine',.09,0,1.6);tone(784,.3,'sine',.06,.08,1.4)},
   pick:()=>tone(880,.07,'square',.05,0,1.5),buff:()=>{tone(660,.2,'triangle',.08);tone(990,.25,'triangle',.08,.08)},
-  gx:()=>{noise(.5,.3,700);tone(220,.6,'sawtooth',.06,0,2)},mvp:()=>[392,523,659,784,1047].forEach((f,i)=>tone(f,.4,'square',.06,i*.12)),
+  gx:()=>{noise(.5,.3,700);tone(220,.6,'sawtooth',.06,0,2)},
+  // 阿修羅覇凰拳：溜め（上がっていくうなり）と、地響きのような一撃
+  charge:()=>{tone(90,.8,'sawtooth',.05,0,4);tone(180,.8,'square',.025,.1,4)},
+  asura:()=>{noise(1.1,.7,260);noise(.5,.5,2400);tone(70,1.2,'sawtooth',.14,0,.35);tone(46,1.5,'square',.1,.04,.5);tone(880,.5,'triangle',.05,0,.25);[523,659,784,1047].forEach((f,i)=>tone(f,.6,'triangle',.035,.25+i*.07))},mvp:()=>[392,523,659,784,1047].forEach((f,i)=>tone(f,.4,'square',.06,i*.12)),
   combo:()=>{[784,988,1175,1568].forEach((f,i)=>tone(f,.18,'square',.05,i*.05));noise(.15,.15,4000)},
   card:()=>{noise(.6,.2,5000);[784,988,1175,1568,1976,2349].forEach((f,i)=>tone(f,.4,'triangle',.09,i*.07));[1568,1976,2349].forEach(f=>tone(f,1.4,'sine',.05,.5));tone(392,1,'triangle',.08,.42)},
   lvbig:()=>{noise(.35,.25,3000);[523,659,784,1047,1319].forEach((f,i)=>tone(f,.3,'triangle',.12,i*.065));
@@ -1873,15 +1876,20 @@ function updateCast(dt){
   else if(c.id==='asura')asuraStrike(c.m,lv);
 }
 // 阿修羅覇凰拳：気功弾5つと残りのSPをすべて使う一撃。防御無視、SPが多いほど強い
+// 画面の揺れ
+let shakeEnd=0,shakeMag=0,shakeDur=1;
+function shake(mag,dur){shakeMag=mag;shakeDur=dur;shakeEnd=time+dur}
 function asuraStrike(m,lv){
   if((P.spheres||0)<5){msg('気功弾が足りない','warn');return}
   const s=S(),spr=s.msp>0?P.sp/s.msp:0;
   P.spheres=0;P.sp=0;P.asuraLock=5;
   if(!m||m.state==='dead')return;
   const dmg=Math.max(1,Math.round(s.atk*asuraMul(lv)*(.5+.5*spr)*(.95+rnd()*.1)));
-  fx.push({type:'shock',t:0,life:1.1,rgb:'255,120,60'},{type:'boom',x:m.x,y:m.y,t:0,life:.8,big:true},{type:'ring',x:m.x,y:m.y,t:0,life:.5,col:'#ffb347',r:60});
-  sfx('gx');sfx('crit');P.bubble={text:'阿修羅覇凰拳!!',t:1.6};
-  hurtMob(m,dmg,'#ff7a3a',34,true);
+  // 破片：外へ飛び散って落ちる
+  const parts=[];for(let i=0;i<34;i++){const a=rnd()*Math.PI*2;parts.push({a,v:60+rnd()*170,up:120+rnd()*220,sz:2+rnd()*4,c:rnd()<.5?'#ffd27a':'#8a5a3a'})}
+  fx.push({type:'asura',x:m.x,y:m.y,t:0,life:1.9,parts},{type:'asuraBan',t:0,life:2.3},{type:'boom',x:m.x,y:m.y,t:0,life:.9,big:true});
+  shake(14,.9);sfx('asura');P.bubble={text:'阿修羅覇凰拳!!',t:1.8};
+  hurtMob(m,dmg,'#ffb030',46,true);
 }
 /* ---------- マジシャンの魔法 ---------- */
 const mdmg=(m,mult)=>Math.max(1,Math.round(S().matk*mult*(.9+rnd()*.2)-m.def.def*.3));
@@ -2146,6 +2154,7 @@ function hunterShot(m){
 function doSkill(id,m){
   const lv=P.skills[id],sk=SK[id],cost=spCost(id,lv);
   if(id==='asura'&&(P.spheres||0)<5){msg('阿修羅覇凰拳には気功弾が5つ必要です','warn');return}
+  if(id==='asura'){sfx('charge');P.bubble={text:'はぁぁぁ……！',t:1}}
   if(P.sp<cost){msg('SPが足りません','warn');if(P.job==='hunter')hunterShot(m);return}
   if(sk.cast){P.sp-=cost;P.casting={id,t:0,dur:castTime(id,lv),m,x:m.x,y:m.y};return}
   P.sp-=cost;P.bubble={text:sk.n+'!!',t:1};
@@ -3395,7 +3404,8 @@ function drawFountain(){
 
 function draw(){
   ctx.setTransform(1,0,0,1,0,0);ctx.fillStyle='#1f2c19';ctx.fillRect(0,0,cv.width,cv.height);
-  const k=DPR*zoom;ctx.setTransform(k,0,0,k,DPR*VW/2-camX*k,DPR*VH/2-camY*k);
+  const k=DPR*zoom,shk=shakeEnd>time?shakeMag*(shakeEnd-time)/shakeDur:0,sx0=(rnd()-.5)*2*shk,sy0=(rnd()-.5)*2*shk;
+  ctx.setTransform(k,0,0,k,DPR*VW/2-camX*k+sx0*DPR,DPR*VH/2-camY*k+sy0*DPR);
   const x0=camX-VW/2/zoom,y0=camY-VH/2/zoom,vw=VW/zoom,vh=VH/zoom;
   const sx=Math.max(0,Math.floor(x0)),sy=Math.max(0,Math.floor(y0)),ex=Math.min(GW,Math.ceil(x0+vw)),ey=Math.min(GH,Math.ceil(y0+vh));
   if(ex>sx&&ey>sy)ctx.drawImage(ground,sx,sy,ex-sx,ey-sy,sx,sy,ex-sx,ey-sy);
@@ -3408,6 +3418,12 @@ function draw(){
   if(P.bragi>time&&!P.dead)drawBragiAura();
   if(P.spheres>0&&P.job==='aco'&&!P.dead){const [x,y]=iso(P.x,P.y);for(let i=0;i<P.spheres;i++){const a=time*2.4+i*Math.PI*2/5,ox=x+Math.cos(a)*20,oy=y-26+Math.sin(a)*8;
     const g=ctx.createRadialGradient(ox,oy,0,ox,oy,7);g.addColorStop(0,'rgba(255,250,210,1)');g.addColorStop(.5,'rgba(255,200,80,.9)');g.addColorStop(1,'rgba(255,160,40,0)');ctx.fillStyle=g;ctx.beginPath();ctx.arc(ox,oy,7,0,7);ctx.fill()}}
+  // 阿修羅覇凰拳の溜め：金色の光が集まり、足元が燃え上がる
+  if(P.casting&&P.casting.id==='asura'){const [x,y]=iso(P.x,P.y),q=Math.min(1,P.casting.t/Math.max(.01,P.casting.dur));
+    const g=ctx.createRadialGradient(x,y-20,4,x,y-20,40+50*q);g.addColorStop(0,`rgba(255,240,180,${.5+.4*q})`);g.addColorStop(1,'rgba(255,140,30,0)');ctx.fillStyle=g;ctx.beginPath();ctx.ellipse(x,y-20,40+50*q,(40+50*q)*.8,0,0,7);ctx.fill();
+    for(let i=0;i<14;i++){const a=i/14*Math.PI*2+time*5,r=(1-((time*1.8+i*.13)%1))*90;ctx.fillStyle='rgba(255,230,140,.95)';ctx.beginPath();ctx.arc(x+Math.cos(a)*r,y-24+Math.sin(a)*r*.5,2.6,0,7);ctx.fill()}
+    for(let i=0;i<6;i++){const fx0=x+(i-2.5)*9,hh=26+18*Math.sin(time*14+i)+30*q;const fg=ctx.createLinearGradient(0,y-hh,0,y);fg.addColorStop(0,'rgba(255,200,60,0)');fg.addColorStop(1,'rgba(255,120,20,.7)');
+      ctx.fillStyle=fg;ctx.beginPath();ctx.moveTo(fx0-6,y);ctx.quadraticCurveTo(fx0,y-hh*1.1,fx0+6,y);ctx.fill()}}
   if(P.amp&&!P.dead){const [x,y]=iso(P.x,P.y),pl=1+Math.sin(time*6)*.1;ctx.strokeStyle='rgba(200,110,255,.9)';ctx.lineWidth=2.5;ctx.beginPath();ctx.ellipse(x,y,26*pl,13*pl,0,0,7);ctx.stroke();
     ctx.fillStyle='rgba(220,150,255,.9)';for(let i=0;i<4;i++){const a=time*3+i*Math.PI/2;ctx.beginPath();ctx.arc(x+Math.cos(a)*26*pl,y+Math.sin(a)*13*pl-2,2.5,0,7);ctx.fill()}}
   for(const tr of traps){const [x,y]=iso(tr.x+.5,tr.y+.5);
@@ -3483,6 +3499,24 @@ function draw(){
           ctx.beginPath();ctx.ellipse(sd*10,0,12,6,0,0,7);ctx.fill();ctx.beginPath();ctx.ellipse(sd*15,6,9,4.5,.3*sd,0,7);ctx.fill();ctx.restore()}
         ctx.fillStyle='#fff2c0';ctx.beginPath();ctx.arc(px,ay,5,0,7);ctx.fill()}
       ctx.globalAlpha=1}
+    else if(f.type==='asura'){const [x,y]=iso(f.x,f.y),q=Math.min(1,f.t/.25);
+      // 天まで届く光の柱
+      const pw=(70+40*Math.sin(p*Math.PI))*(1-p*.6),pa=Math.max(0,1-p*1.2);
+      const pg=ctx.createLinearGradient(x-pw/2,0,x+pw/2,0);pg.addColorStop(0,'rgba(255,170,40,0)');pg.addColorStop(.5,`rgba(255,250,220,${.9*pa})`);pg.addColorStop(1,'rgba(255,170,40,0)');
+      ctx.fillStyle=pg;ctx.fillRect(x-pw/2,y-900,pw,900);
+      // 放射状の光
+      ctx.save();ctx.translate(x,y-20);for(let i=0;i<18;i++){const a=i/18*Math.PI*2+f.t*.6,len=(80+260*q)*(1-p*.4);ctx.strokeStyle=`rgba(255,${200+(i%3)*20},120,${.75*(1-p)})`;ctx.lineWidth=i%2?3:6;
+        ctx.beginPath();ctx.moveTo(Math.cos(a)*20,Math.sin(a)*10);ctx.lineTo(Math.cos(a)*len,Math.sin(a)*len*.5);ctx.stroke()}ctx.restore();
+      // 衝撃波（3重）
+      for(let k=0;k<3;k++){const pk=Math.max(0,Math.min(1,(f.t-k*.12)/1.1));if(pk<=0||pk>=1)continue;const r=30+pk*260;
+        ctx.strokeStyle=`rgba(${k?'255,200,120':'255,255,255'},${1-pk})`;ctx.lineWidth=(k?4:8)*(1-pk)+1;ctx.beginPath();ctx.ellipse(x,y,r,r*.5,0,0,7);ctx.stroke()}
+      // 地割れ
+      ctx.strokeStyle=`rgba(60,20,0,${.8*(1-p)})`;ctx.lineWidth=3;for(let i=0;i<9;i++){const a=i/9*Math.PI*2+.3,l=40+60*q;ctx.beginPath();ctx.moveTo(x,y);
+        ctx.lineTo(x+Math.cos(a)*l*.5,y+Math.sin(a)*l*.25+3);ctx.lineTo(x+Math.cos(a+.15)*l,y+Math.sin(a+.15)*l*.5);ctx.stroke()}
+      // 飛び散る破片
+      for(const pt of f.parts){const tt=f.t,dx=Math.cos(pt.a)*pt.v*tt,dy=Math.sin(pt.a)*pt.v*tt*.5,h=pt.up*tt-260*tt*tt;if(h<-5)continue;
+        ctx.fillStyle=pt.c;ctx.globalAlpha=Math.max(0,1-p);ctx.fillRect(x+dx-pt.sz/2,y+dy-Math.max(0,h)-pt.sz/2,pt.sz,pt.sz);ctx.globalAlpha=1}
+    }
     else if(f.type==='shock'){ctx.strokeStyle=`rgba(${f.rgb},${1-p})`;ctx.lineWidth=5*(1-p)+1;ctx.beginPath();ctx.ellipse(px,py,20+p*130,(20+p*130)*.5,0,0,7);ctx.stroke();
       ctx.beginPath();ctx.ellipse(px,py,10+p*80,(10+p*80)*.5,0,0,7);ctx.stroke()}
     else if(f.type==='spark'){const [sx,sy]=iso(f.x,f.y);ctx.globalAlpha=Math.max(0,1-p);
@@ -3609,6 +3643,20 @@ function drawScreenFx(){
     ctx.fillStyle=`rgba(255,225,140,${al})`;ctx.beginPath();ctx.arc(mx,my,1.5+i%3*.6,0,7);ctx.fill()}}
   // ナイトメア：脈打つ赤い霞
   if(curMap.nightmare){const a=.08+.05*Math.sin(time*1.6);ctx.fillStyle=`rgba(120,0,30,${a})`;ctx.fillRect(0,0,VW,VH)}
+  // 阿修羅覇凰拳：白い閃光、赤い残光、大きな技名
+  for(const f of fx){if(f.type!=='asuraBan')continue;const t=f.t,p=t/f.life;
+    if(t<.18){ctx.fillStyle=`rgba(255,255,245,${.95*(1-t/.18)})`;ctx.fillRect(0,0,VW,VH)}
+    const vg=ctx.createRadialGradient(VW/2,VH/2,Math.min(VW,VH)*.2,VW/2,VH/2,Math.max(VW,VH)*.75);vg.addColorStop(0,'rgba(255,120,20,0)');vg.addColorStop(1,`rgba(160,30,0,${.55*(1-p)})`);ctx.fillStyle=vg;ctx.fillRect(0,0,VW,VH);
+    const big=Math.min(96,VW/7.2),inT=Math.min(1,t/.22),cx=VW/2+(1-inT)*VW*.6,cy=VH*.38,sc=t<.22?1.4-inT*.4:1+Math.max(0,t-1.6)*.3,al=p>.8?(1-p)/.2:1;
+    ctx.save();ctx.globalAlpha=al;ctx.translate(cx,cy);ctx.scale(sc,sc);ctx.transform(1,0,-.18,1,0,0);
+    // 背景の墨の帯
+    ctx.fillStyle='rgba(20,6,0,.6)';ctx.fillRect(-VW,-big*.75,VW*2,big*1.15);
+    ctx.font=`900 ${big}px "DotGothic16","Zen Maru Gothic",serif`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.lineJoin='round';
+    ctx.lineWidth=big*.16;ctx.strokeStyle='#2a0800';ctx.strokeText('阿修羅覇凰拳',0,0);
+    const g=ctx.createLinearGradient(0,-big*.5,0,big*.5);g.addColorStop(0,'#fffbe0');g.addColorStop(.45,'#ffd040');g.addColorStop(.55,'#ff8a1a');g.addColorStop(1,'#c02a00');
+    ctx.fillStyle=g;ctx.fillText('阿修羅覇凰拳',0,0);
+    ctx.font=`${Math.round(big*.26)}px "DotGothic16",monospace`;ctx.fillStyle='#ffe9b0';ctx.fillText('A S U R A   S T R I K E',0,big*.62);
+    ctx.restore();ctx.globalAlpha=1}
   for(const f of fx)if(f.type==='fade'){ctx.fillStyle=`rgba(0,0,0,${Math.max(0,1-f.t/f.life)})`;ctx.fillRect(0,0,VW,VH)}
 }
 function drawLvBanner(){
