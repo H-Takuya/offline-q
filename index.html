@@ -437,6 +437,9 @@ const ITEMS={
   c_dryad:{n:'樹海の魔女カード',t:'card',b:{vit:15,mhp:1200},sell:10,g:'札',c:'#3a8a3a',d:'VIT+15 / 最大HP+1200'},
   c_ifrit:{n:'炎魔イフリートカード',t:'card',b:{str:15,atk:120},sell:10,g:'札',c:'#c03a1a',d:'STR+15 / ATK+120'},
   c_hora:{n:'刻の守護騎士カード',t:'card',b:{dex:20,agi:10,int:10},sell:10,g:'札',c:'#d8b84a',d:'DEX+20 / AGI+10 / INT+10'},
+  c_pharaoh:{n:'砂塵の王カード',t:'card',b:{int:10,dex:10,drop:20},sell:0,g:'札',c:'#e0b040',d:'INT+10 / DEX+10 / ドロップ率+20%'},
+  c_leviath:{n:'深海の番人カード',t:'card',b:{vit:15,mhp:800,reduce:10},sell:0,g:'札',c:'#2a6aa0',d:'VIT+15 / 最大HP+800 / 受けるダメージ-10%'},
+  c_apoc:{n:'終焉の王カード',t:'card',b:{str:20,agi:20,vit:20,int:20,dex:20,luk:20,pdmg:30,mdmg:30,exp:30},sell:0,g:'札',c:'#3a1a5a',d:'全ステータス+20 / 物理・魔法ダメージ+30% / 経験値+30%'},
   tdrop:{n:'時の雫',t:'key',g:'雫',c:'#d8f0ff',d:'氷晶の女王が遺した、涙のような雫。だいじな物'},
   c_glacies:{n:'氷牙の王カード',t:'card',b:{agi:15,atk:50,lb:1},sell:10,g:'札',c:'#8ab8e0',d:'AGI+15 / ATK+50 / ASPD上限が195に（限界突破）'},
   c_celsia:{n:'氷晶の女王カード',t:'card',b:{int:20,dex:10,mhp:800},sell:10,g:'札',c:'#cfe0ff',d:'INT+20 / DEX+10 / 最大HP+800'},
@@ -460,7 +463,8 @@ const ITEMS={
   c_dragon:{n:'赤竜カード',t:'card',b:{atk:80,str:6,mhp:500},sell:10,g:'札',c:'#c43a2a',d:'ATK+80 / STR+6 / 最大HP+500'},
   c_gold:{n:'ゴールドプルンカード',t:'card',b:{str:2,agi:2,vit:2,int:2,dex:2,luk:2},sell:10,g:'札',c:'#d9a52c',d:'全ステータス+2'},
 };
-const sellPrice=id=>{const it=ITEMS[id];return it.sell!=null?it.sell:Math.floor((it.price||0)/2)};
+// カードは売れない（店の売却一覧にも出ない）
+const sellPrice=id=>{const it=ITEMS[id];if(it.t==='card')return 0;return it.sell!=null?it.sell:Math.floor((it.price||0)/2)};
 const SHOP=['red','yellow','sword','bow','cbow','rod','wstaff','leather'];
 const stackable=id=>!['weapon','armor'].includes(ITEMS[id].t);
 
@@ -516,12 +520,36 @@ const TIER_BOSSES=[
   [9,'光の竜神','dragon','#fff2c0',2.8,'aco'],
   [9,'絶影の黄金竜','dragon','#d8a22a',2.8,'hunter'],
 ];
+// フィールドボスのカード（TIER_BOSSESと同じ順）。段階5以上は特殊効果つき
+const TB_CARDS=[
+  {vit:5,def:5},{agi:5,dex:2},
+  {str:6,mhp:150},{vit:6,def:8},{dex:6,atk:20},
+  {int:8,mhp:200},{agi:8,luk:4},{vit:4,def:12},
+  {int:10,dex:4},{luk:10,crit:5},{agi:10,atk:40},
+  {str:10,mhp:500},{vit:12,def:10},{dex:12,atk:40},
+  {vit:10,reduce:10},{int:12,hpPct:15},{agi:12,crit:15},
+  {luk:15,drop:30},{int:15,mdmg:15},{dex:15,pdmg:15},
+  {vit:15,hpPct:20},{int:12,exp:20},{agi:15,crit:25},
+  {int:20,mdmg:25},{str:20,pdmg:25},{dex:20,reduce:20},
+  {str:10,agi:10,vit:10,int:10,dex:10,luk:10,sdelay:1},{vit:20,hpPct:30,reduce:15},{dex:20,pdmg:30},
+];
+// カードの効果を文章にする
+const CARD_STAT={str:'STR',agi:'AGI',vit:'VIT',int:'INT',dex:'DEX',luk:'LUK',atk:'ATK',def:'DEF',mhp:'最大HP'};
+function cardDesc(b){const out=[],st=['str','agi','vit','int','dex','luk'];
+  if(st.every(k=>b[k]&&b[k]===b.str)){out.push(`全ステータス+${b.str}`)}else for(const k of st)if(b[k])out.push(`${CARD_STAT[k]}+${b[k]}`);
+  for(const k of ['atk','def','mhp'])if(b[k])out.push(`${CARD_STAT[k]}+${b[k]}`);
+  if(b.hpPct)out.push(`最大HP+${b.hpPct}%`);if(b.crit)out.push(`クリティカル+${b.crit}%`);
+  if(b.pdmg&&b.mdmg&&b.pdmg===b.mdmg)out.push(`物理・魔法ダメージ+${b.pdmg}%`);else{if(b.pdmg)out.push(`物理ダメージ+${b.pdmg}%`);if(b.mdmg)out.push(`魔法ダメージ+${b.mdmg}%`)}
+  if(b.reduce)out.push(`受けるダメージ-${b.reduce}%`);if(b.drop)out.push(`ドロップ率+${b.drop}%`);if(b.exp)out.push(`経験値+${b.exp}%`);
+  if(b.sdelay)out.push('スキルのディレイが半分');if(b.cast)out.push('詠唱時間が半分');if(b.lb)out.push('ASPD上限が195に（限界突破）');if(b.spd)out.push('移動速度+30%');
+  return out.join(' / ')}
 TIER_BOSSES.forEach(([tier,n,kind,col,size,resist,look],i)=>{
+  ITEMS['c_tb'+i]={n:n+'カード',t:'card',b:TB_CARDS[i],sell:0,g:'札',c:col,d:cardDesc(TB_CARDS[i])};
   const lv=tier===0?45:tier*100+40+(i%3)*20,t=Math.max(1,tier);
   MOBS['tb'+i]={n,kind,lv,hp:Math.round(150*Math.pow(lv,1.3)),atk:[Math.round(lv*2.2),Math.round(lv*3.2)],def:Math.min(60,15+t*5),
     hit:lv+30,flee:Math.round(lv*.8),exp:Math.round(Math.pow(lv,1.6)),jexp:Math.round(Math.pow(lv,1.6)*.7),speed:kind==='gtb'?3.2:2.2,delay:1.1,
     aggro:true,boss:true,col,size,zone:[16,25],count:1,respawn:0,tier,resist,look:look||{},
-    drops:[['gold',1],['gold',.7],['blue',.7],['yellow',1]],zeny:[lv*50,lv*100],mvp:[['blue',.5],['gold',1]]};
+    drops:[['gold',1],['gold',.7],['blue',.7],['yellow',1],['c_tb'+i,.05]],zeny:[lv*50,lv*100],mvp:[['c_tb'+i,.05],['blue',.5],['gold',1]]};
 });
 function boss(n,kind,lv,hp,atk,def,col,size,exp,card,o={}){
   return {tier:0,n,kind,lv,hp,atk,def,hit:lv+30,flee:o.flee||lv,exp,jexp:Math.round(exp*.7),speed:o.speed||2,delay:o.delay||1.2,aggro:true,boss:true,col,size,
@@ -677,7 +705,7 @@ function finalDefs(){
   const lv=L+300;
   const boss={n:'終焉の王 アポカリオン',kind:'dragon',lv,hp:Math.round(150*Math.pow(lv,1.3)*4),atk:[Math.round(lv*3),Math.round(lv*4)],def:55,hit:lv+60,flee:Math.round(lv*.9),
     exp:Math.round(Math.pow(lv,1.6)*3),jexp:Math.round(Math.pow(lv,1.6)*2),speed:2.4,delay:1.1,aggro:true,aggroR:10,chaseR:30,boss:true,final:true,tier:bossTier(),
-    col:'#3a1a5a',size:3.2,aura:'170,90,255',special:{every:7,r:4.2,mult:1.6,col:'255,40,40',msg:'終焉の王が力を溜めている！ 赤い円の外へ逃げろ！'},count:1,respawn:0,look:{},drops:[['relic',1],['relic',1],['gold',1],['blue',1]],zeny:[lv*200,lv*400],mvp:[['relic',1]]};
+    col:'#3a1a5a',size:3.2,aura:'170,90,255',special:{every:7,r:4.2,mult:1.6,col:'255,40,40',msg:'終焉の王が力を溜めている！ 赤い円の外へ逃げろ！'},count:1,respawn:0,look:{},drops:[['relic',1],['relic',1],['gold',1],['blue',1],['c_apoc',.05]],zeny:[lv*200,lv*400],mvp:[['c_apoc',.03],['relic',1]]};
   return {
     dknight:mk('深淵の騎士','human','#1a1a2a',1.15,0,{count:12,look:{hat:'helm',body:'#1a1a2a',hair:'#0a0a12',skin:'#9a90b0',eye:'#c04aff'}}),
     vghost:mk('虚ろの亡霊','ghost','#5a4a8a',1.1,30,{count:10,speed:2.6}),
@@ -765,9 +793,10 @@ const nmState=()=>P.nm||(P.nm={k:0,best:0});
 let RUSH_POOL=null;
 function rushPool(){
   if(RUSH_POOL)return RUSH_POOL;const out=[],seen={};
-  const add=d=>{if(!d||!d.boss||d.final||seen[d.n])return;const card=(d.drops||[]).find(([id])=>ITEMS[id]&&ITEMS[id].t==='card');if(!card)return;seen[d.n]=1;out.push({...d,card:card[0],cardRate:card[1]})};
-  for(const k in MOBS)add(MOBS[k]);
-  for(const f of [iceDefs,portDefs,abyssDefs,()=>({t:thalassaDef(600)}),snowDefs,castleDefs,()=>sealDefs('forest'),()=>sealDefs('volcano'),()=>sealDefs('tower')])try{for(const d of Object.values(f()))add(d)}catch(_){}
+  const add=(d,key)=>{if(!d||!d.boss||d.final||seen[d.n])return;const card=(d.drops||[]).find(([id])=>ITEMS[id]&&ITEMS[id].t==='card');if(!card)return;seen[d.n]=1;out.push({...d,kind:d.kind||key,card:card[0],cardRate:card[1]})};
+  // 種類（見た目）が名前のキーで決まる敵もいるので、キーを見た目として渡す
+  for(const k in MOBS)add(MOBS[k],k);
+  for(const f of [dungeonDefs,iceDefs,portDefs,abyssDefs,()=>({t:thalassaDef(600)}),snowDefs,castleDefs,()=>sealDefs('forest'),()=>sealDefs('volcano'),()=>sealDefs('tower')])try{for(const d of Object.values(f()))add(d)}catch(_){}
   return RUSH_POOL=out;
 }
 function rushBoss(){
@@ -946,7 +975,7 @@ function abyssDefs(){
     leviath:{n:'深海の番人 リヴァイア',kind:'dragon',lv:blv,hp:Math.round(150*Math.pow(blv,1.3)*2),atk:[Math.round(blv*2.5),Math.round(blv*3.3)],def:45,hit:blv+50,flee:Math.round(blv*.85),
       exp:Math.round(Math.pow(blv,1.6)*2),jexp:Math.round(Math.pow(blv,1.6)*1.4),speed:2.3,delay:1.1,aggro:true,aggroR:10,chaseR:26,boss:true,tier:bossTier(),
       col:'#2a6aa0',size:2.6,aura:'80,200,255',special:{every:9,r:3.6,mult:1.1,col:'60,220,255',freeze:1.5,msg:'番人が激流を放とうとしている！ 水色の円から離れろ！'},
-      count:1,respawn:0,look:{},drops:[['relic',1],['gold',1],['blue',1]],zeny:[blv*120,blv*240],mvp:[['relic',1]]},
+      count:1,respawn:0,look:{},drops:[['relic',1],['gold',1],['blue',1],['c_leviath',.1]],zeny:[blv*120,blv*240],mvp:[['c_leviath',.06],['relic',1]]},
     ...(thalassaAwake()?{thalassa:thalassaDef(tlv)}:{}),
   };
 }
@@ -1120,7 +1149,7 @@ function dungeonDefs(){
       aggro:true,aggroR:8,chaseR:18,col,size,count:o.count||10,respawn:10,look:o.look||{},drops:[['yellow',.15],['blue',.05],['relic',.04],['gold',.03]],zeny:[lv*2,lv*5]}};
   const ph=mk('砂塵の王ファラオン','human','#e0b040',1.6,60,{count:1,speed:2.2,delay:1,look:{hat:'pharaoh',body:'#e8c050',hair:'#1a1a2a',skin:'#c99a6a',eye:'#3af0ff'}});
   Object.assign(ph,{boss:true,tier:bossTier(),hp:Math.round(150*Math.pow(ph.lv,1.3)),def:30,exp:Math.round(Math.pow(ph.lv,1.6)),jexp:Math.round(Math.pow(ph.lv,1.6)*.7),
-    drops:[['relic',1],['relic',.6],['gold',1],['blue',.8],['scepter',.15]],zeny:[ph.lv*60,ph.lv*120],mvp:[['relic',1]]});
+    drops:[['relic',1],['relic',.6],['gold',1],['blue',.8],['scepter',.15],['c_pharaoh',.1]],zeny:[ph.lv*60,ph.lv*120],mvp:[['c_pharaoh',.06],['relic',1]]});
   return {
     mummy:mk('マミー','human','#d8cfb0',1,0,{count:14,speed:1.6,look:{body:'#d8cfb0',skin:'#e2dabf',hair:'#d8cfb0',eye:'#ff5a3a',mummy:true}}),
     scarab:mk('スカラベ','gtb','#2a6a7a',.8,-10,{count:12,speed:3,delay:1}),
@@ -1147,23 +1176,23 @@ function removeEntry(e,q=1){e.qty-=q;if(e.qty<=0){P.inv.splice(P.inv.indexOf(e),
 const count=id=>{const e=P.inv.find(e=>e.id===id);return e?e.qty:0};
 
 function S(){
-  const b={str:0,agi:0,vit:0,int:0,dex:0,luk:0,atk:0,mhp:0,def:0,cast:0,lb:0,spd:0};
+  const b={str:0,agi:0,vit:0,int:0,dex:0,luk:0,atk:0,mhp:0,def:0,cast:0,lb:0,spd:0,crit:0,hpPct:0,reduce:0,drop:0,mdmg:0,pdmg:0,exp:0,sdelay:0};
   for(const e of [P.eq.weapon,P.eq.armor]) if(e) for(const c of e.cards){const bb=ITEMS[c].b;for(const k in bb)b[k]+=bb[k]}
   const agiB=P.buff.agi>0?2+P.buff.agiLv:0,bl=P.buff.bless>0?P.buff.blessLv:0,cc=P.buff.conc>0?2+P.buff.concLv:0;
   const str=P.str+b.str+bl,agi=P.agi+b.agi+agiB+cc,vit=P.vit+b.vit,int=P.int+b.int+bl,dex=P.dex+b.dex+bl+cc,luk=P.luk+b.luk;
   const EL=effLv(),hunter=P.job==='hunter',wi=P.eq.weapon&&ITEMS[P.eq.weapon.id],w=wi&&wi.cls===JOBS[P.job].w?wi.atk:0,a=(P.eq.armor?ITEMS[P.eq.armor.id].def:0)+(P.buff.angelus>0?2*P.buff.angelusLv:0)+b.def;
   return {str,agi,vit,int,dex,luk,b,agiB,
     // 職業ごとの物理攻撃：ハンター（DEX）＞アコライト（STR）＞マジシャン（ほぼ魔法頼み）
-    atk:Math.floor(hunter?dex*2.6+str/5:P.job==='aco'?str*2.3+dex/5:str*1.4+dex/5)+Math.floor(luk/5)+w+b.atk+EL,
+    atk:Math.floor((Math.floor(hunter?dex*2.6+str/5:P.job==='aco'?str*2.3+dex/5:str*1.4+dex/5)+Math.floor(luk/5)+w+b.atk+EL)*(1+b.pdmg/100)),
     range:hunter?8.5:0,
-    matk:int*3+Math.floor(int*int/25)+EL+(wi&&wi.cls===JOBS[P.job].w&&wi.matk?wi.matk:0),
+    matk:Math.floor((int*3+Math.floor(int*int/25)+EL+(wi&&wi.cls===JOBS[P.job].w&&wi.matk?wi.matk:0))*(1+b.mdmg/100)),
     castMul:Math.max(.1,1-dex/120)*(P.bragi>time?.5:1)*(b.cast?.5:1),
-    def:a,vdef:Math.floor(vit*.6),hit:EL+dex,flee:EL+agi,crit:1+luk*.3,
+    def:a,vdef:Math.floor(vit*.6),hit:EL+dex,flee:EL+agi,crit:1+luk*.3+b.crit,
     // 氷牙の王カード：ASPD上限195（攻撃間隔0.1秒）まで限界突破
     delay:Math.max(b.lb?.1:0,Math.max(b.lb?.1:.16,.85-agi*.012-dex*.003)*(P.buff.agi>0?.9:1)),
     // ブラギの詩：スキルを使ったあとのディレイが半分（通常攻撃の間隔＝ASPDはそのまま）
     bragi:P.bragi>time,
-    mhp:Math.floor((38+EL*11)*(1+vit*.02))+b.mhp,
+    mhp:Math.floor((38+EL*11)*(1+vit*.02)*(1+b.hpPct/100))+b.mhp,
     msp:Math.floor((12+EL*3)*(1+int*.025)),
     speed:4.2*(P.buff.agi>0?1.3:1)*(b.spd?1.3:1)};
 }
@@ -1611,7 +1640,7 @@ function mobAttack(m,s){
   const hit=clamp(80+m.def.hit-s.flee,5,95);
   if(rnd()*100>=hit){float(P.x,P.y,'Miss','#bfe3ff',16);return}
   const raw=irand(m.def.atk[0],m.def.atk[1]);
-  const dmg=Math.max(1,Math.round(raw*(1-Math.min(.5,s.def/100))-s.vdef));
+  const dmg=Math.max(1,Math.round((raw*(1-Math.min(.5,s.def/100))-s.vdef)*(1-Math.min(60,s.b.reduce)/100)));
   P.hp-=dmg; float(P.x,P.y,dmg,'#ff5a4c',18,1,true); sfx('hurt');
   if(P.hp<=0) die();
 }
@@ -1647,7 +1676,7 @@ function killMob(m){
   // 物語の途中で終焉の王を倒したときは、その章まで進めてから討伐を数える（転生後に第1部をくり返さないため）
   if(m.def.final)storySkipTo(chOf('終焉の王'));
   storyEvent('kill',m);if(m.def.boss)storyEvent('boss',m);sideKill(m);
-  for(const [id,r] of m.def.drops) if(rnd()<r) dropItem(id,1,m);
+  {const dm=1+S().b.drop/100;for(const [id,r] of m.def.drops) if(rnd()<r*dm) dropItem(id,1,m)}
   dropItem('zeny',irand(m.def.zeny[0],m.def.zeny[1]),m);
   if(m.loot){for(const g of m.loot)dropItem(g.id,g.qty,m);m.loot=[]}
   if(m.def.boss){
@@ -1667,7 +1696,7 @@ function dropItem(id,qty,m){const g={id,qty,x:m.x+(rnd()-.5)*.9,y:m.y+(rnd()-.5)
 const FIRST_BOOST_LV=200;
 const expBoost=()=>P.reb===0&&P.lv>=FIRST_BOOST_LV?2:1;
 function gainExp(b,j){
-  const wasBoost=expBoost()>1,eb=expBoost();
+  const wasBoost=expBoost()>1,eb=expBoost()*(1+S().b.exp/100);
   P.exp+=Math.round(b*EXP_RATE*eb);P.jexp+=Math.round(j*EXP_RATE*eb);
   let bl=0,jl=0;
   const others=Object.values(P.jobData);
@@ -2085,7 +2114,7 @@ function updateTarget(dt,s){
         if(P.queued){const id=P.queued.id;P.queued=null;doSkill(id,e);usedSk=true}
         else if(P.job==='hunter')hunterShot(e);
         else playerAttack(e,s,1,0,false);
-        P.atkT=usedSk&&s.bragi?s.delay*.5:s.delay;P.swingT=Math.min(.22,s.delay*.9)}
+        P.atkT=usedSk&&(s.bragi||s.b.sdelay)?s.delay*.5:s.delay;P.swingT=Math.min(.22,s.delay*.9)}
     }else if(T.kind==='npc'){openNpc(e);P.target=null}
     else{pickup(e);P.target=null}
     return;
@@ -2219,7 +2248,7 @@ let CARD_SRC=null;
 // カードを落とすモンスター（ふつうの敵とボスの両方から探す）
 function cardSource(id){
   if(!CARD_SRC){CARD_SRC={};const add=(d,k)=>{for(const [cid] of d.drops||[])if(ITEMS[cid]&&ITEMS[cid].t==='card'&&!CARD_SRC[cid])CARD_SRC[cid]={...d,kind:d.kind||k}};
-    for(const k in MOBS)add(MOBS[k],k);for(const d of rushPool())add(d)}
+    for(const k in MOBS)add(MOBS[k],k);for(const d of rushPool())add(d);for(const f of [dungeonDefs,finalDefs])try{for(const d of Object.values(f()))add(d)}catch(_){}}
   return CARD_SRC[id];
 }
 const isBossCard=id=>{const s=cardSource(id);return !!(s&&s.boss)};
@@ -2866,7 +2895,7 @@ document.addEventListener('click',e=>{
     else if(it.t==='card'){const tgt=[P.eq.weapon,P.eq.armor].find(x=>x&&x.cards.length<(ITEMS[x.id].slots||0));
       if(!tgt)msg('空きスロットのある装備を身につけてください','warn');else{tgt.cards.push(e2.id);removeEntry(e2);msg(`${it.n} を ${ITEMS[tgt.id].n} に挿しました`,'item')}}}
   else if(act==='buy'){const id=a.dataset.id,q=+a.dataset.q,cost=ITEMS[id].price*q;if(P.zeny>=cost){P.zeny-=cost;addItem(id,q);msg(`${ITEMS[id].n} ×${q} を購入 (-${cost}z)`,'item')}}
-  else if(act==='sell'){const e2=P.inv[+a.dataset.i],q=+a.dataset.q;if(!e2)return;const g=sellPrice(e2.id)*q;P.zeny+=g;msg(`${ITEMS[e2.id].n} ×${q} を売却 (+${g}z)`,'item');removeEntry(e2,q)}
+  else if(act==='sell'){const e2=P.inv[+a.dataset.i],q=+a.dataset.q;if(!e2||!sellPrice(e2.id))return;const g=sellPrice(e2.id)*q;P.zeny+=g;msg(`${ITEMS[e2.id].n} ×${q} を売却 (+${g}z)`,'item');removeEntry(e2,q)}
   else if(act==='selletc'){let g=0;for(const e2 of P.inv.slice())if(ITEMS[e2.id].t==='etc'){g+=sellPrice(e2.id)*e2.qty;removeEntry(e2,e2.qty)}msg(g?`収集品を売却 (+${g}z)`:'売れる収集品がありません',g?'item':'warn');P.zeny+=g}
   else if(act==='tab'){shopTab=a.dataset.k}
   else if(act==='invtab'){invTab=a.dataset.k}
