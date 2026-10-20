@@ -1855,11 +1855,13 @@ const MERC_LOOK={
   aco:{name:'クレア',jn:'アコライト',body:'#7a2a3a',hair:'#f0d878',robe:true,mace:true,weapon:'#a9b0bc',desc:'回復とブレッシング・速度増加で支えつつ、メイスで殴る'},
   hunter:{name:'リオ',jn:'ハンター',body:'#3a6a5a',hair:'#f0d878',bow:true,quiver:true,weapon:'#8a5a2c',desc:'離れた位置から矢で攻撃。ときどき2連射'},
   mage:{name:'ミナ',jn:'マジシャン',body:'#2a5a7a',hair:'#f0d878',robe:true,staff:true,weapon:'#c08aff',desc:'ファイアーボルトとファイアーボールで攻撃'},
-  bard:{name:'カノン',jn:'バード',body:'#2a7a5a',hair:'#e8b860',bow:true,quiver:true,weapon:'#c8a050',desc:'「ブラギの詩」を奏でる。そばにいる間、詠唱時間が50%・スキルのディレイが半分になる。弓でも少し戦う'},
+  bard:{name:'カノン',jn:'バード',body:'#2a7a5a',hair:'#e8b860',bow:true,quiver:true,weapon:'#c8a050',desc:'「ブラギの詩」を奏でる。足元の9マス（3×3）の中にいる間、詠唱時間が50%・スキルのディレイが半分になる。弓でも少し戦う'},
 };
 let mercs=[];
 const fmtTime=s=>{s=Math.max(0,Math.ceil(s));return `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`};
 const bragiOn=()=>P.bragi>time;
+// ブラギの詩の効果範囲：バードの立っているマスを中心にした3×3の9マス
+const inBragiArea=(merc,x,y)=>Math.abs(Math.floor(x)-Math.floor(merc.x))<=1&&Math.abs(Math.floor(y)-Math.floor(merc.y))<=1;
 function mercStats(){const L=effLv();return {atk:30+L*5,matk:40+L*6,mhp:200+L*30,heal:60+L*8}}
 function hireMerc(job,dur=MERC_TIME,silent){
   if(mercs.length>=MERC_MAX)return;
@@ -1870,10 +1872,10 @@ function hireMerc(job,dur=MERC_TIME,silent){
   dirty=true;
 }
 function nearFree(x,y){if(pass(Math.floor(x),Math.floor(y)))return [x,y];return [P.x,P.y]}
-function mercMove(merc,tx,ty,dt){
+function mercMove(merc,tx,ty,dt,spdOver){
   merc.repath-=dt;
   if(merc.repath<=0){merc.repath=.5;merc.path=astar(Math.floor(merc.x),Math.floor(merc.y),Math.floor(tx),Math.floor(ty))||[]}
-  const spd=4.4;
+  const spd=spdOver||4.4;
   if(merc.path.length){const [px,py]=merc.path[0],r=moveEnt(merc,px,py,spd,dt);if(r===true||r==='blocked')merc.path.shift()}
   else moveEnt(merc,tx,ty,spd,dt);
 }
@@ -1889,7 +1891,7 @@ function updateOneMerc(merc,dt){
   if(dP>14){[merc.x,merc.y]=nearFree(P.x+.8,P.y+.8);merc.path=[]}
   // バード：そばにいる間「ブラギの詩」で詠唱と間隔を短くする
   if(job==='bard'){
-    if(dP<=8&&!P.dead){P.bragi=time+.6;merc.songT-=dt;if(merc.songT<=0){merc.songT=1.2;fx.push({type:'note',x:merc.x,y:merc.y,t:0,life:1.6,k:rnd()})}
+    if(inBragiArea(merc,P.x,P.y)&&!P.dead){P.bragi=time+.25;merc.songT-=dt;if(merc.songT<=0){merc.songT=1.2;fx.push({type:'note',x:merc.x,y:merc.y,t:0,life:1.6,k:rnd()})}
       if(rnd()<dt*.08)merc.bubble={text:'♪ ブラギの詩 ♪',t:1.6}}
   }
   // アコライトは回復と支援
@@ -1909,15 +1911,18 @@ function updateOneMerc(merc,dt){
   if(!t){let bd=81;for(const m of mobs){if(m.state!=='chase')continue;const dd=(m.x-P.x)**2+(m.y-P.y)**2;if(dd<bd){bd=dd;t=m}}}
   merc.target=t;
   const range=job==='aco'?1.4:job==='mage'?8.5:8;
-  // バードは演奏が本業なので、自分から離れすぎない範囲でだけ戦う
-  if(t&&job==='bard'&&Math.hypot(t.x-P.x,t.y-P.y)>7)t=null;
+  // バードは演奏が本業：冒険者のすぐそばに立ち続け（9マスの範囲に入れるため）、その場から届く敵だけを撃つ
+  if(job==='bard'){
+    if(dP>1.1)mercMove(merc,P.x,P.y,dt,Math.max(4.4,S().speed));
+    else if(t&&Math.hypot(t.x-merc.x,t.y-merc.y)<=8&&los(merc.x,merc.y,t.x,t.y)){const dx=t.x-merc.x,dy=t.y-merc.y;if(Math.abs(dx-dy)>.05)merc.face=(dx-dy)>0?1:-1;
+      if(merc.atkT<=0){const m=t;merc.swing=.2;shoot(m,()=>hurtMob(m,mercDmg(m,st.atk*.6),'#d0e8ff',15,false,'hunter'),0,merc);merc.atkT=1}}
+    if(merc.moving)merc.walk+=dt;return}
   if(t){const d=Math.hypot(t.x-merc.x,t.y-merc.y);
     if(d>range||(range>2&&!los(merc.x,merc.y,t.x,t.y)))mercMove(merc,t.x,t.y,dt);
     else{const dx=t.x-merc.x,dy=t.y-merc.y;if(Math.abs(dx-dy)>.05)merc.face=(dx-dy)>0?1:-1;merc.path=[];
       if(merc.atkT<=0){merc.swing=.2;
         if(job==='aco'){hurtMob(t,mercDmg(t,st.atk),'#d0e8ff',17,false,'aco');sfx('hit');merc.atkT=.6}
         else if(job==='hunter'){const m=t,n=rnd()<.25?2:1;for(let i=0;i<n;i++)shoot(m,()=>hurtMob(m,mercDmg(m,st.atk*(n>1?1.3:1)),'#d0e8ff',17,false,'hunter'),i*.12,merc);if(n>1)merc.bubble={text:'ダブルストレイフィング！',t:.8};merc.atkT=.7}
-        else if(job==='bard'){const m=t;shoot(m,()=>hurtMob(m,mercDmg(m,st.atk*.6),'#d0e8ff',15,false,'hunter'),0,merc);merc.atkT=1}
         else{merc.castN++;merc.cast={t:.5,m:t,big:merc.castN%4===0}}}}}
   else if(dP>2.5)mercMove(merc,P.x,P.y,dt);
   if(merc.moving)merc.walk+=dt;
@@ -1980,6 +1985,29 @@ function drawMerc(merc){
   if(merc.cast){ctx.save();ctx.translate(x,y);ctx.scale(1,.5);ctx.rotate(time*2);ctx.strokeStyle='rgba(180,160,255,.85)';ctx.lineWidth=2;ctx.beginPath();ctx.arc(0,0,22,0,7);ctx.stroke();ctx.restore()}
   const st=mercStats();ctx.fillStyle='rgba(10,14,22,.75)';ctx.fillRect(x-16,y+6,32,5);ctx.fillStyle='#5ad0a0';ctx.fillRect(x-15,y+7,30*clamp(merc.hp/st.mhp,0,1),3);
   label(`傭兵 ${L.name}`,x,y+24,'#bff0d8',11);
+}
+// ブラギの詩：バードの足元の9マスが音符の模様で光る
+function drawBragiArea(merc){
+  const bx=Math.floor(merc.x),by=Math.floor(merc.y),pl=.55+.25*Math.sin(time*3),on=inBragiArea(merc,P.x,P.y);
+  for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){const [x,y]=iso(bx+dx,by+dy);
+    ctx.beginPath();ctx.moveTo(x,y+2);ctx.lineTo(x+30,y+16);ctx.lineTo(x,y+30);ctx.lineTo(x-30,y+16);ctx.closePath();
+    ctx.fillStyle=`rgba(${on?'255,200,60':'90,210,140'},${.42*pl})`;ctx.fill();ctx.strokeStyle=`rgba(${on?'255,170,30':'40,170,100'},${.95*pl})`;ctx.lineWidth=2.2;ctx.stroke()}
+  // 外枠と、ゆっくり回る五線譜の輪
+  const [cx,cy]=iso(bx+.5,by+.5);ctx.save();ctx.translate(cx,cy);ctx.scale(1,.5);
+  ctx.strokeStyle=`rgba(230,160,30,${.9*pl})`;ctx.lineWidth=2;for(let i=0;i<3;i++){ctx.beginPath();ctx.arc(0,0,70+i*5,time*.4,time*.4+Math.PI*1.6);ctx.stroke()}
+  ctx.restore();
+  ctx.font='18px "DotGothic16",monospace';ctx.textAlign='center';ctx.lineWidth=3;
+  for(let i=0;i<4;i++){const a=time*.8+i*Math.PI/2,nx=cx+Math.cos(a)*74,ny=cy+Math.sin(a)*37;ctx.strokeStyle='rgba(90,50,0,.7)';ctx.strokeText(i%2?'♫':'♪',nx,ny);ctx.fillStyle='#ffd040';ctx.fillText(i%2?'♫':'♪',nx,ny)}
+}
+// 効果を受けている冒険者のまわりに金色の輪と音符
+function drawBragiAura(){
+  const [x,y]=iso(P.x,P.y),pl=1+Math.sin(time*5)*.08;
+  const g=ctx.createRadialGradient(x,y,2,x,y,30*pl);g.addColorStop(0,'rgba(255,200,60,.7)');g.addColorStop(1,'rgba(255,200,60,0)');
+  ctx.fillStyle=g;ctx.beginPath();ctx.ellipse(x,y,30*pl,15*pl,0,0,7);ctx.fill();
+  ctx.strokeStyle='#ffb020';ctx.lineWidth=3;ctx.beginPath();ctx.ellipse(x,y,22*pl,11*pl,0,0,7);ctx.stroke();
+  ctx.font='16px "DotGothic16",monospace';ctx.textAlign='center';
+  for(let i=0;i<3;i++){const a=time*2.2+i*Math.PI*2/3,nx=x+Math.cos(a)*20,ny=y-28+Math.sin(a)*8-Math.sin(time*4+i)*3;
+    ctx.lineWidth=3;ctx.strokeStyle='rgba(80,50,10,.6)';ctx.strokeText(i===1?'♫':'♪',nx,ny);ctx.fillStyle='#ffe27a';ctx.fillText(i===1?'♫':'♪',nx,ny)}
 }
 function later(at,cb){fx.push({type:'delay',t:0,at,life:at+.01,cb})}
 function shoot(m,cb,delay=0,src=P){
@@ -3233,6 +3261,8 @@ function draw(){
   else if(curMap.dark){const [x,y]=iso(CX+.5,CY+.5);ctx.save();ctx.translate(x,y);ctx.scale(1,.5);ctx.rotate(time*.6);ctx.strokeStyle='rgba(120,230,255,.75)';ctx.lineWidth=2.5;
     ctx.beginPath();ctx.arc(0,0,58,0,7);ctx.stroke();ctx.beginPath();ctx.arc(0,0,48,0,7);ctx.stroke();
     ctx.beginPath();for(let i=0;i<=5;i++){const a=i*Math.PI*4/5;ctx.lineTo(Math.cos(a)*48,Math.sin(a)*48)}ctx.stroke();ctx.restore()}
+  for(const merc of mercs)if(merc.job==='bard'&&merc.down<=0)drawBragiArea(merc);
+  if(P.bragi>time&&!P.dead)drawBragiAura();
   for(const tr of traps){const [x,y]=iso(tr.x+.5,tr.y+.5);
     if(tr.k==='ankle'){ctx.strokeStyle='#8a8f99';ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(x,y,10,5,0,0,7);ctx.stroke();ctx.fillStyle='#b9bec8';
       for(let i=0;i<8;i++){const a=i/8*Math.PI*2;ctx.beginPath();ctx.moveTo(x+Math.cos(a)*10,y+Math.sin(a)*5);ctx.lineTo(x+Math.cos(a)*6,y+Math.sin(a)*3-3);ctx.lineTo(x+Math.cos(a+.3)*10,y+Math.sin(a+.3)*5);ctx.fill()}}
