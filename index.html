@@ -132,6 +132,15 @@ kbd{font-family:var(--f-display);font-size:10px;color:var(--muted);margin-left:2
 .der div{display:flex;justify-content:space-between;height:21px;align-items:center;font-variant-numeric:tabular-nums}
 .der span{color:var(--muted)}
 .tabs{display:flex;gap:4px;margin-bottom:8px}
+.cgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:8px;margin-top:4px}
+.cd{position:relative;background:linear-gradient(#fbf3de,#efe0bc);border:2px solid #b89a5a;border-radius:7px;padding:5px 5px 6px;text-align:center;box-shadow:0 2px 4px rgba(0,0,0,.18)}
+.cd.boss{border-color:#e0b83a;background:linear-gradient(#fff6d0,#f2d98a)}
+.cd img{display:block;width:100%;aspect-ratio:1;border-radius:4px;border:1px solid rgba(60,40,10,.35)}
+.cd.unk{filter:saturate(.3)}.cd.unk .nm{color:#8a7a5a}
+.cd .nm{font-family:var(--f-display);font-size:12px;margin-top:4px;color:#3a2a10}
+.cd .ds{font-size:10px;line-height:1.35;color:#6a5a3a;margin-top:2px;min-height:2.7em}
+.cd .n{position:absolute;top:9px;right:9px;background:rgba(20,14,6,.75);color:#ffe9a8;border-radius:9px;padding:0 6px;font:11px/16px var(--f-display)}
+.cd .btn{margin-top:4px;padding:2px 10px;font-size:11px}
 .tabs .btn[aria-pressed="true"]{background:var(--head);color:var(--head-ink);border-color:var(--head)}
 .price{font:12px var(--f-display);white-space:nowrap}
 .talk-t{font-size:13px;line-height:1.7;margin:2px 0 10px}
@@ -174,6 +183,8 @@ kbd{font-family:var(--f-display);font-size:10px;color:var(--muted);margin-left:2
 .menu.min .btn:not(.menu-tg){display:none}
 @media (max-width:520px){
   .win .body{max-height:46vh;padding:6px 8px 8px;font-size:11.5px}
+</head>
+<body>
   .win header{font-size:13px;padding:4px 6px 4px 8px}
   #w-status .grid2{grid-template-columns:1fr;gap:4px}
   .it{gap:6px;padding:3px 4px}
@@ -183,8 +194,6 @@ kbd{font-family:var(--f-display);font-size:10px;color:var(--muted);margin-left:2
 @keyframes lvpop{0%{transform:scale(1)}25%{transform:scale(1.9);color:var(--exp)}100%{transform:scale(1)}}
 @media (prefers-reduced-motion:reduce){.bar i{transition:none}.pop{animation:none}}
 </style>
-</head>
-<body>
 
 <canvas id="game" aria-label="ゲーム画面。クリックで移動と攻撃"></canvas>
 
@@ -235,7 +244,7 @@ kbd{font-family:var(--f-display);font-size:10px;color:var(--muted);margin-left:2
 'use strict';
 /* ---------- 基本 ---------- */
 const $=id=>document.getElementById(id);
-const cv=$('game'), ctx=cv.getContext('2d');
+const cv=$('game');let ctx=cv.getContext('2d');
 const mm=$('mm'), mctx=mm.getContext('2d');
 const rnd=Math.random, clamp=(v,a,b)=>Math.max(a,Math.min(b,v)), irand=(a,b)=>a+Math.floor(rnd()*(b-a+1));
 let VW=0,VH=0,DPR=1,zoom=null;
@@ -1124,10 +1133,11 @@ function newPlayer(){
   const p={x:SPAWN[0],y:SPAWN[1],face:1,path:[],target:null,queued:null,casting:null,
     lv:1,exp:0,jlv:1,jexp:0,statPts:0,skillPts:0,str:7,agi:6,vit:4,int:4,dex:5,luk:3,
     hp:1,sp:1,zeny:120,inv:[],eq:{weapon:null,armor:null},skills:{...JOBS.aco.skills},job:'aco',jobData:{},
-    buff:{agi:0,agiLv:0,magni:0,bless:0,blessLv:0,angelus:0,angelusLv:0,conc:0,concLv:0},atkT:0,swingT:0,walk:0,dead:false,bubble:null,sit:false,emote:null,reb:0,rebLv:0,rebJ:0,finalClear:false,maxCombo:0,story:null,side:null,nm:{k:0,best:0},tiers:{aco:1,hunter:1,mage:1}};
+    buff:{agi:0,agiLv:0,magni:0,bless:0,blessLv:0,angelus:0,angelusLv:0,conc:0,concLv:0},atkT:0,swingT:0,walk:0,dead:false,bubble:null,sit:false,emote:null,reb:0,rebLv:0,rebJ:0,finalClear:false,maxCombo:0,story:null,side:null,nm:{k:0,best:0},cardsSeen:{},tiers:{aco:1,hunter:1,mage:1}};
   return p;
 }
 function addItem(id,q=1){
+  if(ITEMS[id]&&ITEMS[id].t==='card'){(P.cardsSeen||(P.cardsSeen={}))[id]=1}
   if(stackable(id)){const e=P.inv.find(e=>e.id===id); if(e){e.qty+=q;dirty=true;return e}const n={id,qty:q,cards:[]};P.inv.push(n);dirty=true;return n}
   let last; for(let i=0;i<q;i++){last={id,qty:1,cards:[]};P.inv.push(last)} dirty=true; return last;
 }
@@ -1159,7 +1169,7 @@ const healAmt=l=>{const s=P?S():{int:5};return Math.floor(((P?effLv():1)+s.int*3
 /* ---------- 保存 ---------- */
 const SAVE_KEY='rune-meadow-save-v1';
 function serialize(){
-  const keys=['x','y','lv','exp','jlv','jexp','statPts','skillPts','str','agi','vit','int','dex','luk','hp','sp','zeny','skills','reb','rebLv','rebJ','finalClear','maxCombo','story','side','tiers','nm'];
+  const keys=['x','y','lv','exp','jlv','jexp','statPts','skillPts','str','agi','vit','int','dex','luk','hp','sp','zeny','skills','reb','rebLv','rebJ','finalClear','maxCombo','story','side','tiers','nm','cardsSeen'];
   const o={}; for(const k of keys) o[k]=P[k];
   o.inv=P.inv.map(e=>({id:e.id,qty:e.qty,cards:e.cards.slice()}));
   o.eqW=P.inv.indexOf(P.eq.weapon); o.eqA=P.inv.indexOf(P.eq.armor);
@@ -1647,7 +1657,7 @@ function killMob(m){
 function dropItem(id,qty,m){const g={id,qty,x:m.x+(rnd()-.5)*.9,y:m.y+(rnd()-.5)*.9,t:0};groundItems.push(g);
   // カードが出たら、光の柱と大きな演出で知らせる
   if(id!=='zeny'&&ITEMS[id].t==='card'){g.card=true;fx.push({type:'cardpillar',x:g.x,y:g.y,t:0,life:6});
-    fx.push({type:'lvbig',t:0,life:3.6,title:'CARD!',card:true,lines:[ITEMS[id].n,ITEMS[id].d]});sfx('card');msg(`★ ${ITEMS[id].n} がドロップした！ ★`,'item')}}
+    fx.push({type:'lvbig',t:0,life:3.6,title:'CARD!',card:true,img:cardImage(id),lines:[ITEMS[id].n,ITEMS[id].d]});sfx('card');msg(`★ ${ITEMS[id].n} がドロップした！ ★`,'item')}}
 
 // 初回（転生前）の旅は Base Lv200 から経験値2倍：Lv600・999 までの道のりを短くする
 const FIRST_BOOST_LV=200;
@@ -2159,13 +2169,62 @@ function renderStatus(){
   <div class="foot"><span class="note" style="margin:0">STR:物理 / AGI:回避・速度 / VIT:HP / INT:魔法 / DEX:命中 / LUK:会心</span></div>
   <div class="foot"><span class="note" style="margin:0">進行状況はこのブラウザに自動保存</span><button class="btn warn" data-act="reset">${resetArm?'本当に消す？':'データ初期化'}</button></div>`;
 }
+/* ---------- カード帳：カードはアイテムとは別に管理し、それぞれに落とすモンスターの絵をつける ---------- */
+let invTab='item';
+const CARD_IDS=Object.keys(ITEMS).filter(id=>ITEMS[id].t==='card');
+let CARD_SRC=null;
+// カードを落とすモンスター（ふつうの敵とボスの両方から探す）
+function cardSource(id){
+  if(!CARD_SRC){CARD_SRC={};const add=(d,k)=>{for(const [cid] of d.drops||[])if(ITEMS[cid]&&ITEMS[cid].t==='card'&&!CARD_SRC[cid])CARD_SRC[cid]={...d,kind:d.kind||k}};
+    for(const k in MOBS)add(MOBS[k],k);for(const d of rushPool())add(d)}
+  return CARD_SRC[id];
+}
+const isBossCard=id=>{const s=cardSource(id);return !!(s&&s.boss)};
+const CARD_ART={};
+// ゲーム内のモンスターの描き方をそのまま使って、カードの絵を1枚ずつ描く
+function cardArt(id,sil){
+  const ck=id+(sil?'_s':'');if(CARD_ART[ck])return CARD_ART[ck];
+  const W=120,H=120,R=2,c=document.createElement('canvas');c.width=W*R;c.height=H*R;const g=c.getContext('2d'),it=ITEMS[id],src=cardSource(id),boss=isBossCard(id);
+  g.scale(R,R);
+  const bg=g.createLinearGradient(0,0,0,H);bg.addColorStop(0,sil?'#d8d2c4':boss?'#fff4c8':'#fbf7ee');bg.addColorStop(1,sil?'#a8a090':it.c);g.fillStyle=bg;g.fillRect(0,0,W,H);
+  // 後ろから差す光の筋
+  g.save();g.translate(W/2,H*.66);for(let i=0;i<12;i++){g.rotate(Math.PI/6);g.fillStyle=i%2?'rgba(255,255,255,.26)':'rgba(255,255,255,.08)';g.beginPath();g.moveTo(0,0);g.lineTo(-10,-100);g.lineTo(10,-100);g.closePath();g.fill()}g.restore();
+  g.fillStyle='rgba(0,0,0,.2)';g.beginPath();g.ellipse(W/2,H*.82,30,8,0,0,7);g.fill();
+  if(src){const sz=src.size||1,k=Math.min(1.9,1.45/sz)*(src.kind==='dragon'?.78:1),old=ctx,L=document.createElement('canvas');L.width=W*R;L.height=H*R;const lg=L.getContext('2d');
+    const fake={key:src.kind,def:{...src,boss:false,aura:sil?null:src.aura||null,resist:null},x:0,y:0,state:'idle',face:1,seed:1.3,flash:0,hpShow:0,moving:false,fade:0,lunge:0,iceT:0,root:0,hp:1};
+    ctx=lg;try{lg.setTransform(R*k,0,0,R*k,R*W/2-R*k*OX,R*H*.82);drawMob(fake)}catch(_){}finally{ctx=old}
+    // まだ持っていないカードは黒い影だけ
+    if(sil){lg.setTransform(1,0,0,1,0,0);lg.globalCompositeOperation='source-in';lg.fillStyle='#2a2238';lg.fillRect(0,0,L.width,L.height)}
+    g.setTransform(1,0,0,1,0,0);g.drawImage(L,0,0);g.setTransform(R,0,0,R,0,0)}
+  else{g.fillStyle=it.c;g.font='bold 54px "DotGothic16",monospace';g.textAlign='center';g.fillText(it.g,W/2,H*.7)}
+  // きらめき
+  g.fillStyle='rgba(255,255,255,.9)';for(const [sx,sy,r] of [[16,18,3],[102,26,2.4],[96,92,2],[22,86,1.8]]){g.beginPath();g.moveTo(sx,sy-r*2.4);g.lineTo(sx+r*.6,sy);g.lineTo(sx,sy+r*2.4);g.lineTo(sx-r*.6,sy);g.closePath();g.fill();g.beginPath();g.moveTo(sx-r*2.4,sy);g.lineTo(sx,sy+r*.6);g.lineTo(sx+r*2.4,sy);g.lineTo(sx,sy-r*.6);g.closePath();g.fill()}
+  if(boss&&!sil){g.strokeStyle='rgba(255,215,90,.9)';g.lineWidth=3;g.strokeRect(1.5,1.5,W-3,H-3)}
+  return CARD_ART[ck]=c.toDataURL();
+}
+function cardImage(id){const im=new Image();im.src=cardArt(id);return im}
+// 持っている枚数（装備に挿してあるものも含む）
+const cardOwned=id=>P.inv.reduce((a,e)=>a+(e.id===id?e.qty:0),0);
+const cardSlotted=id=>P.inv.reduce((a,e)=>a+e.cards.filter(c=>c===id).length,0);
+const cardKnown=id=>!!((P.cardsSeen||{})[id]||cardOwned(id)||cardSlotted(id));
+function renderCardBook(){
+  const got=CARD_IDS.filter(cardKnown).length;
+  const list=CARD_IDS.slice().sort((a,b)=>isBossCard(a)-isBossCard(b));
+  const cards=list.map(id=>{const it=ITEMS[id],kn=cardKnown(id),own=cardOwned(id),sl=cardSlotted(id),src=cardSource(id),i=P.inv.findIndex(e=>e.id===id);
+    return `<div class="cd${kn?'':' unk'}${isBossCard(id)?' boss':''}"><img src="${cardArt(id,!kn)}" alt="">${own?`<span class="n">×${own}</span>`:''}
+      <div class="nm">${kn?it.n:'？？？'}</div><div class="ds">${kn?it.d:src?`${src.n.split(' ').pop()}が持っているらしい`:'？'}${sl?`<br>挿している：${sl}枚`:''}</div>
+      ${own?`<button class="btn" data-act="inv" data-i="${i}">挿す</button>`:''}</div>`}).join('');
+  return `<p class="note">カード帳　集めた種類 <b>${got} / ${CARD_IDS.length}</b>　持っているカードは「挿す」で空きスロットのある装備へ。金の枠はボスのカード</p><div class="cgrid">${cards}</div>`;
+}
 function renderInv(){
-  const rows=P.inv.map((e,i)=>{const it=ITEMS[e.id];let act='',tag='';
+  const nCard=P.inv.reduce((a,e)=>a+(ITEMS[e.id].t==='card'?e.qty:0),0);
+  const tabs=`<div class="tabs"><button class="btn" data-act="invtab" data-k="item" aria-pressed="${invTab==='item'}">アイテム</button><button class="btn" data-act="invtab" data-k="card" aria-pressed="${invTab==='card'}">カード帳${nCard?`（${nCard}）`:''}</button></div>`;
+  if(invTab==='card'){$('b-inv').innerHTML=tabs+renderCardBook();return}
+  const rows=P.inv.map((e,i)=>{const it=ITEMS[e.id];let act='',tag='';if(it.t==='card')return '';
     if(it.t==='use')act='使う';else if(it.t==='weapon'||it.t==='armor'){const eq=P.eq.weapon===e||P.eq.armor===e;act=eq?'外す':'装備';if(eq)tag='<span class="tag">E</span>'}
-    else if(it.t==='card')act='挿す';
     const cards=e.cards.length?' / '+e.cards.map(c=>ITEMS[c].n).join('・'):'';
     return `<div class="it${act?' click':''}" ${act?`data-act="inv" data-i="${i}" role="button" tabindex="0"`:''}>${itemIcon(e.id)}<div class="tx"><div class="nm">${esc(itemName(e))}${e.qty>1?' ×'+e.qty:''}${tag}</div><div class="ds">${it.d}${cards}</div></div><span class="act">${act}</span></div>`}).join('');
-  $('b-inv').innerHTML=`<p class="note">タップで使う・装備。カードは空きスロットのある装備に挿せます。</p><div class="list">${rows||'<p class="note">何も持っていません</p>'}</div><div class="foot"><span>所持金</span><b class="price">${P.zeny.toLocaleString()} z</b></div>`;
+  $('b-inv').innerHTML=tabs+`<p class="note">タップで使う・装備。カードは「カード帳」で管理します。</p><div class="list">${rows||'<p class="note">何も持っていません</p>'}</div><div class="foot"><span>所持金</span><b class="price">${P.zeny.toLocaleString()} z</b></div>`;
 }
 function renderSkill(){
   const rows=Object.keys(SK).filter(id=>SK[id].job===P.job).map(id=>{const sk=SK[id],lv=P.skills[id],nl=Math.max(1,lv);
@@ -2767,6 +2826,7 @@ document.addEventListener('click',e=>{
   else if(act==='sell'){const e2=P.inv[+a.dataset.i],q=+a.dataset.q;if(!e2)return;const g=sellPrice(e2.id)*q;P.zeny+=g;msg(`${ITEMS[e2.id].n} ×${q} を売却 (+${g}z)`,'item');removeEntry(e2,q)}
   else if(act==='selletc'){let g=0;for(const e2 of P.inv.slice())if(ITEMS[e2.id].t==='etc'){g+=sellPrice(e2.id)*e2.qty;removeEntry(e2,e2.qty)}msg(g?`収集品を売却 (+${g}z)`:'売れる収集品がありません',g?'item':'warn');P.zeny+=g}
   else if(act==='tab'){shopTab=a.dataset.k}
+  else if(act==='invtab'){invTab=a.dataset.k}
   else if(act==='doheal'){const s=S();P.hp=s.mhp;P.sp=s.msp;fx.push({type:'heal',t:0,life:1});msg('HPとSPが全回復した','item');$('w-talk').hidden=true}
   else if(act==='tip'){openNpc(talkNpc);return}
   else if(act==='warp-dg'){$('w-talk').hidden=true;enterMap(getDungeon(),CX-.5,CY+1.5);return}
@@ -3375,9 +3435,12 @@ function drawLvBanner(){
   for(const f of fx){if(f.type!=='lvbig')continue;const p=f.t/f.life,t=f.t;
     ctx.setTransform(DPR,0,0,DPR,0,0);
     if(t<.25){ctx.fillStyle=`rgba(255,250,225,${.45*(1-t/.25)})`;ctx.fillRect(0,0,VW,VH)}
-    const sc=t<.12?.3+t/.12*1.05:t<.22?1.35-(t-.12)/.1*.35:1,a=p>.8?(1-p)/.2:1,cy=VH*.3-(p>.8?(p-.8)*80:0);
+    const sc=t<.12?.3+t/.12*1.05:t<.22?1.35-(t-.12)/.1*.35:1,a=p>.8?(1-p)/.2:1,cy=VH*(f.img?.42:.3)-(p>.8?(p-.8)*80:0);
     ctx.globalAlpha=a;ctx.save();ctx.translate(VW/2,cy);ctx.scale(sc,sc);
     const big=Math.min(60,VW/9);ctx.font=`${big}px "DotGothic16",monospace`;ctx.textAlign='center';ctx.lineJoin='round';
+    // カードの絵：くるっと回りながら現れる
+    if(f.img&&f.img.complete){const S2=Math.min(120,VH*.2),fl=Math.abs(Math.cos(Math.min(1,t/.5)*Math.PI*2));ctx.save();ctx.translate(0,-big-S2/2-8);ctx.scale(t<.5?Math.max(.05,fl):1,1);
+      ctx.shadowColor='rgba(255,230,140,.9)';ctx.shadowBlur=18;ctx.fillStyle='#e0b83a';ctx.fillRect(-S2/2-4,-S2/2-4,S2+8,S2+8);ctx.shadowBlur=0;ctx.drawImage(f.img,-S2/2,-S2/2,S2,S2);ctx.restore()}
     const ttl=f.title||'LEVEL UP!';ctx.lineWidth=9;ctx.strokeStyle=f.job?'#3a1f5a':'#5a2a08';ctx.strokeText(ttl,0,0);
     const g=ctx.createLinearGradient(0,-big*.8,0,0);
     if(f.card){const h=(time*90)%360;g.addColorStop(0,`hsl(${h},95%,85%)`);g.addColorStop(.5,`hsl(${(h+60)%360},95%,65%)`);g.addColorStop(1,`hsl(${(h+140)%360},90%,55%)`)}
