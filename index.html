@@ -530,7 +530,7 @@ const TB_CARDS=[
   {int:8,r_kino:25,spRegen:40},{agi:8,aspd:8,drain:1},{vit:8,reduce:8,surround:1},
   {int:10,mdmg:10,r_human:15},{luk:10,r_ghost:30,crit:8},{agi:10,crit:12,aspd:5},
   {str:10,r_dragon:25,hpPct:10},{vit:12,merc:40,reduce:5},{dex:12,pdmg:10,r_ghost:15},
-  {vit:10,reduce:12,surround:1},{int:12,heal:30,hpPct:15},{vit:15,aoe:40},
+  {vit:10,reduce:12,surround:1},{int:12,heal:30,hpPct:15},{vit:15,aoe:40,nocancel:1},
   {luk:15,drop:30,zeny:30},{int:15,mdmg:15,spcost:15},{agi:15,aspd:12,r_dragon:20},
   {vit:15,drain:2,hpPct:15},{int:12,exp:20,hpRegen:50,spRegen:50},{agi:15,crit:20,pdmg:12},
   {int:20,mdmg:22,boss:10},{str:20,pdmg:22,r_human:20},{dex:20,reduce:18,aoe:25},
@@ -550,7 +550,7 @@ function cardDesc(b){const out=[],st=['str','agi','vit','int','dex','luk'];
   if(b.reduce)out.push(`受けるダメージ-${b.reduce}%`);if(b.aoe)out.push(`ボスの範囲攻撃ダメージ-${b.aoe}%`);if(b.surround)out.push('囲まれたときのFLEE低下が半分');
   if(b.heal)out.push(`ヒール回復量+${b.heal}%`);if(b.hpRegen)out.push(`HP自然回復+${b.hpRegen}%`);if(b.spRegen)out.push(`SP自然回復+${b.spRegen}%`);if(b.spcost)out.push(`SP消費-${b.spcost}%`);
   if(b.merc)out.push(`傭兵の能力+${b.merc}%`);if(b.zeny)out.push(`Zeny獲得+${b.zeny}%`);if(b.drop)out.push(`ドロップ率+${b.drop}%`);if(b.exp)out.push(`経験値+${b.exp}%`);
-  if(b.sdelay)out.push('スキルのディレイが半分');if(b.cast)out.push('詠唱時間が半分');if(b.lb)out.push('ASPD上限が195に（限界突破）');if(b.spd)out.push('移動速度+30%');if(b.nofreeze)out.push('凍結しない');
+  if(b.sdelay)out.push('スキルのディレイが半分');if(b.cast)out.push('詠唱時間が半分');if(b.lb)out.push('ASPD上限が195に（限界突破）');if(b.spd)out.push('移動速度+30%');if(b.nofreeze)out.push('凍結しない');if(b.nocancel)out.push('詠唱が中断されない（詠唱時間+1秒）');
   return out.join(' / ')}
 TIER_BOSSES.forEach(([tier,n,kind,col,size,resist,look],i)=>{
   ITEMS['c_tb'+i]={n:n+'カード',t:'card',b:TB_CARDS[i],sell:0,g:'札',c:col,d:cardDesc(TB_CARDS[i])};
@@ -585,32 +585,32 @@ const SK={
   agi:{job:'aco',n:'速度増加',max:10,sp:l=>10+3*l,target:false,g:'速',c:'#3e82d6',d:l=>`60秒間 移動+30% / AGI+${2+l}`},
   heal:{job:'aco',n:'ヒール',max:10,sp:l=>10+3*l,target:false,g:'癒',c:'#4aae63',d:l=>`HPを約${healAmt(l)}回復`},
   angelus:{job:'aco',n:'エンジェラス',max:10,sp:l=>10+2*l,target:false,g:'天',c:'#c98fd0',d:l=>`${30*l}秒間 DEF+${2*l}`},
-  magni:{job:'aco',n:'マグニフィカート',max:5,sp:l=>12+2*l,cast:l=>2,target:false,g:'讃',c:'#7d8fe0',d:l=>`${30*l}秒間 HPとSPの自然回復が2倍（詠唱2秒）`},
-  gx:{job:'aco',n:'グランドクロス',max:10,sp:l=>12+3*l,cast:l=>.9,target:false,g:'十',c:'#c99a22',d:l=>`足元に聖なる十字。ATK+MATKの${35+12*l}%を3回 / 現在HPの20%を消費`},
+  magni:{job:'aco',n:'マグニフィカート',max:5,sp:l=>12+2*l,cast:l=>1.2,target:false,g:'讃',c:'#7d8fe0',d:l=>`${30*l}秒間 HPとSPの自然回復が2倍（詠唱1.2秒）`},
+  gx:{job:'aco',n:'グランドクロス',max:10,sp:l=>12+3*l,cast:l=>.5,target:false,g:'十',c:'#c99a22',d:l=>`足元に聖なる十字。ATK+MATKの${35+12*l}%を3回 / 現在HPの20%を消費`},
   conc:{job:'hunter',n:'集中力向上',max:10,sp:l=>10+l,target:false,g:'集',c:'#3f9a6a',d:l=>`${40+20*l}秒間 AGI・DEX+${2+l}`},
   ds:{job:'hunter',n:'ダブルストレイフィング',max:10,sp:l=>12,target:true,g:'双',c:'#c8702e',d:l=>`矢を2連射（単体）。ATK ${150+25*l}%×2`},
   as:{job:'hunter',n:'アローシャワー',max:10,sp:l=>15,target:true,g:'雨',c:'#4f86c9',d:l=>`対象の周囲3×3に矢の雨。ATK ${75+5*l}%`},
   blitz:{job:'hunter',n:'ブリッツビート',max:5,sp:l=>10+3*l,target:true,g:'鷹',c:'#8a6a3a',d:l=>`鷹が${l}回攻撃（必中・防御無視）。対象のまわり3×3マスを巻き込むが、巻き込んだ数でダメージを分け合う。通常攻撃のたびに 10%＋LUK÷3% で自動発動`},
   ankle:{job:'hunter',n:'アンクルスネア',max:5,sp:l=>12,target:false,g:'罠',c:'#6f7480',d:l=>`足元に罠を置く。踏んだ敵を${3+2*l}秒その場に縛る`},
-  fb:{job:'mage',n:'ファイアーボルト',max:10,sp:l=>10+2*l,cast:l=>.1+.05*l,range:9,target:true,el:'fire',g:'炎',c:'#e0582a',d:l=>`炎の矢を${l}本落とす（単体）。1本 MATK×0.9`},
-  fball:{job:'mage',n:'ファイアーボール',max:10,sp:l=>20+2*l,cast:l=>.2,range:9,target:true,el:'fire',g:'球',c:'#c8401a',d:l=>`火球が爆発し、周囲5×5の敵すべてに MATK×${(1+.15*l).toFixed(2)}`},
-  tstorm:{job:'mage',n:'サンダーストーム',max:10,sp:l=>25+4*l,cast:l=>.25+.05*l,range:9,target:true,el:'bolt',g:'雷',c:'#8a7ad8',d:l=>`対象の周囲5×5に雷を${l}回。範囲内の敵すべてに1回 MATK×0.9`},
-  sgust:{job:'mage',n:'ストームガスト',max:10,sp:l=>50+5*l,cast:l=>.5+.08*l,range:9,ground:true,r:3.5,el:'cold',g:'嵐',c:'#5ab8f0',d:l=>`クリックした場所の周囲7×7に吹雪を10回（射程9）。1回 MATK×${(.4+.06*l).toFixed(2)}。3回目で敵を3秒凍らせる`},
-  fwall:{job:'mage',n:'ファイアーウォール',max:10,sp:l=>30+2*l,cast:l=>.1,target:false,g:'壁',c:'#e86a2a',d:l=>`マウスの方向に炎の壁（3マス）。触れた敵に MATK×0.6 と押し返し。1マスあたり${2+l}回 / ${5+l}秒`},
-  swall:{job:'mage',n:'セーフティウォール',max:10,sp:l=>30+3*l,cast:l=>.12,target:false,g:'護',c:'#e88ab8',d:l=>`足元に光の柱。その上にいる間、敵の攻撃を${l+1}回まで防ぐ（30秒）`},
+  fb:{job:'mage',n:'ファイアーボルト',max:10,sp:l=>10+2*l,cast:l=>.06+.03*l,range:9,target:true,el:'fire',g:'炎',c:'#e0582a',d:l=>`炎の矢を${l}本落とす（単体）。1本 MATK×0.9`},
+  amp:{job:'mage',n:'魔力増幅',max:10,sp:l=>10+2*l,target:false,g:'増',c:'#b04ad0',d:l=>`魔力を高め、次に使う魔法1回の威力が ×${(1+.1*l).toFixed(1)}（30秒以内。詠唱なし）`},
+  tstorm:{job:'mage',n:'サンダーストーム',max:10,sp:l=>25+4*l,cast:l=>.15+.03*l,range:9,target:true,el:'bolt',g:'雷',c:'#8a7ad8',d:l=>`対象の周囲5×5に雷を${l}回。範囲内の敵すべてに1回 MATK×0.9`},
+  sgust:{job:'mage',n:'ストームガスト',max:10,sp:l=>50+5*l,cast:l=>.3+.05*l,range:9,ground:true,r:3.5,el:'cold',g:'嵐',c:'#5ab8f0',d:l=>`クリックした場所の周囲7×7に吹雪を10回（射程9）。1回 MATK×${(.4+.06*l).toFixed(2)}。3回目で敵を3秒凍らせる`},
+  fwall:{job:'mage',n:'ファイアーウォール',max:10,sp:l=>30+2*l,cast:l=>.06,target:false,g:'壁',c:'#e86a2a',d:l=>`マウスの方向に炎の壁（3マス）。触れた敵に MATK×0.6 と押し返し。1マスあたり${2+l}回 / ${5+l}秒`},
+  swall:{job:'mage',n:'セーフティウォール',max:10,sp:l=>30+3*l,cast:l=>.08,target:false,g:'護',c:'#e88ab8',d:l=>`足元に光の柱。その上にいる間、敵の攻撃を${l+1}回まで防ぐ（30秒）`},
   mine:{job:'hunter',n:'ランドマイン',max:5,sp:l=>10,target:false,g:'爆',c:'#c94a3a',d:l=>`足元に地雷を置く。踏んだ敵にDEXとINT依存の大ダメージ`},
 };
 const JOBS={
   aco:{n:'アコライト',w:'mace',skills:{bless:1,heal:1,agi:0,angelus:0,magni:0,gx:0},hot:['bless','heal','agi','angelus','magni','gx']},
   hunter:{n:'アーチャー',w:'bow',skills:{ds:1,conc:1,ankle:0,blitz:0,as:0,mine:0},hot:['ds','conc','ankle','blitz','as','mine']},
-  mage:{n:'マジシャン',w:'staff',skills:{fb:1,fball:1,tstorm:0,fwall:0,sgust:0,swall:0},hot:['fb','fball','tstorm','fwall','sgust','swall']},
+  mage:{n:'マジシャン',w:'staff',skills:{fb:1,amp:1,tstorm:0,fwall:0,sgust:0,swall:0},hot:['fb','amp','tstorm','fwall','sgust','swall']},
 };
 let HOT=[];
 /* ---------- 転職：1次職 → 2次職（Job Lv100）→ 3次職（Job Lv200） ---------- */
 const JOB_NAMES={aco:['アコライト','プリースト','ハイプリースト'],hunter:['アーチャー','ハンター','スナイパー'],mage:['マジシャン','ウィザード','ハイウィザード']};
 const TIER_REQ=[0,100,200];
 // スキルを覚えられる職の段階
-const SK_TIER={bless:1,heal:1,agi:2,angelus:2,magni:3,gx:3, ds:1,conc:1,ankle:2,blitz:2,as:3,mine:3, fb:1,fball:1,tstorm:2,fwall:2,sgust:3,swall:3};
+const SK_TIER={bless:1,heal:1,agi:2,angelus:2,magni:3,gx:3, ds:1,conc:1,ankle:2,blitz:2,as:3,mine:3, fb:1,amp:1,tstorm:2,fwall:2,sgust:3,swall:3};
 for(const k in SK)SK[k].tier=SK_TIER[k]||1;
 const tierOf=j=>(P&&P.tiers&&P.tiers[j])||1;
 const effJob=()=>P.jlv+(P.rebJ||0);
@@ -1200,7 +1200,7 @@ const count=id=>{const e=P.inv.find(e=>e.id===id);return e?e.qty:0};
 // 装備に挿したカードの効果の合計
 function cardBonus(){
   const b={str:0,agi:0,vit:0,int:0,dex:0,luk:0,atk:0,mhp:0,def:0,cast:0,lb:0,spd:0,crit:0,hpPct:0,reduce:0,drop:0,mdmg:0,pdmg:0,exp:0,sdelay:0,
-    aspd:0,boss:0,drain:0,aoe:0,surround:0,heal:0,hpRegen:0,spRegen:0,spcost:0,merc:0,zeny:0,nofreeze:0,r_wolf:0,r_kino:0,r_human:0,r_ghost:0,r_dragon:0,r_prun:0,r_gtb:0};
+    aspd:0,boss:0,drain:0,aoe:0,surround:0,heal:0,hpRegen:0,spRegen:0,spcost:0,merc:0,zeny:0,nofreeze:0,nocancel:0,r_wolf:0,r_kino:0,r_human:0,r_ghost:0,r_dragon:0,r_prun:0,r_gtb:0};
   for(const e of [P.eq.weapon,P.eq.armor]) if(e) for(const c of e.cards){const bb=ITEMS[c].b;for(const k in bb)b[k]+=bb[k]}
   return b;
 }
@@ -1214,11 +1214,11 @@ function S(){
     atk:Math.floor((Math.floor(hunter?dex*2.6+str/5:P.job==='aco'?str*2.3+dex/5:str*1.4+dex/5)+Math.floor(luk/5)+w+b.atk+EL)*(1+b.pdmg/100)),
     range:hunter?8.5:0,
     matk:Math.floor((int*3+Math.floor(int*int/25)+EL+(wi&&wi.cls===JOBS[P.job].w&&wi.matk?wi.matk:0))*(1+b.mdmg/100)),
-    castMul:Math.max(.1,1-dex/120)*(P.bragi>time?.5:1)*(b.cast?.5:1),
+    castMul:Math.max(.1,1-dex/120)*(P.bragi>time?.8:1)*(b.cast?.5:1),
     def:a,vdef:Math.floor(vit*.6),hit:EL+dex,flee:Math.floor((EL+agi)*(1-fleePen())),crit:1+luk*.3+b.crit,
     // 氷牙の王カード：ASPD上限195（攻撃間隔0.1秒）まで限界突破
     delay:Math.max(b.lb?.1:0,Math.max(b.lb?.1:.16,(.85-agi*.012-dex*.003)*(1-Math.min(30,b.aspd)/100))*(P.buff.agi>0?.9:1)),
-    // ブラギの詩：スキルを使ったあとのディレイが半分（通常攻撃の間隔＝ASPDはそのまま）
+    // ブラギの詩：スキルを使ったあとのディレイが60%短くなる（通常攻撃の間隔＝ASPDはそのまま）
     bragi:P.bragi>time,
     mhp:Math.floor((38+EL*11)*(1+vit*.02)*(1+b.hpPct/100))+b.mhp,
     msp:Math.floor((12+EL*3)*(1+int*.025)),
@@ -1247,6 +1247,9 @@ function deserialize(o){
   for(const k in o) if(!['inv','eqW','eqA','jobData','skills'].includes(k)&&k in P) P[k]=o[k];
   if(!JOBS[P.job])P.job='aco';
   const old=o.skills||{};
+  // ファイアーボールは魔力増幅になった：振っていたレベルをそのまま移す
+  const fb2amp=sk=>{if(sk&&'fball' in sk){if(!('amp' in sk))sk.amp=sk.fball;delete sk.fball}};fb2amp(old);for(const j in o.jobData||{})fb2amp(o.jobData[j].skills);
+  for(const j in o.hotOrder||{})o.hotOrder[j]=o.hotOrder[j].map(x=>x==='s:fball'?'s:amp':x);if(o.hotOrder)P.hotOrder=o.hotOrder;
   P.skills={...JOBS[P.job].skills};
   for(const k in P.skills) if(k in old) P.skills[k]=old[k];
   // 転職システム以前のデータ：今のJob Lvに応じた職の段階を与え、使っていたスキルをそのまま使えるようにする
@@ -1606,6 +1609,9 @@ function moveEnt(e,tx,ty,sp,dt,rule){
 }
 
 // 囲まれ判定：冒険者を殴れる距離にいる敵の数。2体目から1体ごとにFLEEが10%下がる（最大80%）
+// 詠唱時間：詠唱が中断されないカードがあると +1秒（固定）
+const castTime=(id,lv)=>SK[id].cast(lv)*S().castMul+(cardBonus().nocancel?1:0);
+function castInterrupt(){if(P.casting&&!cardBonus().nocancel){P.casting=null;float(P.x,P.y-.6,'詠唱中断','#d8b8ff',15);msg('ダメージを受けて詠唱が中断された！','warn')}}
 const fleePen=()=>Math.min(.8,Math.max(0,(P.mobbed||0)-1)*.1)*(cardBonus().surround?.5:1);
 // SP消費（カードで最大50%まで軽くなる）
 const spCost=(id,lv)=>Math.max(1,Math.round(SK[id].sp(lv)*(1-Math.min(50,cardBonus().spcost)/100)));
@@ -1641,7 +1647,7 @@ function updateMobs(dt,s){
       const sp=m.def.special;
       if(sp&&d<8){m.spT=(m.spT==null?5:m.spT)-dt;if(m.spT<=0){m.spT=sp.every;const cx=m.x,cy=m.y,r=sp.r,big=m.def.atk[1]*sp.mult;
         fx.push({type:'warn',col:sp.col,x:cx,y:cy,r,t:0,at:1.3,life:1.32,cb:()=>{fx.push(sp.freeze?{type:'spell',el:'cold',x:cx,y:cy,t:.22,at:.22,life:.5,done:true}:{type:'boom',x:cx,y:cy,t:0,life:.7,big:true});sfx('gx');
-          if(!P.dead&&Math.hypot(P.x-cx,P.y-cy)<=r&&los(cx,cy,P.x,P.y)){const s2=S(),dmg=Math.max(1,Math.round((big*(1-Math.min(.5,s2.def/100))-s2.vdef)*(1-Math.min(70,s2.b.aoe)/100)));P.hp-=dmg;float(P.x,P.y,dmg,'#ff4a3a',24,1,true);
+          if(!P.dead&&Math.hypot(P.x-cx,P.y-cy)<=r&&los(cx,cy,P.x,P.y)){const s2=S(),dmg=Math.max(1,Math.round((big*(1-Math.min(.5,s2.def/100))-s2.vdef)*(1-Math.min(70,s2.b.aoe)/100)));P.hp-=dmg;float(P.x,P.y,dmg,'#ff4a3a',24,1,true);castInterrupt();
             if(sp.freeze&&P.hp>0&&!s2.b.nofreeze){P.frozen=time+sp.freeze;P.casting=null;msg('凍りついて動けない！','warn')}if(P.hp<=0)die()}
           for(const mc of mercs)if(!(mc.down>0)&&Math.hypot(mc.x-cx,mc.y-cy)<=r&&los(cx,cy,mc.x,mc.y)){mc.hp-=Math.round(big*.6);if(mc.hp<=0)mercDown(mc)}}});
         m.bubble=null;msg(sp.msg,'warn')}}
@@ -1676,7 +1682,7 @@ function mobAttack(m,s){
   if(rnd()*100>=hit){float(P.x,P.y,'Miss','#bfe3ff',16);return}
   const raw=irand(m.def.atk[0],m.def.atk[1]);
   const dmg=Math.max(1,Math.round((raw*(1-Math.min(.5,s.def/100))-s.vdef)*(1-Math.min(60,s.b.reduce)/100)));
-  P.hp-=dmg; float(P.x,P.y,dmg,'#ff5a4c',18,1,true); sfx('hurt');
+  P.hp-=dmg; float(P.x,P.y,dmg,'#ff5a4c',18,1,true); sfx('hurt');castInterrupt();
   if(P.hp<=0) die();
 }
 
@@ -1820,11 +1826,12 @@ function useSkill(id){
   if(id==='conc'){P.buff.conc=40+20*lv;P.buff.concLv=lv;fx.push({type:'heal',t:0,life:1,col:'#a8f0b8'});msg(`集中力向上！ AGI・DEX+${2+lv}`,'sys')}
   if(sk.cast){P.path=[];
     if(id==='gx'){const c=Math.floor(P.hp*.2);if(c>0){P.hp-=c;float(P.x,P.y,c,'#ff6a5c',16)}}
-    P.casting={id,t:0,dur:sk.cast(lv)*s.castMul};dirty=true;return}
+    P.casting={id,t:0,dur:castTime(id,lv)};dirty=true;return}
   if(id==='heal'){const a=healAmt(lv);P.hp=Math.min(s.mhp,P.hp+a);float(P.x,P.y,a,'#7dff8a',20);fx.push({type:'heal',t:0,life:1});sfx('heal')}
   if(id!=='heal')sfx('buff');
   if(id==='agi'){P.buff.agi=60;P.buff.agiLv=lv;fx.push({type:'heal',t:0,life:1,col:'#9cd0ff'});msg('速度増加！ 足が軽くなった','sys')}
   if(id==='bless'){P.buff.bless=40+20*lv;P.buff.blessLv=lv;fx.push({type:'lv',t:0,life:1.4,rgb:'255,240,180'});msg(`ブレッシング！ STR・INT・DEX+${lv}`,'sys')}
+  if(id==='amp'){P.amp={mul:1+.1*lv,t:30};fx.push({type:'lv',t:0,life:1.2,rgb:'200,120,255'});msg(`魔力増幅！ 次の魔法の威力 ×${P.amp.mul.toFixed(1)}`,'sys')}
   if(id==='angelus'){P.buff.angelus=30*lv;P.buff.angelusLv=lv;fx.push({type:'heal',t:0,life:1,col:'#f2d6ff'});msg(`エンジェラス！ DEF+${2*lv}`,'sys')}
   P.bubble={text:sk.n+'!!',t:1.2};dirty=true;
 }
@@ -1852,29 +1859,29 @@ function los(x0,y0,x1,y1){const n=Math.ceil(Math.hypot(x1-x0,y1-y0)/.2);
   for(let i=1;i<n;i++){const t=i/n,v=tile(Math.floor(x0+(x1-x0)*t),Math.floor(y0+(y1-y0)*t));if(v===TR||v===WL)return false}return true}
 // 範囲攻撃：中心から見通せる敵にだけ当たる（壁の向こうには届かない）
 function aoe(x,y,r,fn){for(const o of mobs)if(o.state!=='dead'&&Math.hypot(o.x-x,o.y-y)<=r&&los(x,y,o.x,o.y))fn(o)}
+// 魔力増幅：次に使う魔法1回だけ威力が上がる
+function takeAmp(){if(P.amp&&P.amp.t>0){const a=P.amp.mul;P.amp=null;return a}return 1}
 function castSpell(c,lv){
+  const A=takeAmp();
   // 自分のまわりに置く魔法（対象なし）
-  if(c.id==='swall'){P.swall={x:Math.floor(P.x),y:Math.floor(P.y),hits:lv+1,t:30};msg(`セーフティウォール！ ${lv+1}回まで攻撃を防ぐ`,'sys');sfx('buff');return}
-  if(c.id==='fwall'){placeFireWall(lv);return}
-  if(c.ground&&c.id==='sgust'){stormGust(c.x,c.y,lv);return}
+  if(c.id==='swall'){const h=Math.round((lv+1)*A);P.swall={x:Math.floor(P.x),y:Math.floor(P.y),hits:h,t:30};msg(`セーフティウォール！ ${h}回まで攻撃を防ぐ`,'sys');sfx('buff');return}
+  if(c.id==='fwall'){placeFireWall(lv,A);return}
+  if(c.ground&&c.id==='sgust'){stormGust(c.x,c.y,lv,A);return}
   const m=c.m;if(m.state!=='dead'){c.x=m.x;c.y=m.y}
   const hits=Math.min(lv,10),mul=lv/hits;
   if(c.id==='fb'){
     if(m.state==='dead')return;
-    for(let i=0;i<hits;i++)fx.push({type:'spell',el:'fire',m,x:c.x,y:c.y,t:-i*.12,at:.22,life:.5,cb:()=>{if(m.state!=='dead'){hurtMob(m,mdmg(m,.9*mul),EL_COL.fire,20);sfx('hit')}}});
-  }else if(c.id==='fball'){
-    fx.push({type:'fball',sx:P.x,sy:P.y,x:c.x,y:c.y,t:0,at:.3,life:.32,cb:()=>{fx.push({type:'boom',x:c.x,y:c.y,t:0,life:.6,big:true});sfx('gx');
-      aoe(c.x,c.y,2.5,o=>hurtMob(o,mdmg(o,1+.15*lv),'#ffb36b',22))}});
+    for(let i=0;i<hits;i++)fx.push({type:'spell',el:'fire',m,x:c.x,y:c.y,t:-i*.12,at:.22,life:.5,cb:()=>{if(m.state!=='dead'){hurtMob(m,mdmg(m,.9*mul*A),EL_COL.fire,20);sfx('hit')}}});
   }else if(c.id==='tstorm'){
     for(let i=0;i<hits;i++){const x=c.x+(rnd()-.5)*3,y=c.y+(rnd()-.5)*3;
-      fx.push({type:'spell',el:'bolt',x,y,t:-i*.15,at:.22,life:.5,cb:()=>{sfx('hit');aoe(x,y,2.5,o=>hurtMob(o,mdmg(o,.9*mul),'#fff27a',20))}})}
+      fx.push({type:'spell',el:'bolt',x,y,t:-i*.15,at:.22,life:.5,cb:()=>{sfx('hit');aoe(x,y,2.5,o=>hurtMob(o,mdmg(o,.9*mul*A),'#fff27a',20))}})}
   }
   if(m.state!=='dead')P.target={kind:'mob',ref:m,stay:true};
 }
 // ストームガスト：指定した場所に吹雪を10回。3回目で凍結
-function stormGust(cx,cy,lv){
+function stormGust(cx,cy,lv,A=1){
   fx.push({type:'sgust',x:cx,y:cy,r:3.5,t:0,life:4.8});sfx('gx');
-  for(let k=0;k<10;k++)later(.15+k*.45,()=>{aoe(cx,cy,3.5,o=>{hurtMob(o,mdmg(o,.4+.06*lv),'#a8e4ff',18);
+  for(let k=0;k<10;k++)later(.15+k*.45,()=>{aoe(cx,cy,3.5,o=>{hurtMob(o,mdmg(o,(.4+.06*lv)*A),'#a8e4ff',18);
     // 凍るまでは吹雪で押し流す（ノックバック）。ボスは動かない
     if(k<2&&o.state!=='dead'&&!o.def.boss&&!(o.iceT>time)){const a=rnd()*Math.PI*2,nx=o.x+Math.cos(a)*.7,ny=o.y+Math.sin(a)*.7;if(mobPass(nx,ny)){o.x=nx;o.y=ny}}
     if(k===2&&o.state!=='dead'&&!o.def.boss){o.root=Math.max(o.root||0,3);o.iceT=time+3}});if(k%3===0)sfx('hit')});
@@ -1894,11 +1901,11 @@ function updateGroundCast(){
   P.path=[];P.gcast=null;const cost=spCost(g.id,lv);
   if(P.sp<cost){msg('SPが足りません','warn');return}
   P.sp-=cost;P.face=(g.x-P.x)-(g.y-P.y)>0?1:-1;
-  P.casting={id:g.id,t:0,dur:sk.cast(lv)*S().castMul,ground:true,x:g.x,y:g.y};dirty=true;
+  P.casting={id:g.id,t:0,dur:castTime(g.id,lv),ground:true,x:g.x,y:g.y};dirty=true;
 }
 // ファイアーウォール：マウスの方向（なければ狙っている敵の方向）に、向きと直交する3マスの炎の壁
 let fwalls=[];
-function placeFireWall(lv){
+function placeFireWall(lv,A=1){
   let dx=0,dy=0;
   if(mouse.x>=0){const [wx,wy]=toWorld(mouse.x,mouse.y);dx=wx-P.x;dy=wy-P.y}
   if(Math.hypot(dx,dy)<.3&&P.target&&P.target.ref){dx=P.target.ref.x-P.x;dy=P.target.ref.y-P.y}
@@ -1907,13 +1914,13 @@ function placeFireWall(lv){
   const cx=P.x+dx*2,cy=P.y+dy*2,tiles=[];
   for(const k of [-1,0,1]){const x=Math.floor(cx-dy*k),y=Math.floor(cy+dx*k);if(pass(x,y)&&!tiles.some(t=>t.x===x&&t.y===y))tiles.push({x,y,hits:2+lv})}
   if(!tiles.length){msg('そこには炎の壁を置けません','warn');return}
-  fwalls.push({tiles,t:0,life:5+lv,dx,dy});if(fwalls.length>3)fwalls.shift();sfx('gx');
+  fwalls.push({tiles,t:0,life:5+lv,dx,dy,amp:A});if(fwalls.length>3)fwalls.shift();sfx('gx');
 }
 function updateFireWalls(dt){
   for(const w of fwalls){w.t+=dt;
     for(const tl of w.tiles){if(tl.hits<=0)continue;
       for(const m of mobs){if(m.state==='dead'||Math.floor(m.x)!==tl.x||Math.floor(m.y)!==tl.y)continue;
-        if((m.fwT||0)>time)continue;m.fwT=time+.3;tl.hits--;hurtMob(m,mdmg(m,.6),'#ffb36b',18);
+        if((m.fwT||0)>time)continue;m.fwT=time+.3;tl.hits--;hurtMob(m,mdmg(m,.6*(w.amp||1)),'#ffb36b',18);
         // 押し返す（プレイヤーから遠ざける方向）
         const nx=m.x+w.dx*.8,ny=m.y+w.dy*.8;if(m.state!=='dead'&&mobPass(nx,ny)){m.x=nx;m.y=ny}
         if(tl.hits<=0)break}}}
@@ -1926,8 +1933,8 @@ const mercPrice=slot=>slot===0?MERC_PRICE:MERC_PRICE*1000;
 const MERC_LOOK={
   aco:{name:'クレア',jn:'アコライト',body:'#7a2a3a',hair:'#f0d878',robe:true,mace:true,weapon:'#a9b0bc',desc:'回復とブレッシング・速度増加で支えつつ、メイスで殴る'},
   hunter:{name:'リオ',jn:'ハンター',body:'#3a6a5a',hair:'#f0d878',bow:true,quiver:true,weapon:'#8a5a2c',desc:'離れた位置から矢で攻撃。ときどき2連射'},
-  mage:{name:'ミナ',jn:'マジシャン',body:'#2a5a7a',hair:'#f0d878',robe:true,staff:true,weapon:'#c08aff',desc:'ファイアーボルトとファイアーボールで攻撃'},
-  bard:{name:'カノン',jn:'バード',body:'#2a7a5a',hair:'#e8b860',bow:true,quiver:true,weapon:'#c8a050',desc:'「ブラギの詩」を奏でる。足元の9マス（3×3）の中にいる間、詠唱時間が50%・スキルのディレイが半分になる。弓でも少し戦う'},
+  mage:{name:'ミナ',jn:'マジシャン',body:'#2a5a7a',hair:'#f0d878',robe:true,staff:true,weapon:'#c08aff',desc:'ファイアーボルトと火球で攻撃'},
+  bard:{name:'カノン',jn:'バード',body:'#2a7a5a',hair:'#e8b860',bow:true,quiver:true,weapon:'#c8a050',desc:'「ブラギの詩」を奏でる。足元の9マス（3×3）の中にいる間、スキルのディレイが60%短くなり、詠唱時間も20%短くなる。弓でも少し戦う'},
 };
 let mercs=[];
 const fmtTime=s=>{s=Math.max(0,Math.ceil(s));return `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`};
@@ -2103,7 +2110,7 @@ function hunterShot(m){
 function doSkill(id,m){
   const lv=P.skills[id],sk=SK[id],cost=spCost(id,lv);
   if(P.sp<cost){msg('SPが足りません','warn');if(P.job==='hunter')hunterShot(m);return}
-  if(sk.cast){P.sp-=cost;P.casting={id,t:0,dur:sk.cast(lv)*S().castMul,m,x:m.x,y:m.y};return}
+  if(sk.cast){P.sp-=cost;P.casting={id,t:0,dur:castTime(id,lv),m,x:m.x,y:m.y};return}
   P.sp-=cost;P.bubble={text:sk.n+'!!',t:1};
   if(id==='ds'){for(let i=0;i<2;i++)shoot(m,()=>playerAttack(m,S(),1.5+.25*lv,10,true),i*.12)}
   else if(id==='as'){const cx=m.x,cy=m.y;fx.push({type:'rain',x:cx,y:cy,t:0,life:.6});
@@ -2155,7 +2162,7 @@ function updateTarget(dt,s){
         if(P.queued){const id=P.queued.id;P.queued=null;doSkill(id,e);usedSk=true}
         else if(P.job==='hunter')hunterShot(e);
         else playerAttack(e,s,1,0,false);
-        P.atkT=usedSk&&(s.bragi||s.b.sdelay)?s.delay*.5:s.delay;P.swingT=Math.min(.22,s.delay*.9)}
+        P.atkT=usedSk?s.delay*(s.bragi?.4:1)*(s.b.sdelay?.5:1):s.delay;P.swingT=Math.min(.22,s.delay*.9)}
     }else if(T.kind==='npc'){openNpc(e);P.target=null}
     else{pickup(e);P.target=null}
     return;
@@ -3051,7 +3058,7 @@ function hud(){
   if(harvest){const busy=harvest.units.filter(u=>u.st!=='idle').length;
     rows.push(`<div class="mrow hv"><span>ハーヴェスト</span><span>${busy?`${busy}匹収集中　`:''}残り ${fmtTime(harvest.end-time)}</span><i style="width:${clamp((harvest.end-time)/MERC_TIME,0,1)*100}%"></i></div>`)}
   hm.hidden=!rows.length;hm.innerHTML=rows.join('');
-  $('hBuff').innerHTML=BUFFS.filter(([k])=>P.buff[k]>0).map(([k,n])=>`<span>${n} ${Math.ceil(P.buff[k])}s</span>`).join('')+(P.bragi>time?'<span style="background:#2a7a5a">♪ ブラギの詩</span>':'')+(fleePen()>0?`<span style="background:#a8322a">囲まれ ${P.mobbed}体 FLEE-${Math.round(fleePen()*100)}%</span>`:'');
+  $('hBuff').innerHTML=BUFFS.filter(([k])=>P.buff[k]>0).map(([k,n])=>`<span>${n} ${Math.ceil(P.buff[k])}s</span>`).join('')+(P.bragi>time?'<span style="background:#2a7a5a">♪ ブラギの詩</span>':'')+(P.amp?`<span style="background:#8a3ab0">魔力増幅 ×${P.amp.mul.toFixed(1)}</span>`:'')+(fleePen()>0?`<span style="background:#a8322a">囲まれ ${P.mobbed}体 FLEE-${Math.round(fleePen()*100)}%</span>`:'');
   const bAlive=mobs.filter(m=>m.def.boss&&m.state!=='dead').length,bt=Math.ceil(bossTimer);
   $('hName').textContent=pname();
   $('mmTxt').textContent=`${curMap.name} (${Math.floor(P.x)}, ${Math.floor(P.y)})`;
@@ -3362,6 +3369,8 @@ function draw(){
     ctx.beginPath();for(let i=0;i<=5;i++){const a=i*Math.PI*4/5;ctx.lineTo(Math.cos(a)*48,Math.sin(a)*48)}ctx.stroke();ctx.restore()}
   for(const merc of mercs)if(merc.job==='bard'&&merc.down<=0)drawBragiArea(merc);
   if(P.bragi>time&&!P.dead)drawBragiAura();
+  if(P.amp&&!P.dead){const [x,y]=iso(P.x,P.y),pl=1+Math.sin(time*6)*.1;ctx.strokeStyle='rgba(200,110,255,.9)';ctx.lineWidth=2.5;ctx.beginPath();ctx.ellipse(x,y,26*pl,13*pl,0,0,7);ctx.stroke();
+    ctx.fillStyle='rgba(220,150,255,.9)';for(let i=0;i<4;i++){const a=time*3+i*Math.PI/2;ctx.beginPath();ctx.arc(x+Math.cos(a)*26*pl,y+Math.sin(a)*13*pl-2,2.5,0,7);ctx.fill()}}
   for(const tr of traps){const [x,y]=iso(tr.x+.5,tr.y+.5);
     if(tr.k==='ankle'){ctx.strokeStyle='#8a8f99';ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(x,y,10,5,0,0,7);ctx.stroke();ctx.fillStyle='#b9bec8';
       for(let i=0;i<8;i++){const a=i/8*Math.PI*2;ctx.beginPath();ctx.moveTo(x+Math.cos(a)*10,y+Math.sin(a)*5);ctx.lineTo(x+Math.cos(a)*6,y+Math.sin(a)*3-3);ctx.lineTo(x+Math.cos(a+.3)*10,y+Math.sin(a+.3)*5);ctx.fill()}}
@@ -3600,6 +3609,7 @@ let last=0,saveT=0,hudT=0;
 function update(dt){
   time+=dt;const s=S();
   if(P.hp>s.mhp)P.hp=s.mhp;if(P.sp>s.msp)P.sp=s.msp;
+  if(P.amp){P.amp.t-=dt;if(P.amp.t<=0){P.amp=null;msg('魔力増幅の効果が切れました','sys');dirty=true}}
   for(const [k,n] of BUFFS) if(P.buff[k]>0){P.buff[k]-=dt;if(P.buff[k]<=0){P.buff[k]=0;msg(`${n}の効果が切れました`,'sys');dirty=true}}
   if(!P.dead){
     const fast=(safeXY(P.x,P.y)?2:1)*(P.buff.magni>0?2:1)*(P.sit?2:1);
