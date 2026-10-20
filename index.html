@@ -1906,13 +1906,17 @@ function updateGroundCast(){
 // ファイアーウォール：マウスの方向（なければ狙っている敵の方向）に、向きと直交する3マスの炎の壁
 let fwalls=[];
 function placeFireWall(lv,A=1){
+  // 向き：パソコンはマウスの方向、スマホは狙っている敵の方向、なければ向いている方向（最後に歩いた方向）
   let dx=0,dy=0;
-  if(mouse.x>=0){const [wx,wy]=toWorld(mouse.x,mouse.y);dx=wx-P.x;dy=wy-P.y}
-  if(Math.hypot(dx,dy)<.3&&P.target&&P.target.ref){dx=P.target.ref.x-P.x;dy=P.target.ref.y-P.y}
-  if(Math.hypot(dx,dy)<.3){dx=1;dy=0}
-  const d=Math.hypot(dx,dy);dx/=d;dy/=d;
+  if(mouse.x>=0&&mouse.type==='mouse'){const [wx,wy]=toWorld(mouse.x,mouse.y);dx=wx-P.x;dy=wy-P.y}
+  if(Math.hypot(dx,dy)<.3&&P.target&&P.target.ref&&P.target.ref.state!=='dead'){dx=P.target.ref.x-P.x;dy=P.target.ref.y-P.y}
+  if(Math.hypot(dx,dy)<.3){dx=P.dirX||1;dy=P.dirY||0}
+  // 8方向にそろえる（画面の上下左右・斜め）
+  const ang=Math.round(Math.atan2(dy,dx)/(Math.PI/4))*(Math.PI/4);dx=Math.cos(ang);dy=Math.sin(ang);
+  const diag=Math.abs(Math.abs(dx)-Math.abs(dy))<.1;
   const cx=P.x+dx*2,cy=P.y+dy*2,tiles=[];
-  for(const k of [-1,0,1]){const x=Math.floor(cx-dy*k),y=Math.floor(cy+dx*k);if(pass(x,y)&&!tiles.some(t=>t.x===x&&t.y===y))tiles.push({x,y,hits:2+lv})}
+  // 斜めの壁はすき間ができないように細かく並べる
+  for(const k of diag?[-1.4,-1,-.7,-.35,0,.35,.7,1,1.4]:[-1,0,1]){const x=Math.floor(cx-dy*k),y=Math.floor(cy+dx*k);if(pass(x,y)&&!tiles.some(t=>t.x===x&&t.y===y))tiles.push({x,y,hits:2+lv})}
   if(!tiles.length){msg('そこには炎の壁を置けません','warn');return}
   fwalls.push({tiles,t:0,life:5+lv,dx,dy,amp:A});if(fwalls.length>3)fwalls.shift();sfx('gx');
 }
@@ -2191,7 +2195,7 @@ function pickItem(px,py){for(const g of groundItems){const [sx,sy]=toScreen(g.x,
 cv.addEventListener('contextmenu',e=>e.preventDefault());
 cv.addEventListener('pointerdown',e=>{
   if(e.button!==0)return; document.activeElement&&document.activeElement.blur&&document.activeElement.blur();
-  mouse.x=e.clientX;mouse.y=e.clientY;
+  mouse.x=e.clientX;mouse.y=e.clientY;mouse.type=e.pointerType;
   if(P.dead)return;
   P.sit=false;
   const m=pickMob(e.clientX,e.clientY);
@@ -2208,7 +2212,7 @@ cv.addEventListener('pointerdown',e=>{
   mouse.down=true;mouse.ground=true;mouse.holdT=.35;
   try{cv.setPointerCapture(e.pointerId)}catch(_){}
 });
-cv.addEventListener('pointermove',e=>{mouse.x=e.clientX;mouse.y=e.clientY});
+cv.addEventListener('pointermove',e=>{mouse.x=e.clientX;mouse.y=e.clientY;mouse.type=e.pointerType});
 const up=()=>{mouse.down=false;mouse.ground=false};
 cv.addEventListener('pointerup',up);cv.addEventListener('pointercancel',up);
 cv.addEventListener('pointerleave',()=>{if(!mouse.down){mouse.x=-1;mouse.y=-1}});
@@ -3619,7 +3623,9 @@ function update(dt){
     P.atkT=Math.max(0,P.atkT-dt);P.swingT=Math.max(0,P.swingT-dt);P.moving=false;
     const frozen=P.frozen>time;
     if(!frozen){updateGroundCast();updateCast(dt);updateTarget(dt,s)}
-    if(P.path.length&&!P.casting&&!frozen){const [tx,ty]=P.path[0],r=moveEnt(P,tx,ty,s.speed,dt);if(r===true||r==='blocked')P.path.shift()}
+    if(P.path.length&&!P.casting&&!frozen){const [tx,ty]=P.path[0],ox=P.x,oy=P.y,r=moveEnt(P,tx,ty,s.speed,dt);if(r===true||r==='blocked')P.path.shift();
+      // 向いている方向（最後に歩いた方向）を覚えておく
+      if(Math.hypot(P.x-ox,P.y-oy)>1e-4){P.dirX=P.x-ox;P.dirY=P.y-oy}}
     if(P.moving)P.walk+=dt;
     if(mouse.down&&mouse.ground){mouse.holdT-=dt;if(mouse.holdT<=0){mouse.holdT=.25;const [wx,wy]=toWorld(mouse.x,mouse.y);moveTo(Math.floor(wx),Math.floor(wy))}}
   }
