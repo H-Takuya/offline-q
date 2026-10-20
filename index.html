@@ -1158,7 +1158,9 @@ function S(){
     castMul:Math.max(.1,1-dex/120)*(P.bragi>time?.5:1)*(b.cast?.5:1),
     def:a,vdef:Math.floor(vit*.6),hit:EL+dex,flee:EL+agi,crit:1+luk*.3,
     // 氷牙の王カード：ASPD上限195（攻撃間隔0.1秒）まで限界突破
-    delay:Math.max(b.lb?.1:0,Math.max(b.lb?.1:.16,.85-agi*.012-dex*.003)*(P.buff.agi>0?.9:1)*(P.bragi>time?.85:1)),
+    delay:Math.max(b.lb?.1:0,Math.max(b.lb?.1:.16,.85-agi*.012-dex*.003)*(P.buff.agi>0?.9:1)),
+    // ブラギの詩：スキルを使ったあとのディレイが半分（通常攻撃の間隔＝ASPDはそのまま）
+    bragi:P.bragi>time,
     mhp:Math.floor((38+EL*11)*(1+vit*.02))+b.mhp,
     msp:Math.floor((12+EL*3)*(1+int*.025)),
     speed:4.2*(P.buff.agi>0?1.3:1)*(b.spd?1.3:1)};
@@ -1853,7 +1855,7 @@ const MERC_LOOK={
   aco:{name:'クレア',jn:'アコライト',body:'#7a2a3a',hair:'#f0d878',robe:true,mace:true,weapon:'#a9b0bc',desc:'回復とブレッシング・速度増加で支えつつ、メイスで殴る'},
   hunter:{name:'リオ',jn:'ハンター',body:'#3a6a5a',hair:'#f0d878',bow:true,quiver:true,weapon:'#8a5a2c',desc:'離れた位置から矢で攻撃。ときどき2連射'},
   mage:{name:'ミナ',jn:'マジシャン',body:'#2a5a7a',hair:'#f0d878',robe:true,staff:true,weapon:'#c08aff',desc:'ファイアーボルトとファイアーボールで攻撃'},
-  bard:{name:'カノン',jn:'バード',body:'#2a7a5a',hair:'#e8b860',bow:true,quiver:true,weapon:'#c8a050',desc:'「ブラギの詩」を奏でる。そばにいる間、詠唱時間が半分・攻撃とスキルの間隔が15%短くなる。弓でも少し戦う'},
+  bard:{name:'カノン',jn:'バード',body:'#2a7a5a',hair:'#e8b860',bow:true,quiver:true,weapon:'#c8a050',desc:'「ブラギの詩」を奏でる。そばにいる間、詠唱時間が50%・スキルのディレイが半分になる。弓でも少し戦う'},
 };
 let mercs=[];
 const fmtTime=s=>{s=Math.max(0,Math.ceil(s));return `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`};
@@ -2049,10 +2051,11 @@ function updateTarget(dt,s){
       const dx=e.x-P.x,dy=e.y-P.y;if(Math.abs(dx-dy)>.05)P.face=(dx-dy)>0?1:-1;
       if(P.casting)return;
       if(P.atkT<=0){
-        if(P.queued){const id=P.queued.id;P.queued=null;doSkill(id,e)}
+        let usedSk=false;
+        if(P.queued){const id=P.queued.id;P.queued=null;doSkill(id,e);usedSk=true}
         else if(P.job==='hunter')hunterShot(e);
         else playerAttack(e,s,1,0,false);
-        P.atkT=s.delay;P.swingT=Math.min(.22,s.delay*.9)}
+        P.atkT=usedSk&&s.bragi?s.delay*.5:s.delay;P.swingT=Math.min(.22,s.delay*.9)}
     }else if(T.kind==='npc'){openNpc(e);P.target=null}
     else{pickup(e);P.target=null}
     return;
