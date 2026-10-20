@@ -525,26 +525,32 @@ const TIER_BOSSES=[
 ];
 // フィールドボスのカード（TIER_BOSSESと同じ順）。段階5以上は特殊効果つき
 const TB_CARDS=[
-  {vit:5,def:5},{agi:5,dex:2},
-  {str:6,mhp:150},{vit:6,def:8},{dex:6,atk:20},
-  {int:8,mhp:200},{agi:8,luk:4},{vit:4,def:12},
-  {int:10,dex:4},{luk:10,crit:5},{agi:10,atk:40},
-  {str:10,mhp:500},{vit:12,def:10},{dex:12,atk:40},
-  {vit:10,reduce:10},{int:12,hpPct:15},{agi:12,crit:15},
-  {luk:15,drop:30},{int:15,mdmg:15},{dex:15,pdmg:15},
-  {vit:15,hpPct:20},{int:12,exp:20},{agi:15,crit:25},
-  {int:20,mdmg:25},{str:20,pdmg:25},{dex:20,reduce:20},
-  {str:10,agi:10,vit:10,int:10,dex:10,luk:10,sdelay:1},{vit:20,hpPct:30,reduce:15},{dex:20,pdmg:30},
+  {vit:5,reduce:5,heal:10},{agi:5,aspd:5,r_wolf:15},
+  {str:6,hpPct:10,hpRegen:30},{vit:6,r_ghost:20,heal:15},{dex:8,r_wolf:20,crit:5},
+  {int:8,r_kino:25,spRegen:40},{agi:8,aspd:8,drain:1},{vit:8,reduce:8,surround:1},
+  {int:10,mdmg:10,r_human:15},{luk:10,r_ghost:30,crit:8},{agi:10,crit:12,aspd:5},
+  {str:10,r_dragon:25,hpPct:10},{vit:12,merc:40,reduce:5},{dex:12,pdmg:10,r_ghost:15},
+  {vit:10,reduce:12,surround:1},{int:12,heal:30,hpPct:15},{vit:15,aoe:40},
+  {luk:15,drop:30,zeny:30},{int:15,mdmg:15,spcost:15},{agi:15,aspd:12,r_dragon:20},
+  {vit:15,drain:2,hpPct:15},{int:12,exp:20,hpRegen:50,spRegen:50},{agi:15,crit:20,pdmg:12},
+  {int:20,mdmg:22,boss:10},{str:20,pdmg:22,r_human:20},{dex:20,reduce:18,aoe:25},
+  {str:10,agi:10,vit:10,int:10,dex:10,luk:10,boss:30,drain:3},{vit:20,hpPct:25,reduce:15,heal:30},{dex:20,pdmg:25,crit:15,aspd:10},
 ];
 // カードの効果を文章にする
 const CARD_STAT={str:'STR',agi:'AGI',vit:'VIT',int:'INT',dex:'DEX',luk:'LUK',atk:'ATK',def:'DEF',mhp:'最大HP'};
+const RACE_N={wolf:'獣族',kino:'植物',human:'人型',ghost:'霊体',dragon:'竜族',prun:'不定形',gtb:'昆虫'};
 function cardDesc(b){const out=[],st=['str','agi','vit','int','dex','luk'];
   if(st.every(k=>b[k]&&b[k]===b.str)){out.push(`全ステータス+${b.str}`)}else for(const k of st)if(b[k])out.push(`${CARD_STAT[k]}+${b[k]}`);
   for(const k of ['atk','def','mhp'])if(b[k])out.push(`${CARD_STAT[k]}+${b[k]}`);
-  if(b.hpPct)out.push(`最大HP+${b.hpPct}%`);if(b.crit)out.push(`クリティカル+${b.crit}%`);
+  if(b.hpPct)out.push(`最大HP+${b.hpPct}%`);
   if(b.pdmg&&b.mdmg&&b.pdmg===b.mdmg)out.push(`物理・魔法ダメージ+${b.pdmg}%`);else{if(b.pdmg)out.push(`物理ダメージ+${b.pdmg}%`);if(b.mdmg)out.push(`魔法ダメージ+${b.mdmg}%`)}
-  if(b.reduce)out.push(`受けるダメージ-${b.reduce}%`);if(b.drop)out.push(`ドロップ率+${b.drop}%`);if(b.exp)out.push(`経験値+${b.exp}%`);
-  if(b.sdelay)out.push('スキルのディレイが半分');if(b.cast)out.push('詠唱時間が半分');if(b.lb)out.push('ASPD上限が195に（限界突破）');if(b.spd)out.push('移動速度+30%');
+  if(b.crit)out.push(`クリティカル+${b.crit}%`);if(b.aspd)out.push(`攻撃速度+${b.aspd}%`);
+  for(const r in RACE_N)if(b['r_'+r])out.push(`対${RACE_N[r]}ダメージ+${b['r_'+r]}%`);
+  if(b.boss)out.push(`ボスへのダメージ+${b.boss}%`);if(b.drain)out.push(`与えたダメージの${b.drain}%をHP吸収`);
+  if(b.reduce)out.push(`受けるダメージ-${b.reduce}%`);if(b.aoe)out.push(`ボスの範囲攻撃ダメージ-${b.aoe}%`);if(b.surround)out.push('囲まれたときのFLEE低下が半分');
+  if(b.heal)out.push(`ヒール回復量+${b.heal}%`);if(b.hpRegen)out.push(`HP自然回復+${b.hpRegen}%`);if(b.spRegen)out.push(`SP自然回復+${b.spRegen}%`);if(b.spcost)out.push(`SP消費-${b.spcost}%`);
+  if(b.merc)out.push(`傭兵の能力+${b.merc}%`);if(b.zeny)out.push(`Zeny獲得+${b.zeny}%`);if(b.drop)out.push(`ドロップ率+${b.drop}%`);if(b.exp)out.push(`経験値+${b.exp}%`);
+  if(b.sdelay)out.push('スキルのディレイが半分');if(b.cast)out.push('詠唱時間が半分');if(b.lb)out.push('ASPD上限が195に（限界突破）');if(b.spd)out.push('移動速度+30%');if(b.nofreeze)out.push('凍結しない');
   return out.join(' / ')}
 TIER_BOSSES.forEach(([tier,n,kind,col,size,resist,look],i)=>{
   ITEMS['c_tb'+i]={n:n+'カード',t:'card',b:TB_CARDS[i],sell:0,g:'札',c:col,d:cardDesc(TB_CARDS[i])};
@@ -554,6 +560,19 @@ TIER_BOSSES.forEach(([tier,n,kind,col,size,resist,look],i)=>{
     aggro:true,boss:true,col,size,zone:[16,25],count:1,respawn:0,tier,resist,look:look||{},
     drops:[['gold',1],['gold',.7],['blue',.7],['yellow',1],['c_tb'+i,.05]],zeny:[lv*50,lv*100],mvp:[['c_tb'+i,.05],['blue',.5],['gold',1]]};
 });
+// カードの効果（モンスターごとにひとつの特徴）。説明文はすべて効果から作る
+const CARD_FX={
+  c_prun:{vit:5,hpRegen:50,hpPct:5},c_kino:{int:5,spRegen:50,spcost:5},c_wolf:{agi:5,r_wolf:20,aspd:5},
+  c_mist:{int:8,mdmg:8,spcost:10},c_gold:{luk:10,zeny:50,drop:10},c_gtb:{agi:10,surround:1},
+  c_kking:{vit:8,r_kino:30,hpRegen:30},c_wlord:{str:8,r_wolf:30,pdmg:10},c_witch:{int:10,mdmg:12,spcost:10},
+  c_skel:{str:8,r_human:25,merc:30},c_knight:{vit:8,pdmg:15,reduce:5},c_ghost:{agi:8,r_ghost:30,drain:2},c_dragon:{str:10,r_dragon:30,boss:10},
+  c_pharaoh:{int:10,drop:25,zeny:30},c_glacia:{agi:12,spd:1,nofreeze:1},c_barbaro:{str:12,zeny:60,pdmg:10},c_leviath:{vit:15,reduce:12,aoe:30},
+  c_thalassa:{int:15,dex:15,cast:1},c_glacies:{agi:15,lb:1,aspd:5},c_celsia:{int:20,mdmg:15,spcost:10,nofreeze:1},
+  c_dryad:{vit:15,hpRegen:100,heal:20},c_ifrit:{str:15,pdmg:15,boss:15},c_hora:{dex:15,aspd:10,sdelay:1},
+  c_apoc:{str:20,agi:20,vit:20,int:20,dex:20,luk:20,pdmg:20,mdmg:20,boss:20,exp:30},
+};
+for(const id in CARD_FX)if(ITEMS[id])ITEMS[id].b=CARD_FX[id];
+for(const id in ITEMS)if(ITEMS[id].t==='card'){ITEMS[id].d=cardDesc(ITEMS[id].b);ITEMS[id].sell=0}
 function boss(n,kind,lv,hp,atk,def,col,size,exp,card,o={}){
   return {tier:0,n,kind,lv,hp,atk,def,hit:lv+30,flee:o.flee||lv,exp,jexp:Math.round(exp*.7),speed:o.speed||2,delay:o.delay||1.2,aggro:true,boss:true,col,size,
     zone:[16,25],count:1,respawn:150+lv*2,drops:[['gold',1],['gold',.5],['blue',.5],['yellow',.8],[card,.05]],zeny:[lv*20,lv*40],
@@ -1178,9 +1197,15 @@ function addItem(id,q=1){
 function removeEntry(e,q=1){e.qty-=q;if(e.qty<=0){P.inv.splice(P.inv.indexOf(e),1);if(P.eq.weapon===e)P.eq.weapon=null;if(P.eq.armor===e)P.eq.armor=null}dirty=true}
 const count=id=>{const e=P.inv.find(e=>e.id===id);return e?e.qty:0};
 
-function S(){
-  const b={str:0,agi:0,vit:0,int:0,dex:0,luk:0,atk:0,mhp:0,def:0,cast:0,lb:0,spd:0,crit:0,hpPct:0,reduce:0,drop:0,mdmg:0,pdmg:0,exp:0,sdelay:0};
+// 装備に挿したカードの効果の合計
+function cardBonus(){
+  const b={str:0,agi:0,vit:0,int:0,dex:0,luk:0,atk:0,mhp:0,def:0,cast:0,lb:0,spd:0,crit:0,hpPct:0,reduce:0,drop:0,mdmg:0,pdmg:0,exp:0,sdelay:0,
+    aspd:0,boss:0,drain:0,aoe:0,surround:0,heal:0,hpRegen:0,spRegen:0,spcost:0,merc:0,zeny:0,nofreeze:0,r_wolf:0,r_kino:0,r_human:0,r_ghost:0,r_dragon:0,r_prun:0,r_gtb:0};
   for(const e of [P.eq.weapon,P.eq.armor]) if(e) for(const c of e.cards){const bb=ITEMS[c].b;for(const k in bb)b[k]+=bb[k]}
+  return b;
+}
+function S(){
+  const b=cardBonus();
   const agiB=P.buff.agi>0?2+P.buff.agiLv:0,bl=P.buff.bless>0?P.buff.blessLv:0,cc=P.buff.conc>0?2+P.buff.concLv:0;
   const str=P.str+b.str+bl,agi=P.agi+b.agi+agiB+cc,vit=P.vit+b.vit,int=P.int+b.int+bl,dex=P.dex+b.dex+bl+cc,luk=P.luk+b.luk;
   const EL=effLv(),hunter=P.job==='hunter',wi=P.eq.weapon&&ITEMS[P.eq.weapon.id],w=wi&&wi.cls===JOBS[P.job].w?wi.atk:0,a=(P.eq.armor?ITEMS[P.eq.armor.id].def:0)+(P.buff.angelus>0?2*P.buff.angelusLv:0)+b.def;
@@ -1192,7 +1217,7 @@ function S(){
     castMul:Math.max(.1,1-dex/120)*(P.bragi>time?.5:1)*(b.cast?.5:1),
     def:a,vdef:Math.floor(vit*.6),hit:EL+dex,flee:Math.floor((EL+agi)*(1-fleePen())),crit:1+luk*.3+b.crit,
     // 氷牙の王カード：ASPD上限195（攻撃間隔0.1秒）まで限界突破
-    delay:Math.max(b.lb?.1:0,Math.max(b.lb?.1:.16,.85-agi*.012-dex*.003)*(P.buff.agi>0?.9:1)),
+    delay:Math.max(b.lb?.1:0,Math.max(b.lb?.1:.16,(.85-agi*.012-dex*.003)*(1-Math.min(30,b.aspd)/100))*(P.buff.agi>0?.9:1)),
     // ブラギの詩：スキルを使ったあとのディレイが半分（通常攻撃の間隔＝ASPDはそのまま）
     bragi:P.bragi>time,
     mhp:Math.floor((38+EL*11)*(1+vit*.02)*(1+b.hpPct/100))+b.mhp,
@@ -1200,7 +1225,7 @@ function S(){
     speed:4.2*(P.buff.agi>0?1.3:1)*(b.spd?1.3:1)};
 }
 // ヒール：INTとレベルで大きく伸びる（アコライトの回復役としての柱）
-const healAmt=l=>{const s=P?S():{int:5};return Math.floor(((P?effLv():1)+s.int*3)*(.6+.5*l)+20*l)};
+const healAmt=l=>{const s=P?S():{int:5,b:{heal:0}};return Math.floor((((P?effLv():1)+s.int*3)*(.6+.5*l)+20*l)*(1+s.b.heal/100))};
 
 /* ---------- 保存 ---------- */
 const SAVE_KEY='rune-meadow-save-v1';
@@ -1581,7 +1606,9 @@ function moveEnt(e,tx,ty,sp,dt,rule){
 }
 
 // 囲まれ判定：冒険者を殴れる距離にいる敵の数。2体目から1体ごとにFLEEが10%下がる（最大80%）
-const fleePen=()=>Math.min(.8,Math.max(0,(P.mobbed||0)-1)*.1);
+const fleePen=()=>Math.min(.8,Math.max(0,(P.mobbed||0)-1)*.1)*(cardBonus().surround?.5:1);
+// SP消費（カードで最大50%まで軽くなる）
+const spCost=(id,lv)=>Math.max(1,Math.round(SK[id].sp(lv)*(1-Math.min(50,cardBonus().spcost)/100)));
 function updateMobs(dt,s){
   let near=0;
   for(const m of mobs){
@@ -1614,8 +1641,8 @@ function updateMobs(dt,s){
       const sp=m.def.special;
       if(sp&&d<8){m.spT=(m.spT==null?5:m.spT)-dt;if(m.spT<=0){m.spT=sp.every;const cx=m.x,cy=m.y,r=sp.r,big=m.def.atk[1]*sp.mult;
         fx.push({type:'warn',col:sp.col,x:cx,y:cy,r,t:0,at:1.3,life:1.32,cb:()=>{fx.push(sp.freeze?{type:'spell',el:'cold',x:cx,y:cy,t:.22,at:.22,life:.5,done:true}:{type:'boom',x:cx,y:cy,t:0,life:.7,big:true});sfx('gx');
-          if(!P.dead&&Math.hypot(P.x-cx,P.y-cy)<=r&&los(cx,cy,P.x,P.y)){const s2=S(),dmg=Math.max(1,Math.round(big*(1-Math.min(.5,s2.def/100))-s2.vdef));P.hp-=dmg;float(P.x,P.y,dmg,'#ff4a3a',24,1,true);
-            if(sp.freeze&&P.hp>0){P.frozen=time+sp.freeze;P.casting=null;msg('凍りついて動けない！','warn')}if(P.hp<=0)die()}
+          if(!P.dead&&Math.hypot(P.x-cx,P.y-cy)<=r&&los(cx,cy,P.x,P.y)){const s2=S(),dmg=Math.max(1,Math.round((big*(1-Math.min(.5,s2.def/100))-s2.vdef)*(1-Math.min(70,s2.b.aoe)/100)));P.hp-=dmg;float(P.x,P.y,dmg,'#ff4a3a',24,1,true);
+            if(sp.freeze&&P.hp>0&&!s2.b.nofreeze){P.frozen=time+sp.freeze;P.casting=null;msg('凍りついて動けない！','warn')}if(P.hp<=0)die()}
           for(const mc of mercs)if(!(mc.down>0)&&Math.hypot(mc.x-cx,mc.y-cy)<=r&&los(cx,cy,mc.x,mc.y)){mc.hp-=Math.round(big*.6);if(mc.hp<=0)mercDown(mc)}}});
         m.bubble=null;msg(sp.msg,'warn')}}
       // プレイヤーと傭兵のうち近いほうを狙う
@@ -1664,11 +1691,17 @@ function playerAttack(m,s,mult,hitBonus,skill){
   hurtMob(m,dmg,crit?'#ffe14a':'#ffffff',crit?24:skill?22:18,crit);sfx(crit?'crit':'hit');
 }
 function aggro(m){if(m.state==='dead')return;if(m.state==='idle')emote(m,'!',1.4);m.state='chase'}
+// カードの種族特効・ボス特効（冒険者自身の攻撃だけ。傭兵の攻撃はsrcJobつき）
+const raceOf=m=>{const k=m.def.kind||m.key;return RACE_N[k]?k:'prun'};
 function hurtMob(m,dmg,col,size,crit,srcJob){
   if(m.state==='dead')return;
+  const cb=srcJob?null:cardBonus();
+  if(cb){const mul=1+(cb['r_'+raceOf(m)]||0)/100+(m.def.boss?cb.boss/100:0);if(mul!==1)dmg=Math.max(1,Math.round(dmg*mul))}
   if(m.def.resist===(srcJob||P.job)){dmg=Math.max(1,Math.round(dmg*.1));col='#9aa0aa';crit=false;
     if(!m.hinted&&!srcJob){m.hinted=true;const other=Object.keys(JOBS).filter(j=>j!==P.job).map(j=>`${{aco:'Q',hunter:'W',mage:'R'}[j]}で${JOBS[j].n}`).join('・');msg(`${m.def.n} は${JOBS[P.job].n}耐性！ ダメージが1/10になる。${other}に切り替えよう`,'warn')}}
   m.hp-=dmg;m.flash=.12;m.hpShow=8;float(m.x,m.y,dmg,col,size,1,true,crit);aggro(m);
+  // HP吸収：1回で最大HPの5%まで
+  if(cb&&cb.drain&&!P.dead){const mh=S().mhp;P.hp=Math.min(mh,P.hp+Math.min(mh*.05,dmg*cb.drain/100))}
   if(m.hp<=0) killMob(m);
 }
 function killMob(m){
@@ -1685,7 +1718,7 @@ function killMob(m){
   if(m.def.final)storySkipTo(chOf('終焉の王'));
   storyEvent('kill',m);if(m.def.boss)storyEvent('boss',m);sideKill(m);
   {const dm=1+S().b.drop/100;for(const [id,r] of m.def.drops) if(rnd()<r*dm) dropItem(id,1,m)}
-  dropItem('zeny',irand(m.def.zeny[0],m.def.zeny[1]),m);
+  dropItem('zeny',Math.round(irand(m.def.zeny[0],m.def.zeny[1])*(1+S().b.zeny/100)),m);
   if(m.loot){for(const g of m.loot)dropItem(g.id,g.qty,m);m.loot=[]}
   if(m.def.boss){
     const rw=(m.def.mvp.find(([,r])=>rnd()<r)||m.def.mvp[m.def.mvp.length-1])[0];addItem(rw);
@@ -1781,7 +1814,7 @@ function useSkill(id){
   const trap=id==='ankle'||id==='mine',tx=Math.floor(P.x),ty=Math.floor(P.y);
   if(trap&&safeXY(P.x,P.y)){msg('安全地帯には罠を置けません','warn');return}
   if(trap&&traps.some(t=>t.x===tx&&t.y===ty)){msg('そこにはもう罠があります','warn');return}
-  const cost=sk.sp(lv); if(P.sp<cost){msg('SPが足りません','warn');return}
+  const cost=spCost(id,lv); if(P.sp<cost){msg('SPが足りません','warn');return}
   P.sp-=cost; const s=S();
   if(trap){traps.push({k:id,x:tx,y:ty,lv,t:0});if(traps.length>4)traps.shift();sfx('pick')}
   if(id==='conc'){P.buff.conc=40+20*lv;P.buff.concLv=lv;fx.push({type:'heal',t:0,life:1,col:'#a8f0b8'});msg(`集中力向上！ AGI・DEX+${2+lv}`,'sys')}
@@ -1858,7 +1891,7 @@ function updateGroundCast(){
   if(Math.hypot(g.x-P.x,g.y-P.y)>sk.range||!los(P.x,P.y,g.x,g.y)){
     if(!P.path.length){g.tries=(g.tries||0)+1;if(g.tries>3){P.gcast=null;msg('そこまで射線が通りません','warn');return}moveTo(Math.floor(g.x),Math.floor(g.y))}
     return}
-  P.path=[];P.gcast=null;const cost=sk.sp(lv);
+  P.path=[];P.gcast=null;const cost=spCost(g.id,lv);
   if(P.sp<cost){msg('SPが足りません','warn');return}
   P.sp-=cost;P.face=(g.x-P.x)-(g.y-P.y)>0?1:-1;
   P.casting={id:g.id,t:0,dur:sk.cast(lv)*S().castMul,ground:true,x:g.x,y:g.y};dirty=true;
@@ -1901,7 +1934,7 @@ const fmtTime=s=>{s=Math.max(0,Math.ceil(s));return `${Math.floor(s/60)}:${Strin
 const bragiOn=()=>P.bragi>time;
 // ブラギの詩の効果範囲：バードの立っているマスを中心にした3×3の9マス
 const inBragiArea=(merc,x,y)=>Math.abs(Math.floor(x)-Math.floor(merc.x))<=1&&Math.abs(Math.floor(y)-Math.floor(merc.y))<=1;
-function mercStats(){const L=effLv();return {atk:30+L*5,matk:40+L*6,mhp:200+L*30,heal:60+L*8}}
+function mercStats(){const L=effLv(),k=1+cardBonus().merc/100;return {atk:(30+L*5)*k,matk:(40+L*6)*k,mhp:Math.round((200+L*30)*k),heal:Math.round((60+L*8)*k)}}
 function hireMerc(job,dur=MERC_TIME,silent){
   if(mercs.length>=MERC_MAX)return;
   const st=mercStats(),[x,y]=nearFree(P.x+.8,P.y+.8+mercs.length*.6);
@@ -2068,7 +2101,7 @@ function hunterShot(m){
     if(P.skills.blitz>0&&tierOf('hunter')>=2&&m.state!=='dead'&&rnd()*100<10+s.luk/3){P.bubble={text:'ブリッツビート!!',t:.8};blitz(m,P.skills.blitz)}});
 }
 function doSkill(id,m){
-  const lv=P.skills[id],sk=SK[id],cost=sk.sp(lv);
+  const lv=P.skills[id],sk=SK[id],cost=spCost(id,lv);
   if(P.sp<cost){msg('SPが足りません','warn');if(P.job==='hunter')hunterShot(m);return}
   if(sk.cast){P.sp-=cost;P.casting={id,t:0,dur:sk.cast(lv)*S().castMul,m,x:m.x,y:m.y};return}
   P.sp-=cost;P.bubble={text:sk.n+'!!',t:1};
@@ -3026,7 +3059,7 @@ function hud(){
   $('mmBoss').textContent=curMap.id==='nightmare'?`深度 ${nmState().k}　敵Lv${nmLv()}　最高 ${nmState().best}`:curMap.id==='rush'?`ボス ${bAlive}体　カード2倍`:curMap.id==='field'?`ボス段階${bossTier()+1} ${bAlive}体　`+(bAlive<BOSS_MAX_ALIVE?`次 ${Math.floor(bt/60)}:${String(bt%60).padStart(2,'0')}`:'最大数')
     :`敵 ${mobs.filter(m=>m.state!=='dead').length}体　${((mobs.find(m=>m.def.boss)||{def:{n:'ボス'}}).def.n).split(/[ の]/).pop()}${bAlive?'出現中':'不在'}`;
   HOT.forEach(([k,id],i)=>{const el=$('hn'+i),b=el.parentElement;
-    if(k==='s'){const lv=P.skills[id],lock=skillLocked(id);el.textContent=lock?'封':lv?'Lv'+lv:'';b.classList.toggle('locked',lock);b.classList.toggle('off',lock||!lv||P.sp<SK[id].sp(lv));b.classList.toggle('aim',aiming===id||(P.queued&&P.queued.id===id))}
+    if(k==='s'){const lv=P.skills[id],lock=skillLocked(id);el.textContent=lock?'封':lv?'Lv'+lv:'';b.classList.toggle('locked',lock);b.classList.toggle('off',lock||!lv||P.sp<spCost(id,lv));b.classList.toggle('aim',aiming===id||(P.queued&&P.queued.id===id))}
     else{const n=count(id);el.textContent=n;b.classList.toggle('off',!n)}});
   if(dirty){dirty=false;
     if(!$('w-status').hidden)renderStatus();if(!$('w-inv').hidden)renderInv();if(!$('w-skill').hidden)renderSkill();if(!$('w-shop').hidden)renderShop();if(!$('w-story').hidden)renderStoryLog();}
@@ -3571,8 +3604,8 @@ function update(dt){
   if(!P.dead){
     const fast=(safeXY(P.x,P.y)?2:1)*(P.buff.magni>0?2:1)*(P.sit?2:1);
     if(P.emote){P.emote.t-=dt;if(P.emote.t<=0)P.emote=null}P.rh=(P.rh||0)+dt*fast;P.rs=(P.rs||0)+dt*fast;
-    if(P.rh>=6){P.rh=0;if(P.hp<s.mhp)P.hp=Math.min(s.mhp,P.hp+Math.max(1,Math.floor(s.mhp/40+s.vit/4)))}
-    if(P.rs>=8){P.rs=0;if(P.sp<s.msp)P.sp=Math.min(s.msp,P.sp+1+Math.floor(s.msp/60)+Math.floor(s.int/6))}
+    if(P.rh>=6){P.rh=0;if(P.hp<s.mhp)P.hp=Math.min(s.mhp,P.hp+Math.max(1,Math.floor((s.mhp/40+s.vit/4)*(1+s.b.hpRegen/100))))}
+    if(P.rs>=8){P.rs=0;if(P.sp<s.msp)P.sp=Math.min(s.msp,P.sp+Math.floor((1+Math.floor(s.msp/60)+Math.floor(s.int/6))*(1+s.b.spRegen/100)))}
     P.atkT=Math.max(0,P.atkT-dt);P.swingT=Math.max(0,P.swingT-dt);P.moving=false;
     const frozen=P.frozen>time;
     if(!frozen){updateGroundCast();updateCast(dt);updateTarget(dt,s)}
