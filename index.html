@@ -580,6 +580,8 @@ function boss(n,kind,lv,hp,atk,def,col,size,exp,card,o={}){
 }
 const EXP_RATE=300, MAX_LV=999, MAX_STAT=999;
 
+// 魔力増幅の倍率：Lv10で×1.5、そこからはゆっくり伸びてLv1000で×2.0（それ以上は伸びない）
+const ampMul=l=>l<=10?1+.05*l:Math.min(2,1.5+.5*(l-10)/990);
 const SK={
   bless:{job:'aco',n:'ブレッシング',max:10,sp:l=>10+2*l,target:false,g:'祝',c:'#d4a12a',d:l=>`${40+20*l}秒間 STR・INT・DEX+${l}`},
   agi:{job:'aco',n:'速度増加',max:10,sp:l=>10+3*l,target:false,g:'速',c:'#3e82d6',d:l=>`60秒間 移動+30% / AGI+${2+l}`},
@@ -593,7 +595,7 @@ const SK={
   blitz:{job:'hunter',n:'ブリッツビート',max:5,sp:l=>10+3*l,target:true,g:'鷹',c:'#8a6a3a',d:l=>`鷹が${l}回攻撃（必中・防御無視）。対象のまわり3×3マスを巻き込むが、巻き込んだ数でダメージを分け合う。通常攻撃のたびに 10%＋LUK÷3% で自動発動`},
   ankle:{job:'hunter',n:'アンクルスネア',max:5,sp:l=>12,target:false,g:'罠',c:'#6f7480',d:l=>`足元に罠を置く。踏んだ敵を${3+2*l}秒その場に縛る`},
   fb:{job:'mage',n:'ファイアーボルト',max:10,sp:l=>10+2*l,cast:l=>.06+.03*l,range:9,target:true,el:'fire',g:'炎',c:'#e0582a',d:l=>`炎の矢を${l}本落とす（単体）。1本 MATK×0.9`},
-  amp:{job:'mage',n:'魔力増幅',max:10,sp:l=>10+2*l,target:false,g:'増',c:'#b04ad0',d:l=>`魔力を高め、次に使う魔法1回の威力が ×${(1+.1*l).toFixed(1)}（30秒以内。詠唱なし）`},
+  amp:{job:'mage',n:'魔力増幅',max:10,sp:l=>10+2*l,target:false,g:'増',c:'#b04ad0',d:l=>`魔力を高め、次に使う魔法1回の威力が ×${ampMul(l).toFixed(2)}（30秒以内。詠唱なし。Lv1000で最大×2.0）`},
   tstorm:{job:'mage',n:'サンダーストーム',max:10,sp:l=>25+4*l,cast:l=>.15+.03*l,range:9,target:true,el:'bolt',g:'雷',c:'#8a7ad8',d:l=>`対象の周囲5×5に雷を${l}回。範囲内の敵すべてに1回 MATK×0.9`},
   sgust:{job:'mage',n:'ストームガスト',max:10,sp:l=>50+5*l,cast:l=>.3+.05*l,range:9,ground:true,r:3.5,el:'cold',g:'嵐',c:'#5ab8f0',d:l=>`クリックした場所の周囲7×7に吹雪を10回（射程9）。1回 MATK×${(.4+.06*l).toFixed(2)}。3回目で敵を3秒凍らせる`},
   fwall:{job:'mage',n:'ファイアーウォール',max:10,sp:l=>30+2*l,cast:l=>.06,target:false,g:'壁',c:'#e86a2a',d:l=>`マウスの方向に炎の壁（3マス）。触れた敵に MATK×0.6 と押し返し。1マスあたり${2+l}回 / ${5+l}秒`},
@@ -1831,7 +1833,7 @@ function useSkill(id){
   if(id!=='heal')sfx('buff');
   if(id==='agi'){P.buff.agi=60;P.buff.agiLv=lv;fx.push({type:'heal',t:0,life:1,col:'#9cd0ff'});msg('速度増加！ 足が軽くなった','sys')}
   if(id==='bless'){P.buff.bless=40+20*lv;P.buff.blessLv=lv;fx.push({type:'lv',t:0,life:1.4,rgb:'255,240,180'});msg(`ブレッシング！ STR・INT・DEX+${lv}`,'sys')}
-  if(id==='amp'){P.amp={mul:1+.1*lv,t:30};fx.push({type:'lv',t:0,life:1.2,rgb:'200,120,255'});msg(`魔力増幅！ 次の魔法の威力 ×${P.amp.mul.toFixed(1)}`,'sys')}
+  if(id==='amp'){P.amp={mul:ampMul(lv),t:30};fx.push({type:'lv',t:0,life:1.2,rgb:'200,120,255'});msg(`魔力増幅！ 次の魔法の威力 ×${P.amp.mul.toFixed(2)}`,'sys')}
   if(id==='angelus'){P.buff.angelus=30*lv;P.buff.angelusLv=lv;fx.push({type:'heal',t:0,life:1,col:'#f2d6ff'});msg(`エンジェラス！ DEF+${2*lv}`,'sys')}
   P.bubble={text:sk.n+'!!',t:1.2};dirty=true;
 }
@@ -3062,7 +3064,7 @@ function hud(){
   if(harvest){const busy=harvest.units.filter(u=>u.st!=='idle').length;
     rows.push(`<div class="mrow hv"><span>ハーヴェスト</span><span>${busy?`${busy}匹収集中　`:''}残り ${fmtTime(harvest.end-time)}</span><i style="width:${clamp((harvest.end-time)/MERC_TIME,0,1)*100}%"></i></div>`)}
   hm.hidden=!rows.length;hm.innerHTML=rows.join('');
-  $('hBuff').innerHTML=BUFFS.filter(([k])=>P.buff[k]>0).map(([k,n])=>`<span>${n} ${Math.ceil(P.buff[k])}s</span>`).join('')+(P.bragi>time?'<span style="background:#2a7a5a">♪ ブラギの詩</span>':'')+(P.amp?`<span style="background:#8a3ab0">魔力増幅 ×${P.amp.mul.toFixed(1)}</span>`:'')+(fleePen()>0?`<span style="background:#a8322a">囲まれ ${P.mobbed}体 FLEE-${Math.round(fleePen()*100)}%</span>`:'');
+  $('hBuff').innerHTML=BUFFS.filter(([k])=>P.buff[k]>0).map(([k,n])=>`<span>${n} ${Math.ceil(P.buff[k])}s</span>`).join('')+(P.bragi>time?'<span style="background:#2a7a5a">♪ ブラギの詩</span>':'')+(P.amp?`<span style="background:#8a3ab0">魔力増幅 ×${P.amp.mul.toFixed(2)}</span>`:'')+(fleePen()>0?`<span style="background:#a8322a">囲まれ ${P.mobbed}体 FLEE-${Math.round(fleePen()*100)}%</span>`:'');
   const bAlive=mobs.filter(m=>m.def.boss&&m.state!=='dead').length,bt=Math.ceil(bossTimer);
   $('hName').textContent=pname();
   $('mmTxt').textContent=`${curMap.name} (${Math.floor(P.x)}, ${Math.floor(P.y)})`;
