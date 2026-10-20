@@ -132,6 +132,8 @@ kbd{font-family:var(--f-display);font-size:10px;color:var(--muted);margin-left:2
 .der div{display:flex;justify-content:space-between;height:21px;align-items:center;font-variant-numeric:tabular-nums}
 .der span{color:var(--muted)}
 .tabs{display:flex;gap:4px;margin-bottom:8px}
+.name-row{gap:6px;align-items:center}.name-row input{flex:1;min-width:0;font:14px var(--f-ui);padding:4px 8px;border:1px solid var(--line);border-radius:4px;background:#fff;color:var(--ink)}
+#hName{cursor:pointer}#hName:hover{text-decoration:underline dotted}
 .cgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:8px;margin-top:4px}
 .cd{position:relative;background:linear-gradient(#fbf3de,#efe0bc);border:2px solid #b89a5a;border-radius:7px;padding:5px 5px 6px;text-align:center;box-shadow:0 2px 4px rgba(0,0,0,.18)}
 .cd.boss{border-color:#e0b83a;background:linear-gradient(#fff6d0,#f2d98a)}
@@ -181,10 +183,10 @@ kbd{font-family:var(--f-display);font-size:10px;color:var(--muted);margin-left:2
 #chat.min .hud-tg.new{border-color:var(--c-sys);color:var(--c-sys)}
 #chat:not(.min) #log{margin-right:26px}
 .menu.min .btn:not(.menu-tg){display:none}
-@media (max-width:520px){
-  .win .body{max-height:46vh;padding:6px 8px 8px;font-size:11.5px}
 </head>
 <body>
+@media (max-width:520px){
+  .win .body{max-height:46vh;padding:6px 8px 8px;font-size:11.5px}
   .win header{font-size:13px;padding:4px 6px 4px 8px}
   #w-status .grid2{grid-template-columns:1fr;gap:4px}
   .it{gap:6px;padding:3px 4px}
@@ -199,7 +201,7 @@ kbd{font-family:var(--f-display);font-size:10px;color:var(--muted);margin-left:2
 
 <div class="hud panel" id="status">
   <button class="hud-tg" data-ui="status" aria-label="ステータス表示を小さくする">－</button>
-  <div class="who"><b>冒険者</b><span id="hJob">アコライト</span></div>
+  <div class="who"><b id="hName" data-act="rename" title="名前を変える">冒険者</b><span id="hJob">アコライト</span></div>
   <div class="jobsw" role="group" aria-label="職業の切り替え"><button data-job="aco" aria-pressed="true" title="Qキー">アコライト<kbd>Q</kbd></button><button data-job="hunter" aria-pressed="false" title="Wキー">ハンター<kbd>W</kbd></button><button data-job="mage" aria-pressed="false" title="Rキー">マジシャン<kbd>R</kbd></button></div>
   <div class="row"><span>Base Lv <b id="hLv">1</b></span><span>Job Lv <b id="hJlv">1</b></span></div>
   <div class="bar" id="hpWrap"><i id="hpBar"></i><em id="hpTxt"></em></div>
@@ -1133,7 +1135,7 @@ function newPlayer(){
   const p={x:SPAWN[0],y:SPAWN[1],face:1,path:[],target:null,queued:null,casting:null,
     lv:1,exp:0,jlv:1,jexp:0,statPts:0,skillPts:0,str:7,agi:6,vit:4,int:4,dex:5,luk:3,
     hp:1,sp:1,zeny:120,inv:[],eq:{weapon:null,armor:null},skills:{...JOBS.aco.skills},job:'aco',jobData:{},
-    buff:{agi:0,agiLv:0,magni:0,bless:0,blessLv:0,angelus:0,angelusLv:0,conc:0,concLv:0},atkT:0,swingT:0,walk:0,dead:false,bubble:null,sit:false,emote:null,reb:0,rebLv:0,rebJ:0,finalClear:false,maxCombo:0,story:null,side:null,nm:{k:0,best:0},cardsSeen:{},tiers:{aco:1,hunter:1,mage:1}};
+    buff:{agi:0,agiLv:0,magni:0,bless:0,blessLv:0,angelus:0,angelusLv:0,conc:0,concLv:0},atkT:0,swingT:0,walk:0,dead:false,bubble:null,sit:false,emote:null,reb:0,rebLv:0,rebJ:0,finalClear:false,maxCombo:0,story:null,side:null,nm:{k:0,best:0},cardsSeen:{},name:'冒険者',tiers:{aco:1,hunter:1,mage:1}};
   return p;
 }
 function addItem(id,q=1){
@@ -1171,7 +1173,7 @@ const healAmt=l=>{const s=P?S():{int:5};return Math.floor(((P?effLv():1)+s.int*3
 /* ---------- 保存 ---------- */
 const SAVE_KEY='rune-meadow-save-v1';
 function serialize(){
-  const keys=['x','y','lv','exp','jlv','jexp','statPts','skillPts','str','agi','vit','int','dex','luk','hp','sp','zeny','skills','reb','rebLv','rebJ','finalClear','maxCombo','story','side','tiers','nm','cardsSeen'];
+  const keys=['x','y','lv','exp','jlv','jexp','statPts','skillPts','str','agi','vit','int','dex','luk','hp','sp','zeny','skills','reb','rebLv','rebJ','finalClear','maxCombo','story','side','tiers','nm','cardsSeen','name'];
   const o={}; for(const k of keys) o[k]=P[k];
   o.inv=P.inv.map(e=>({id:e.id,qty:e.qty,cards:e.cards.slice()}));
   o.eqW=P.inv.indexOf(P.eq.weapon); o.eqA=P.inv.indexOf(P.eq.armor);
@@ -2137,12 +2139,13 @@ cv.addEventListener('wheel',e=>{e.preventDefault();zoom=clamp(zoom*(e.deltaY<0?1
 
 const chatIn=$('chatIn');
 addEventListener('keydown',e=>{
+  if(document.activeElement&&document.activeElement.id==='nameIn'){if(e.key==='Enter'){e.preventDefault();applyName()}else if(e.key==='Escape')document.activeElement.blur();return}
   if(document.activeElement===chatIn){
     if(e.key==='Enter'){const t=chatIn.value.trim();
       if(t.startsWith('/')){const c=t.toLowerCase();
         if(EMO_CMD[c])emote(P,EMO_CMD[c]);else if(c==='/sit')toggleSit();
         else msg('コマンド：/sit　エモーション：/! /? /ho /lv /... /an /thx','sys')}
-      else if(t){msg(`冒険者 : ${t}`,'talk');P.bubble={text:t,t:4}}
+      else if(t){msg(`${pname()} : ${t}`,'talk');P.bubble={text:t,t:4}}
       chatIn.value='';chatIn.blur()}
     else if(e.key==='Escape')chatIn.blur();
     return;
@@ -2183,7 +2186,15 @@ const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',
 function itemName(e){const it=ITEMS[e.id];if(!it.slots&&!e.cards.length)return it.n;return `${it.n} [${e.cards.length}/${it.slots}]`}
 
 let shopTab='buy',resetArm=false;
+// 冒険者の名前（ステータス窓からいつでも変えられる）
+const pname=()=>P.name||'冒険者';
+function applyName(){const el=$('nameIn');if(!el)return;const v=el.value.replace(/[<>&"]/g,'').trim().slice(0,12);
+  if(!v){msg('名前を入力してください','warn');return}
+  if(v===pname()){el.blur();return}
+  P.name=v;el.blur();msg(`名前を「${v}」に変えました`,'item');P.bubble={text:`${v}です！`,t:2};dirty=true;save()}
 function renderStatus(){
+  // 名前を入力している間は書き換えない（入力中の文字が消えないように）
+  if(document.activeElement&&document.activeElement.id==='nameIn')return;
   const s=S(),rows=['str','agi','vit','int','dex','luk'].map(k=>{
     const base=P[k],bon=s[k]-base,c=statCost(base);
     return `<div class="stat"><span class="l">${k.toUpperCase()}</span><span class="v">${base}${bon?` <small>+${bon}</small>`:''}</span><span class="c">${c}</span><button class="btn plus" data-act="stat" data-k="${k}" data-n="1" ${P.statPts<c||base>=MAX_STAT?'disabled':''} aria-label="${k}を1上げる">+</button><button class="btn plus10" data-act="stat" data-k="${k}" data-n="10" ${P.statPts<c||base>=MAX_STAT?'disabled':''} aria-label="${k}を10上げる">+10</button></div>`}).join('');
@@ -2198,6 +2209,7 @@ function renderStatus(){
    ${P.reb?`<div><span>転生</span><b>${P.reb}回 <small>(Lv+${P.rebLv})</small></b></div>`:''}
   </div></div>
   <div class="foot"><span class="note" style="margin:0">STR:物理 / AGI:回避・速度 / VIT:HP / INT:魔法 / DEX:命中 / LUK:会心</span></div>
+  <div class="foot name-row"><span>名前</span><input id="nameIn" maxlength="12" value="${esc(pname())}" aria-label="名前"><button class="btn" data-act="rename-ok">変更</button></div>
   <div class="foot"><span class="note" style="margin:0">進行状況はこのブラウザに自動保存</span><button class="btn warn" data-act="reset">${resetArm?'本当に消す？':'データ初期化'}</button></div>`;
 }
 /* ---------- カード帳：カードはアイテムとは別に管理し、それぞれに落とすモンスターの絵をつける ---------- */
@@ -2715,7 +2727,7 @@ function storyCheck(){const st=storyStep();if(!st)return;
 function showStoryTalk(lines,done){if(storyTalk&&storyTalk.timer)clearInterval(storyTalk.timer);storyTalk={lines:lines.slice(),i:0,done};renderStoryTalk();toggleWin('talk',true)}
 function renderStoryTalk(){
   const T=storyTalk,[who,text,choices]=T.lines[T.i];if(T.timer)clearInterval(T.timer);
-  $('talkName').textContent=who===NARR?'物語':who;
+  $('talkName').textContent=who===NARR?'物語':who==='冒険者'?pname():who;
   const pic=who!==NARR&&PORTRAIT[who];
   $('b-talk').innerHTML=`<div class="st-row">${pic?'<canvas class="portrait" width="144" height="144"></canvas>':''}<p class="talk-t st-text" data-act="story-next">${who===NARR||pic?'':`<span class="who">${who}</span>`}<span id="stText"></span></p></div><div class="btns" id="stBtns"></div>`;
   if(pic)drawFace($('b-talk').querySelector('.portrait'),pic);
@@ -2858,6 +2870,8 @@ document.addEventListener('click',e=>{
   else if(act==='selletc'){let g=0;for(const e2 of P.inv.slice())if(ITEMS[e2.id].t==='etc'){g+=sellPrice(e2.id)*e2.qty;removeEntry(e2,e2.qty)}msg(g?`収集品を売却 (+${g}z)`:'売れる収集品がありません',g?'item':'warn');P.zeny+=g}
   else if(act==='tab'){shopTab=a.dataset.k}
   else if(act==='invtab'){invTab=a.dataset.k}
+  else if(act==='rename'){toggleWin('status',true);renderStatus();setTimeout(()=>{const el=$('nameIn');if(el){el.focus();el.select()}},50);return}
+  else if(act==='rename-ok'){applyName()}
   else if(act==='doheal'){const s=S();P.hp=s.mhp;P.sp=s.msp;fx.push({type:'heal',t:0,life:1});msg('HPとSPが全回復した','item');$('w-talk').hidden=true}
   else if(act==='tip'){openNpc(talkNpc);return}
   else if(act==='warp-dg'){$('w-talk').hidden=true;enterMap(getDungeon(),CX-.5,CY+1.5);return}
@@ -2955,6 +2969,7 @@ function hud(){
   hm.hidden=!rows.length;hm.innerHTML=rows.join('');
   $('hBuff').innerHTML=BUFFS.filter(([k])=>P.buff[k]>0).map(([k,n])=>`<span>${n} ${Math.ceil(P.buff[k])}s</span>`).join('')+(P.bragi>time?'<span style="background:#2a7a5a">♪ ブラギの詩</span>':'');
   const bAlive=mobs.filter(m=>m.def.boss&&m.state!=='dead').length,bt=Math.ceil(bossTimer);
+  $('hName').textContent=pname();
   $('mmTxt').textContent=`${curMap.name} (${Math.floor(P.x)}, ${Math.floor(P.y)})`;
   $('mmHome').hidden=!curMap.noSafe;
   $('mmBoss').textContent=curMap.id==='nightmare'?`深度 ${nmState().k}　敵Lv${nmLv()}　最高 ${nmState().best}`:curMap.id==='rush'?`ボス ${bAlive}体　カード2倍`:curMap.id==='field'?`ボス段階${bossTier()+1} ${bAlive}体　`+(bAlive<BOSS_MAX_ALIVE?`次 ${Math.floor(bt/60)}:${String(bt%60).padStart(2,'0')}`:'最大数')
@@ -3319,7 +3334,7 @@ function draw(){
     ctx.globalAlpha=1;const s=S();
     ctx.fillStyle='rgba(10,14,22,.75)';ctx.fillRect(x-18,y+6,36,8);ctx.fillStyle=P.hp/s.mhp<.25?'#e9493f':'#4ecb5a';ctx.fillRect(x-17,y+7,34*clamp(P.hp/s.mhp,0,1),3);
     ctx.fillStyle='#5b9cff';ctx.fillRect(x-17,y+11,34*clamp(P.sp/s.msp,0,1),2);
-    label('冒険者',x,y+27,'#ffffff',12);
+    label(pname(),x,y+27,'#ffffff',12);
     if(P.casting){const c=P.casting;ctx.fillStyle='rgba(10,14,22,.8)';ctx.fillRect(x-24,y-64,48,7);ctx.fillStyle='#ffb04a';ctx.fillRect(x-23,y-63,46*clamp(c.t/c.dur,0,1),5);label(SK[c.id].n,x,y-68,'#ffffff',11)}
   }]);
   objs.sort((a,b)=>a[0]-b[0]);for(const o of objs)o[1]();
@@ -3416,7 +3431,7 @@ function drawMvp(){
     ctx.font='64px "DotGothic16",monospace';ctx.textAlign='center';ctx.lineJoin='round';
     ctx.lineWidth=8;ctx.strokeStyle='#5a2a08';ctx.strokeText('MVP',0,0);
     const g=ctx.createLinearGradient(0,-50,0,0);g.addColorStop(0,'#fff6b8');g.addColorStop(1,'#e6a21c');ctx.fillStyle=g;ctx.fillText('MVP',0,0);
-    ctx.font='18px "DotGothic16",monospace';ctx.lineWidth=4;ctx.strokeStyle='#1a1410';ctx.strokeText('冒険者',0,28);ctx.fillStyle='#ffffff';ctx.fillText('冒険者',0,28);
+    ctx.font='18px "DotGothic16",monospace';ctx.lineWidth=4;ctx.strokeStyle='#1a1410';ctx.strokeText(pname(),0,28);ctx.fillStyle='#ffffff';ctx.fillText(pname(),0,28);
     ctx.restore();ctx.globalAlpha=1}
 }
 const COMBO_WIN=5,combo={n:0,last:-99,pop:0};
