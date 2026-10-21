@@ -801,7 +801,7 @@ const SEAL_TALK={
   tower:{open:'星の道で、天空の時計塔へ送りましょう。歯車の魔物や時の亡霊がさまよっています。<br>頂の「刻の守護騎士ホーラ」の金色の円に入ると、時が止まって動けなくなります。',closed:'塔への星の道は、まだあなたには見えないようです。'},
 };
 /* ---------- やりこみ：ボスの闘技場（転生4回目から）とナイトメア（転生後・エンドレス）。どちらも安全地帯なし ---------- */
-const RUSH_REB=4,NM_REB=1,RUSH_ALIVE=5,NM_STEP=3,NM_AVATAR_EVERY=50;
+const RUSH_CARD=.2,RUSH_MVP=.1,RUSH_REB=4,NM_REB=1,RUSH_ALIVE=5,NM_STEP=3,NM_AVATAR_EVERY=50;
 const PAL_ARENA={left:'#6a5236',right:'#806444',top:'#c8a868',line:'rgba(255,210,120,.25)',glyph:'rgba(255,200,90,.85)',hi:'rgba(255,230,170,.4)',
   bg:'#0e0a06',wall:'#1e160e',floor:s=>`hsl(${34+s*10},${30+s*10}%,${54+s*10}%)`,fline:'rgba(80,55,25,.4)',crack:'rgba(120,80,40,.4)',flame:['255,180,80','#ff9a2a','#ffe8a0']};
 const PAL_NIGHT={left:'#4a1a2a',right:'#5e2236',top:'#8a3048',line:'rgba(255,60,90,.22)',glyph:'rgba(255,60,100,.8)',hi:'rgba(255,120,150,.3)',
@@ -832,8 +832,8 @@ function rushBoss(){
   const b=rushPool()[Math.floor(rnd()*rushPool().length)],lv=1100+P.reb*300+irand(0,80);
   return {...b,lv,hp:Math.round(150*Math.pow(lv,1.3)*3),atk:[Math.round(lv*2.6),Math.round(lv*3.5)],def:50,hit:lv+55,flee:Math.round(lv*.85),
     exp:Math.round(Math.pow(lv,1.6)*2.5),jexp:Math.round(Math.pow(lv,1.6)*1.7),aggro:true,aggroR:10,chaseR:30,far:false,tier:-99,count:1,respawn:0,zone:undefined,
-    // カードは通常の2倍出やすい
-    drops:[['relic',1],['gold',1],['blue',.6],[b.card,Math.min(.5,b.cardRate*2)]],mvp:[[b.card,Math.min(.3,b.cardRate*1.2)],['relic',1]],zeny:[lv*150,lv*300]};
+    // カードはどのボスも同じ確率（ドロップ20%＋MVP報酬10%）
+    drops:[['relic',1],['gold',1],['blue',.6],[b.card,RUSH_CARD]],mvp:[[b.card,RUSH_MVP],['relic',1]],zeny:[lv*150,lv*300]};
 }
 let RUSH=null;
 function getRush(){
@@ -2462,7 +2462,7 @@ function openNpc(n){
   }
   else if(n.id==='nox'){const r=P.reb,S0=nmState();
     html=`<p class="talk-t">夢と現のはざまへようこそ。ここから先に、安全な場所はひとつもない。<br>どこへ行く？</p><div class="list">`+
-      `<div class="it">${icon('王','#b8862a')}<div class="tx"><div class="nm">ボスの闘技場</div><div class="ds">ボスだけが次々と現れる小さな闘技場。カードが通常の約2倍出やすい。安全地帯なし<br>${rushOpen()?'挑戦できます':`転生${RUSH_REB}回目から（今 ${r}回）`}</div></div>${rushOpen()?'<button class="btn" data-act="warp-rush">行く</button>':''}</div>`+
+      `<div class="it">${icon('王','#b8862a')}<div class="tx"><div class="nm">ボスの闘技場</div><div class="ds">ボスだけが次々と現れる小さな闘技場。どのボスもカードが出やすい（ドロップ20%＋MVP報酬10%）。安全地帯なし<br>${rushOpen()?'挑戦できます':`転生${RUSH_REB}回目から（今 ${r}回）`}</div></div>${rushOpen()?'<button class="btn" data-act="warp-rush">行く</button>':''}</div>`+
       `<div class="it">${icon('夢','#8a2a4a')}<div class="tx"><div class="nm">ナイトメア</div><div class="ds">倒すたびに敵が強くなるエンドレス。いつでも町へ戻れて、次は続きから。${NM_AVATAR_EVERY}体ごとに「悪夢の化身」が現れる<br>${nmOpen()?`現在 深度${S0.k}（敵 Lv${nmLv()}）／ 最高 深度${S0.best}`:'転生すると挑戦できます'}</div></div>${nmOpen()?'<button class="btn" data-act="warp-nm">行く</button>':''}</div>`+
       `</div><div class="btns"><button class="btn" data-close>やめておく</button></div>`;
   }
@@ -3110,7 +3110,7 @@ function hud(){
   $('hName').textContent=pname();
   $('mmTxt').textContent=`${curMap.name} (${Math.floor(P.x)}, ${Math.floor(P.y)})`;
   $('mmHome').hidden=!curMap.noSafe;
-  $('mmBoss').textContent=curMap.id==='nightmare'?`深度 ${nmState().k}　敵Lv${nmLv()}　最高 ${nmState().best}`:curMap.id==='rush'?`ボス ${bAlive}体　カード2倍`:curMap.id==='field'?`ボス段階${bossTier()+1} ${bAlive}体　`+(bAlive<BOSS_MAX_ALIVE?`次 ${Math.floor(bt/60)}:${String(bt%60).padStart(2,'0')}`:'最大数')
+  $('mmBoss').textContent=curMap.id==='nightmare'?`深度 ${nmState().k}　敵Lv${nmLv()}　最高 ${nmState().best}`:curMap.id==='rush'?`ボス ${bAlive}体　カード率UP`:curMap.id==='field'?`ボス段階${bossTier()+1} ${bAlive}体　`+(bAlive<BOSS_MAX_ALIVE?`次 ${Math.floor(bt/60)}:${String(bt%60).padStart(2,'0')}`:'最大数')
     :`敵 ${mobs.filter(m=>m.state!=='dead').length}体　${((mobs.find(m=>m.def.boss)||{def:{n:'ボス'}}).def.n).split(/[ の]/).pop()}${bAlive?'出現中':'不在'}`;
   HOT.forEach(([k,id],i)=>{const el=$('hn'+i),b=el.parentElement;
     if(k==='s'){const lv=P.skills[id],lock=skillLocked(id);el.textContent=lock?'封':lv?'Lv'+lv:'';b.classList.toggle('locked',lock);b.classList.toggle('off',lock||!lv||P.sp<spCost(id,lv)||(id==='asura'&&(P.spheres||0)<5));b.classList.toggle('aim',aiming===id||(P.queued&&P.queued.id===id))}
