@@ -594,29 +594,31 @@ function boss(n,kind,lv,hp,atk,def,col,size,exp,card,o={}){
 }
 const EXP_RATE=300, MAX_LV=999, MAX_STAT=999;
 
-// Lv1000を超えたぶんの伸び：0から1へ近づく（Lv2000で0.5、Lv3000で0.67、Lv5000で0.8）
-const overGrow=l=>l<=1000?0:(l-1000)/(l-1000+1000);
-// 魔力増幅の倍率：Lv10で×1.5、Lv1000で×2.0、その先はさらにゆっくり伸びて×2.5に近づく
+// Lv1000を超えたぶんの伸び：上限なし。Lvが2倍になるごとに約0.7ずつ増える（Lv2000で0.69、Lv3000で1.10、Lv10000で2.30）
+const overGrow=l=>l<=1000?0:Math.log(l/1000);
+// 魔力増幅の倍率：Lv10で×1.5、Lv1000で×2.0、その先も上限なく伸びる
 const ampMul=l=>l<=10?1+.05*l:l<=1000?1.5+.5*(l-10)/990:2+.5*overGrow(l);
-// 気功弾1つあたりのATK上昇（%）。Lv10で6%、Lv1000で2倍、その先は3倍に近づく
+// 気功弾1つあたりのATK上昇（%）。Lv10で6%、Lv1000で2倍、その先も上限なく伸びる
 const lvGrow=l=>l<=10?1:l<=1000?1+(l-10)/990:2+overGrow(l);
 // ダメージ用のスキルLv：Lv10まではそのまま、その先は伸びを1/5に（転生でLvが伸びても暴走しないように）
 const dmgLv=l=>l<=10?l:10+(l-10)*.2;
-// 支援スキルのLv：Lv10で10、Lv1000で20、その先は30に近づく
+// 支援スキルのLv：Lv10で10、Lv1000で20、その先も伸びる
 const buffLv=l=>Math.round(Math.min(l,10)*lvGrow(l));
 // 職業ごとの最大HP：アコライト系は前に立つので多め、マジシャン系は少なめ
 const JOB_HP={aco:1.5,hunter:1,mage:.8};
+// 攻撃速度・被ダメージ軽減の割合：支援Lv20（スキルLv1000）で30%。その先は支援Lv20ごとに残りの30%を削り、100%には届かない
+const softPct=b=>b<=20?.015*b:1-.7*Math.pow(.7,(b-20)/20);
 // アコライトで自分にかけた支援：持ち替えたどの職業でも大きく効く（ブレッシング=ATK・MATK、速度増加=攻撃速度、マグニフィカート=被ダメージ軽減）
-const acoSelf=()=>({atk:P.buff.bless>0&&P.buff.blessSelf?.03*P.buff.blessLv:0,spd:P.buff.agi>0&&P.buff.agiSelf?Math.min(.45,.015*P.buff.agiLv):0,guard:P.buff.magni>0&&P.buff.magniSelf?Math.min(.45,.015*(P.buff.magniLv||0)):0});
+const acoSelf=()=>({atk:P.buff.bless>0&&P.buff.blessSelf?.03*P.buff.blessLv:0,spd:P.buff.agi>0&&P.buff.agiSelf?softPct(P.buff.agiLv):0,guard:P.buff.magni>0&&P.buff.magniSelf?softPct(P.buff.magniLv||0):0});
 const kiPct=l=>(2+4*Math.min(l,10)/10)*lvGrow(l);
 // 阿修羅覇凰拳の倍率：Lv1で×12、Lv10で×30、その先も伸びる（ダメージ用Lv）
 const asuraMul=l=>10+2*dmgLv(l);
 const SK={
   bless:{job:'aco',n:'ブレッシング',max:10,sp:l=>10+2*l,target:false,g:'祝',c:'#d4a12a',d:l=>`${40+20*Math.min(l,30)}秒間 STR・INT・DEX+${buffLv(l)} / ATK・MATK+${3*buffLv(l)}%（ハンターやマジシャンに持ち替えても続く）`},
-  agi:{job:'aco',n:'速度増加',max:10,sp:l=>10+3*l,target:false,g:'速',c:'#3e82d6',d:l=>`${40+20*Math.min(l,30)}秒間 移動+30% / AGI+${2+buffLv(l)} / 攻撃速度+${(1.5*buffLv(l)).toFixed(0)}%（持ち替えても続く）`},
+  agi:{job:'aco',n:'速度増加',max:10,sp:l=>10+3*l,target:false,g:'速',c:'#3e82d6',d:l=>`${40+20*Math.min(l,30)}秒間 移動+30% / AGI+${2+buffLv(l)} / 攻撃速度+${(100*softPct(buffLv(l))).toFixed(0)}%（持ち替えても続く）`},
   heal:{job:'aco',n:'ヒール',max:10,sp:l=>10+3*l,target:false,g:'癒',c:'#4aae63',d:l=>`HPを約${healAmt(l)}回復`},
   kiko:{job:'aco',n:'気功',max:10,sp:l=>8,target:false,g:'気',c:'#e0a030',d:l=>`気功弾を1つ作る（最大5つ・10分）。1つにつき ATK+${kiPct(l).toFixed(1)}% / 攻撃速度+${(kiPct(l)/2).toFixed(1)}%`},
-  magni:{job:'aco',n:'マグニフィカート',max:5,sp:l=>12+2*l,cast:l=>1.2,target:false,g:'讃',c:'#7d8fe0',d:l=>`${30*Math.min(l,30)}秒間 HPとSPの自然回復が2倍・受けるダメージ-${(1.5*buffLv(l)).toFixed(0)}%（持ち替えても続く・詠唱1.2秒）`},
+  magni:{job:'aco',n:'マグニフィカート',max:5,sp:l=>12+2*l,cast:l=>1.2,target:false,g:'讃',c:'#7d8fe0',d:l=>`${30*Math.min(l,30)}秒間 HPとSPの自然回復が2倍・受けるダメージ-${(100*softPct(buffLv(l))).toFixed(0)}%（持ち替えても続く・詠唱1.2秒）`},
   asura:{job:'aco',n:'阿修羅覇凰拳',max:10,sp:l=>1,cast:l=>.8,target:true,g:'阿',c:'#d0402a',d:l=>`気功弾5つと残りのSPをすべて使い、目の前の敵に ATK×${asuraMul(l).toFixed(0)} の一撃（防御無視・SPが多いほど強い）`},
   conc:{job:'hunter',n:'集中力向上',max:10,sp:l=>10+l,target:false,g:'集',c:'#3f9a6a',d:l=>`${40+20*Math.min(l,30)}秒間 AGI・DEX+${2+buffLv(l)}`},
   ds:{job:'hunter',n:'ダブルストレイフィング',max:10,sp:l=>12,target:true,g:'双',c:'#c8702e',d:l=>`矢を2連射（単体）。ATK ${Math.round(150+25*dmgLv(l))}%×2`},
@@ -624,7 +626,7 @@ const SK={
   blitz:{job:'hunter',n:'ブリッツビート',max:5,sp:l=>10+3*l,target:true,g:'鷹',c:'#8a6a3a',d:l=>`鷹が${Math.min(l,10)}回攻撃（1回 ATK${Math.round(35*dmgLv(l)/Math.min(l,10))}%、必中・防御無視）。対象のまわり3×3マスを巻き込むが、巻き込んだ数でダメージを分け合う。通常攻撃のたびに 10%＋LUK÷3% で自動発動`},
   ankle:{job:'hunter',n:'アンクルスネア',max:5,sp:l=>12,target:false,g:'罠',c:'#6f7480',d:l=>`足元に罠を置く。踏んだ敵を${3+2*l}秒その場に縛る`},
   fb:{job:'mage',n:'ファイアーボルト',max:10,sp:l=>10+2*l,cast:l=>.02+.01*l,range:9,target:true,el:'fire',g:'炎',c:'#e0582a',d:l=>`炎の矢を${Math.min(l,10)}本落とす（単体）。1本 MATK×${(.35*dmgLv(l)/Math.min(l,10)).toFixed(2)}`},
-  amp:{job:'mage',n:'魔力増幅',max:10,sp:l=>10+2*l,target:false,g:'増',c:'#b04ad0',d:l=>`魔力を高め、次に使う魔法1回の威力が ×${ampMul(l).toFixed(2)}（30秒以内。詠唱なし。Lv1000で×2.0、その先は×2.5に近づく）`},
+  amp:{job:'mage',n:'魔力増幅',max:10,sp:l=>10+2*l,target:false,g:'増',c:'#b04ad0',d:l=>`魔力を高め、次に使う魔法1回の威力が ×${ampMul(l).toFixed(2)}（30秒以内。詠唱なし。Lv1000で×2.0、その先も伸びる）`},
   tstorm:{job:'mage',n:'サンダーストーム',max:10,sp:l=>25+4*l,cast:l=>.04+.01*l,range:9,target:true,el:'bolt',g:'雷',c:'#8a7ad8',d:l=>`対象の周囲5×5に雷を${Math.min(l,10)}回。範囲内の敵すべてに1回 MATK×${(.3*dmgLv(l)/Math.min(l,10)).toFixed(2)}`},
   sgust:{job:'mage',n:'ストームガスト',max:10,sp:l=>50+5*l,cast:l=>.2+.03*l,range:9,ground:true,r:3.5,el:'cold',g:'嵐',c:'#5ab8f0',d:l=>`クリックした場所の周囲7×7に吹雪を10回（射程9）。1回 MATK×${(.4+.06*dmgLv(l)).toFixed(2)}。3回目で敵を3秒凍らせる`},
   fwall:{job:'mage',n:'ファイアーウォール',max:10,sp:l=>30+2*l,cast:l=>.04,target:false,g:'壁',c:'#e86a2a',d:l=>`マウスの方向に炎の壁（3マス）。触れた敵に MATK×0.6 と押し返し。1マスあたり${2+l}回 / ${5+l}秒`},
