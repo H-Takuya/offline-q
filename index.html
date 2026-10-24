@@ -584,27 +584,35 @@ const EXP_RATE=300, MAX_LV=999, MAX_STAT=999;
 const ampMul=l=>l<=10?1+.05*l:Math.min(2,1.5+.5*(l-10)/990);
 // 気功弾1つあたりのATK上昇（%）。Lv10で6%、その先はゆっくり伸びてLv1000で2倍
 const lvGrow=l=>l<=10?1:Math.min(2,1+(l-10)/990);
+// ダメージ用のスキルLv：Lv10まではそのまま、その先は伸びを1/5に（転生でLvが伸びても暴走しないように）
+const dmgLv=l=>l<=10?l:10+(l-10)*.2;
+// 支援スキルのLv：Lv10で10、Lv1000で20
+const buffLv=l=>Math.round(Math.min(l,10)*lvGrow(l));
+// 職業ごとの最大HP：アコライト系は前に立つので多め、マジシャン系は少なめ
+const JOB_HP={aco:1.5,hunter:1,mage:.8};
+// アコライト系の自己強化：ブレッシングでATK、速度増加で攻撃速度、マグニフィカートで被ダメージ軽減
+const acoSelf=()=>{const a=P.job==='aco';return {atk:a&&P.buff.bless>0?.03*P.buff.blessLv:0,spd:a&&P.buff.agi>0?Math.min(.3,.015*P.buff.agiLv):0,guard:a&&P.buff.magni>0?Math.min(.3,.015*(P.buff.magniLv||0)):0}};
 const kiPct=l=>(2+4*Math.min(l,10)/10)*lvGrow(l);
-// 阿修羅覇凰拳の倍率：Lv1で×12、Lv10で×30、Lv1000で×60
-const asuraMul=l=>(10+2*Math.min(l,10))*lvGrow(l);
+// 阿修羅覇凰拳の倍率：Lv1で×12、Lv10で×30、その先も伸びる（ダメージ用Lv）
+const asuraMul=l=>10+2*dmgLv(l);
 const SK={
-  bless:{job:'aco',n:'ブレッシング',max:10,sp:l=>10+2*l,target:false,g:'祝',c:'#d4a12a',d:l=>`${40+20*l}秒間 STR・INT・DEX+${l}`},
-  agi:{job:'aco',n:'速度増加',max:10,sp:l=>10+3*l,target:false,g:'速',c:'#3e82d6',d:l=>`60秒間 移動+30% / AGI+${2+l}`},
+  bless:{job:'aco',n:'ブレッシング',max:10,sp:l=>10+2*l,target:false,g:'祝',c:'#d4a12a',d:l=>`${40+20*Math.min(l,30)}秒間 STR・INT・DEX+${buffLv(l)}。アコライト系はさらに ATK+${3*buffLv(l)}%`},
+  agi:{job:'aco',n:'速度増加',max:10,sp:l=>10+3*l,target:false,g:'速',c:'#3e82d6',d:l=>`60秒間 移動+30% / AGI+${2+buffLv(l)}。アコライト系はさらに 攻撃速度+${(1.5*buffLv(l)).toFixed(0)}%`},
   heal:{job:'aco',n:'ヒール',max:10,sp:l=>10+3*l,target:false,g:'癒',c:'#4aae63',d:l=>`HPを約${healAmt(l)}回復`},
   kiko:{job:'aco',n:'気功',max:10,sp:l=>8,target:false,g:'気',c:'#e0a030',d:l=>`気功弾を1つ作る（最大5つ・10分）。1つにつき ATK+${kiPct(l).toFixed(1)}% / 攻撃速度+${(kiPct(l)/2).toFixed(1)}%`},
-  magni:{job:'aco',n:'マグニフィカート',max:5,sp:l=>12+2*l,cast:l=>1.2,target:false,g:'讃',c:'#7d8fe0',d:l=>`${30*l}秒間 HPとSPの自然回復が2倍（詠唱1.2秒）`},
+  magni:{job:'aco',n:'マグニフィカート',max:5,sp:l=>12+2*l,cast:l=>1.2,target:false,g:'讃',c:'#7d8fe0',d:l=>`${30*Math.min(l,30)}秒間 HPとSPの自然回復が2倍・受けるダメージ-${(1.5*buffLv(l)).toFixed(0)}%（詠唱1.2秒）`},
   asura:{job:'aco',n:'阿修羅覇凰拳',max:10,sp:l=>1,cast:l=>.8,target:true,g:'阿',c:'#d0402a',d:l=>`気功弾5つと残りのSPをすべて使い、目の前の敵に ATK×${asuraMul(l).toFixed(0)} の一撃（防御無視・SPが多いほど強い）`},
-  conc:{job:'hunter',n:'集中力向上',max:10,sp:l=>10+l,target:false,g:'集',c:'#3f9a6a',d:l=>`${40+20*l}秒間 AGI・DEX+${2+l}`},
-  ds:{job:'hunter',n:'ダブルストレイフィング',max:10,sp:l=>12,target:true,g:'双',c:'#c8702e',d:l=>`矢を2連射（単体）。ATK ${150+25*l}%×2`},
-  as:{job:'hunter',n:'アローシャワー',max:10,sp:l=>15,target:true,g:'雨',c:'#4f86c9',d:l=>`対象の周囲3×3に矢の雨。ATK ${75+5*l}%`},
-  blitz:{job:'hunter',n:'ブリッツビート',max:5,sp:l=>10+3*l,target:true,g:'鷹',c:'#8a6a3a',d:l=>`鷹が${l}回攻撃（必中・防御無視）。対象のまわり3×3マスを巻き込むが、巻き込んだ数でダメージを分け合う。通常攻撃のたびに 10%＋LUK÷3% で自動発動`},
+  conc:{job:'hunter',n:'集中力向上',max:10,sp:l=>10+l,target:false,g:'集',c:'#3f9a6a',d:l=>`${40+20*Math.min(l,30)}秒間 AGI・DEX+${2+buffLv(l)}`},
+  ds:{job:'hunter',n:'ダブルストレイフィング',max:10,sp:l=>12,target:true,g:'双',c:'#c8702e',d:l=>`矢を2連射（単体）。ATK ${Math.round(150+25*dmgLv(l))}%×2`},
+  as:{job:'hunter',n:'アローシャワー',max:10,sp:l=>15,target:true,g:'雨',c:'#4f86c9',d:l=>`対象の周囲3×3に矢の雨。ATK ${Math.round(50+5*dmgLv(l))}%`},
+  blitz:{job:'hunter',n:'ブリッツビート',max:5,sp:l=>10+3*l,target:true,g:'鷹',c:'#8a6a3a',d:l=>`鷹が${Math.min(l,10)}回攻撃（1回 ATK${Math.round(35*dmgLv(l)/Math.min(l,10))}%、必中・防御無視）。対象のまわり3×3マスを巻き込むが、巻き込んだ数でダメージを分け合う。通常攻撃のたびに 10%＋LUK÷3% で自動発動`},
   ankle:{job:'hunter',n:'アンクルスネア',max:5,sp:l=>12,target:false,g:'罠',c:'#6f7480',d:l=>`足元に罠を置く。踏んだ敵を${3+2*l}秒その場に縛る`},
-  fb:{job:'mage',n:'ファイアーボルト',max:10,sp:l=>10+2*l,cast:l=>.06+.03*l,range:9,target:true,el:'fire',g:'炎',c:'#e0582a',d:l=>`炎の矢を${l}本落とす（単体）。1本 MATK×0.9`},
+  fb:{job:'mage',n:'ファイアーボルト',max:10,sp:l=>10+2*l,cast:l=>.04+.02*l,range:9,target:true,el:'fire',g:'炎',c:'#e0582a',d:l=>`炎の矢を${Math.min(l,10)}本落とす（単体）。1本 MATK×${(.35*dmgLv(l)/Math.min(l,10)).toFixed(2)}`},
   amp:{job:'mage',n:'魔力増幅',max:10,sp:l=>10+2*l,target:false,g:'増',c:'#b04ad0',d:l=>`魔力を高め、次に使う魔法1回の威力が ×${ampMul(l).toFixed(2)}（30秒以内。詠唱なし。Lv1000で最大×2.0）`},
-  tstorm:{job:'mage',n:'サンダーストーム',max:10,sp:l=>25+4*l,cast:l=>.15+.03*l,range:9,target:true,el:'bolt',g:'雷',c:'#8a7ad8',d:l=>`対象の周囲5×5に雷を${l}回。範囲内の敵すべてに1回 MATK×0.9`},
-  sgust:{job:'mage',n:'ストームガスト',max:10,sp:l=>50+5*l,cast:l=>.3+.05*l,range:9,ground:true,r:3.5,el:'cold',g:'嵐',c:'#5ab8f0',d:l=>`クリックした場所の周囲7×7に吹雪を10回（射程9）。1回 MATK×${(.4+.06*l).toFixed(2)}。3回目で敵を3秒凍らせる`},
-  fwall:{job:'mage',n:'ファイアーウォール',max:10,sp:l=>30+2*l,cast:l=>.06,target:false,g:'壁',c:'#e86a2a',d:l=>`マウスの方向に炎の壁（3マス）。触れた敵に MATK×0.6 と押し返し。1マスあたり${2+l}回 / ${5+l}秒`},
-  swall:{job:'mage',n:'セーフティウォール',max:10,sp:l=>30+3*l,cast:l=>.08,target:false,g:'護',c:'#e88ab8',d:l=>`足元に光の柱。その上にいる間、敵の攻撃を${l+1}回まで防ぐ（30秒）`},
+  tstorm:{job:'mage',n:'サンダーストーム',max:10,sp:l=>25+4*l,cast:l=>.1+.02*l,range:9,target:true,el:'bolt',g:'雷',c:'#8a7ad8',d:l=>`対象の周囲5×5に雷を${Math.min(l,10)}回。範囲内の敵すべてに1回 MATK×${(.3*dmgLv(l)/Math.min(l,10)).toFixed(2)}`},
+  sgust:{job:'mage',n:'ストームガスト',max:10,sp:l=>50+5*l,cast:l=>.2+.03*l,range:9,ground:true,r:3.5,el:'cold',g:'嵐',c:'#5ab8f0',d:l=>`クリックした場所の周囲7×7に吹雪を10回（射程9）。1回 MATK×${(.4+.06*dmgLv(l)).toFixed(2)}。3回目で敵を3秒凍らせる`},
+  fwall:{job:'mage',n:'ファイアーウォール',max:10,sp:l=>30+2*l,cast:l=>.04,target:false,g:'壁',c:'#e86a2a',d:l=>`マウスの方向に炎の壁（3マス）。触れた敵に MATK×0.6 と押し返し。1マスあたり${2+l}回 / ${5+l}秒`},
+  swall:{job:'mage',n:'セーフティウォール',max:10,sp:l=>30+3*l,cast:l=>.05,target:false,g:'護',c:'#e88ab8',d:l=>`足元に光の柱。その上にいる間、敵の攻撃を${l+1}回まで防ぐ（30秒）`},
   mine:{job:'hunter',n:'ランドマイン',max:5,sp:l=>10,target:false,g:'爆',c:'#c94a3a',d:l=>`足元に地雷を置く。踏んだ敵にDEXとINT依存の大ダメージ`},
 };
 const JOBS={
@@ -1229,21 +1237,21 @@ function S(){
   const EL=effLv(),hunter=P.job==='hunter',wi=P.eq.weapon&&ITEMS[P.eq.weapon.id],w=wi&&wi.cls===JOBS[P.job].w?wi.atk:0,a=(P.eq.armor?ITEMS[P.eq.armor.id].def:0)+(P.buff.angelus>0?2*P.buff.angelusLv:0)+b.def;
   return {str,agi,vit,int,dex,luk,b,agiB,
     // 職業ごとの物理攻撃：ハンター（DEX）＞アコライト（STR）＞マジシャン（ほぼ魔法頼み）
-    atk:Math.floor((Math.floor(hunter?dex*2.6+str/5:P.job==='aco'?str*2.3+dex/5:str*1.4+dex/5)+Math.floor(luk/5)+w+b.atk+EL)*(1+b.pdmg/100)*(1+kiBonus()/100)),
+    atk:Math.floor((Math.floor(hunter?dex*2.6+dex*dex/25+str/5:P.job==='aco'?str*2.3+str*str/30+dex/5:str*1.4+dex/5)+Math.floor(luk/5)+w+b.atk+EL)*(1+b.pdmg/100)*(1+kiBonus()/100)*(1+acoSelf().atk)),
     range:hunter?8.5:0,
     matk:Math.floor((int*3+Math.floor(int*int/25)+EL+(wi&&wi.cls===JOBS[P.job].w&&wi.matk?wi.matk:0))*(1+b.mdmg/100)),
     castMul:Math.max(.1,1-dex/120)*(P.bragi>time?.8:1)*(b.cast?.5:1),
     def:a,vdef:Math.floor(vit*.6),hit:EL+dex,flee:Math.floor((EL+agi)*(1-fleePen())),crit:1+luk*.3+b.crit,
     // 氷牙の王カード：ASPD上限195（攻撃間隔0.1秒）まで限界突破
-    delay:Math.max(b.lb?.1:0,Math.max(b.lb?.1:.16,(.85-agi*.012-dex*.003)*(1-Math.min(30,b.aspd+kiBonus()/2)/100))*(P.buff.agi>0?.9:1)),
+    delay:Math.max(b.lb?.1:0,Math.max(b.lb?.1:.16,(.85-agi*.012-dex*.003)*(1-Math.min(30,b.aspd+kiBonus()/2)/100))*(P.buff.agi>0?.9:1)*(1-acoSelf().spd)),
     // ブラギの詩：スキルを使ったあとのディレイが60%短くなる（通常攻撃の間隔＝ASPDはそのまま）
     bragi:P.bragi>time,
-    mhp:Math.floor((38+EL*11)*(1+vit*.02)*(1+b.hpPct/100))+b.mhp,
+    mhp:Math.floor((38+EL*11)*(1+vit*.02)*(1+b.hpPct/100)*(JOB_HP[P.job]||1))+b.mhp,
     msp:Math.floor((12+EL*3)*(1+int*.025)),
     speed:4.2*(P.buff.agi>0?1.3:1)*(b.spd?1.3:1)};
 }
 // ヒール：INTとレベルで大きく伸びる（アコライトの回復役としての柱）
-const healAmt=l=>{const s=P?S():{int:5,b:{heal:0}};return Math.floor((((P?effLv():1)+s.int*3)*(.6+.5*l)+20*l)*(1+s.b.heal/100))};
+const healAmt=l=>{const s=P?S():{int:5,mhp:0,b:{heal:0}},d=dmgLv(l);return Math.floor((((P?effLv():1)+s.int*3)*(.6+.5*d)+20*d+s.mhp*.01*Math.min(l,10))*(1+s.b.heal/100))};
 
 /* ---------- 保存 ---------- */
 const SAVE_KEY='rune-meadow-save-v1';
@@ -1635,7 +1643,7 @@ function moveEnt(e,tx,ty,sp,dt,rule){
 
 // 囲まれ判定：冒険者を殴れる距離にいる敵の数。2体目から1体ごとにFLEEが10%下がる（最大80%）
 // 詠唱時間：詠唱が中断されないカードがあると +1秒（固定）
-const castTime=(id,lv)=>SK[id].cast(lv)*S().castMul+(cardBonus().nocancel?1:0);
+const castTime=(id,lv)=>SK[id].cast(Math.min(lv,10))*S().castMul+(cardBonus().nocancel?1:0);
 function castInterrupt(){if(P.casting&&!cardBonus().nocancel){P.casting=null;float(P.x,P.y-.6,'詠唱中断','#d8b8ff',15);msg('ダメージを受けて詠唱が中断された！','warn')}}
 const fleePen=()=>Math.min(.8,Math.max(0,(P.mobbed||0)-1)*.1)*(cardBonus().surround?.5:1);
 // SP消費（カードで最大50%まで軽くなる）
@@ -1706,7 +1714,7 @@ function mobAttack(m,s){
   const hit=clamp(80+m.def.hit-s.flee,5,95);
   if(rnd()*100>=hit){float(P.x,P.y,'Miss','#bfe3ff',16);return}
   const raw=irand(m.def.atk[0],m.def.atk[1]);
-  const dmg=Math.max(1,Math.round((raw*(1-Math.min(.5,s.def/100))-s.vdef)*(1-Math.min(60,s.b.reduce)/100)));
+  const dmg=Math.max(1,Math.round((raw*(1-Math.min(.5,s.def/100))-s.vdef)*(1-Math.min(60,s.b.reduce)/100)*(1-acoSelf().guard)));
   P.hp-=dmg; float(P.x,P.y,dmg,'#ff5a4c',18,1,true); sfx('hurt');castInterrupt();
   if(P.hp<=0) die();
 }
@@ -1727,7 +1735,7 @@ const raceOf=m=>{const k=m.def.kind||m.key;return RACE_N[k]?k:'prun'};
 function hurtMob(m,dmg,col,size,crit,srcJob){
   if(m.state==='dead')return;
   const cb=srcJob?null:cardBonus();
-  if(cb){const mul=1+(cb['r_'+raceOf(m)]||0)/100+(m.def.boss?cb.boss/100:0);if(mul!==1)dmg=Math.max(1,Math.round(dmg*mul))}
+  if(cb){const mul=1+(cb['r_'+raceOf(m)]||0)/100+(m.def.boss?cb.boss/100+(P.job==='hunter'?.25:0):0);if(mul!==1)dmg=Math.max(1,Math.round(dmg*mul))}
   if(m.def.resist===(srcJob||P.job)){dmg=Math.max(1,Math.round(dmg*.1));col='#9aa0aa';crit=false;
     if(!m.hinted&&!srcJob){m.hinted=true;const other=Object.keys(JOBS).filter(j=>j!==P.job).map(j=>`${{aco:'Q',hunter:'W',mage:'R'}[j]}で${JOBS[j].n}`).join('・');msg(`${m.def.n} は${JOBS[P.job].n}耐性！ ダメージが1/10になる。${other}に切り替えよう`,'warn')}}
   m.hp-=dmg;m.flash=.12;m.hpShow=8;float(m.x,m.y,dmg,col,size,1,true,crit);aggro(m);
@@ -1848,15 +1856,16 @@ function useSkill(id){
   const cost=spCost(id,lv); if(P.sp<cost){msg('SPが足りません','warn');return}
   P.sp-=cost; const s=S();
   if(trap){traps.push({k:id,x:tx,y:ty,lv,t:0});if(traps.length>4)traps.shift();sfx('pick')}
-  if(id==='conc'){P.buff.conc=40+20*lv;P.buff.concLv=lv;fx.push({type:'heal',t:0,life:1,col:'#a8f0b8'});msg(`集中力向上！ AGI・DEX+${2+lv}`,'sys')}
+  if(id==='conc'){P.buff.conc=40+20*Math.min(lv,30);P.buff.concLv=buffLv(lv);fx.push({type:'heal',t:0,life:1,col:'#a8f0b8'});msg(`集中力向上！ AGI・DEX+${2+buffLv(lv)}`,'sys')}
   if(sk.cast){P.path=[];
     P.casting={id,t:0,dur:castTime(id,lv)};dirty=true;return}
   if(id==='heal'){const a=healAmt(lv);P.hp=Math.min(s.mhp,P.hp+a);float(P.x,P.y,a,'#7dff8a',20);fx.push({type:'heal',t:0,life:1});sfx('heal')}
   if(id!=='heal')sfx('buff');
-  if(id==='agi'){P.buff.agi=60;P.buff.agiLv=lv;fx.push({type:'heal',t:0,life:1,col:'#9cd0ff'});msg('速度増加！ 足が軽くなった','sys')}
-  if(id==='bless'){P.buff.bless=40+20*lv;P.buff.blessLv=lv;fx.push({type:'lv',t:0,life:1.4,rgb:'255,240,180'});msg(`ブレッシング！ STR・INT・DEX+${lv}`,'sys')}
+  if(id==='agi'){P.buff.agi=60;P.buff.agiLv=buffLv(lv);fx.push({type:'heal',t:0,life:1,col:'#9cd0ff'});msg('速度増加！ 足が軽くなった','sys')}
+  if(id==='bless'){P.buff.bless=40+20*Math.min(lv,30);P.buff.blessLv=buffLv(lv);fx.push({type:'lv',t:0,life:1.4,rgb:'255,240,180'});msg(`ブレッシング！ STR・INT・DEX+${buffLv(lv)}`,'sys')}
   if(id==='amp'){P.amp={mul:ampMul(lv),t:30};fx.push({type:'lv',t:0,life:1.2,rgb:'200,120,255'});msg(`魔力増幅！ 次の魔法の威力 ×${P.amp.mul.toFixed(2)}`,'sys')}
-  if(id==='kiko'){P.spheres=Math.min(5,(P.spheres||0)+1);P.sphereT=600;fx.push({type:'heal',t:0,life:.8,col:'#ffd27a'});msg(`気功！ 気功弾 ${P.spheres}/5`,'sys')}
+  if(id==='kiko'&&(P.kikoT||0)>time){P.sp+=cost;return}
+  if(id==='kiko'){P.kikoT=time+.6;P.spheres=Math.min(5,(P.spheres||0)+1);P.sphereT=600;fx.push({type:'heal',t:0,life:.8,col:'#ffd27a'});msg(`気功！ 気功弾 ${P.spheres}/5`,'sys')}
   P.bubble={text:sk.n+'!!',t:1.2};dirty=true;
 }
 function useItem(id){
@@ -1872,7 +1881,7 @@ function updateCast(dt){
   if(c.t<c.dur)return;
   P.casting=null;const lv=P.skills[c.id];P.bubble={text:SK[c.id].n+'!!',t:1.2};
   if(SK[c.id].job==='mage'){castSpell(c,lv);return}
-  if(c.id==='magni'){P.buff.magni=30*lv;fx.push({type:'lv',t:0,life:1.6,rgb:'170,205,255'});msg('マグニフィカート！ 自然回復が2倍になった','sys');dirty=true;sfx('buff')}
+  if(c.id==='magni'){P.buff.magni=30*Math.min(lv,30);P.buff.magniLv=buffLv(lv);fx.push({type:'lv',t:0,life:1.6,rgb:'170,205,255'});msg('マグニフィカート！ 自然回復が2倍になった','sys');dirty=true;sfx('buff')}
   else if(c.id==='asura')asuraStrike(c.m,lv);
 }
 // 阿修羅覇凰拳：気功弾5つと残りのSPをすべて使う一撃。防御無視、SPが多いほど強い
@@ -1909,20 +1918,20 @@ function castSpell(c,lv){
   if(c.id==='fwall'){placeFireWall(lv,A);return}
   if(c.ground&&c.id==='sgust'){stormGust(c.x,c.y,lv,A);return}
   const m=c.m;if(m.state!=='dead'){c.x=m.x;c.y=m.y}
-  const hits=Math.min(lv,10),mul=lv/hits;
+  const hits=Math.min(lv,10),mul=dmgLv(lv)/hits;
   if(c.id==='fb'){
     if(m.state==='dead')return;
-    for(let i=0;i<hits;i++)fx.push({type:'spell',el:'fire',m,x:c.x,y:c.y,t:-i*.12,at:.22,life:.5,cb:()=>{if(m.state!=='dead'){hurtMob(m,mdmg(m,.9*mul*A),EL_COL.fire,20);sfx('hit')}}});
+    for(let i=0;i<hits;i++)fx.push({type:'spell',el:'fire',m,x:c.x,y:c.y,t:-i*.12,at:.22,life:.5,cb:()=>{if(m.state!=='dead'){hurtMob(m,mdmg(m,.35*mul*A),EL_COL.fire,20);sfx('hit')}}});
   }else if(c.id==='tstorm'){
     for(let i=0;i<hits;i++){const x=c.x+(rnd()-.5)*3,y=c.y+(rnd()-.5)*3;
-      fx.push({type:'spell',el:'bolt',x,y,t:-i*.15,at:.22,life:.5,cb:()=>{sfx('hit');aoe(x,y,2.5,o=>hurtMob(o,mdmg(o,.9*mul*A),'#fff27a',20))}})}
+      fx.push({type:'spell',el:'bolt',x,y,t:-i*.15,at:.22,life:.5,cb:()=>{sfx('hit');aoe(x,y,2.5,o=>hurtMob(o,mdmg(o,.3*mul*A),'#fff27a',20))}})}
   }
   if(m.state!=='dead')P.target={kind:'mob',ref:m,stay:true};
 }
 // ストームガスト：指定した場所に吹雪を10回。3回目で凍結
 function stormGust(cx,cy,lv,A=1){
   fx.push({type:'sgust',x:cx,y:cy,r:3.5,t:0,life:4.8});sfx('gx');
-  for(let k=0;k<10;k++)later(.15+k*.45,()=>{aoe(cx,cy,3.5,o=>{hurtMob(o,mdmg(o,(.4+.06*lv)*A),'#a8e4ff',18);
+  for(let k=0;k<10;k++)later(.15+k*.45,()=>{aoe(cx,cy,3.5,o=>{hurtMob(o,mdmg(o,(.4+.06*dmgLv(lv))*A),'#a8e4ff',18);
     // 凍るまでは吹雪で押し流す（ノックバック）。ボスは動かない
     if(k<2&&o.state!=='dead'&&!o.def.boss&&!(o.iceT>time)){const a=rnd()*Math.PI*2,nx=o.x+Math.cos(a)*.7,ny=o.y+Math.sin(a)*.7;if(mobPass(nx,ny)){o.x=nx;o.y=ny}}
     if(k===2&&o.state!=='dead'&&!o.def.boss){o.root=Math.max(o.root||0,3);o.iceT=time+3}});if(k%3===0)sfx('hit')});
@@ -2140,12 +2149,12 @@ function shoot(m,cb,delay=0,src=P){
 }
 function blitz(m,lv){
   fx.push({type:'falcon',m,t:0,life:.75});
-  const hits=Math.min(lv,10),mul=lv/hits,cx=Math.floor(m.x),cy=Math.floor(m.y);
+  const hits=Math.min(lv,10),mul=dmgLv(lv)/hits,cx=Math.floor(m.x),cy=Math.floor(m.y);
   for(let i=0;i<hits;i++)later(.3+i*.07,()=>{
     // 対象のまわり3×3マスにいる敵を巻き込み、ダメージを人数で分け合う
     const tx=m.state!=='dead'?Math.floor(m.x):cx,ty=m.state!=='dead'?Math.floor(m.y):cy;
     const hit=mobs.filter(o=>o.state!=='dead'&&Math.abs(Math.floor(o.x)-tx)<=1&&Math.abs(Math.floor(o.y)-ty)<=1);if(!hit.length)return;
-    const s=S(),base=(s.dex*.8+s.int*1.5+60)*2*mul/hit.length;
+    const s=S(),base=(s.atk*.35+(s.dex*.8+s.int*1.5+60)*2)*mul/hit.length;
     for(const o of hit)hurtMob(o,Math.max(1,Math.round(base*(.9+rnd()*.2))),'#ffe08a',hit.length>1?16:20);sfx('hit')});
 }
 function hunterShot(m){
@@ -2159,9 +2168,9 @@ function doSkill(id,m){
   if(P.sp<cost){msg('SPが足りません','warn');if(P.job==='hunter')hunterShot(m);return}
   if(sk.cast){P.sp-=cost;P.casting={id,t:0,dur:castTime(id,lv),m,x:m.x,y:m.y};return}
   P.sp-=cost;P.bubble={text:sk.n+'!!',t:1};
-  if(id==='ds'){for(let i=0;i<2;i++)shoot(m,()=>playerAttack(m,S(),1.5+.25*lv,10,true),i*.12)}
+  if(id==='ds'){for(let i=0;i<2;i++)shoot(m,()=>playerAttack(m,S(),1.5+.25*dmgLv(lv),10,true),i*.12)}
   else if(id==='as'){const cx=m.x,cy=m.y;fx.push({type:'rain',x:cx,y:cy,t:0,life:.6});
-    later(.35,()=>{for(const o of mobs)if(o.state!=='dead'&&Math.abs(o.x-cx)<=1.5&&Math.abs(o.y-cy)<=1.5&&los(cx,cy,o.x,o.y))playerAttack(o,S(),.75+.05*lv,10,true)})}
+    later(.35,()=>{for(const o of mobs)if(o.state!=='dead'&&Math.abs(o.x-cx)<=1.5&&Math.abs(o.y-cy)<=1.5&&los(cx,cy,o.x,o.y))playerAttack(o,S(),.5+.05*dmgLv(lv),10,true)})}
   else if(id==='blitz')blitz(m,lv);
 }
 function updateTraps(dt){
@@ -2169,7 +2178,7 @@ function updateTraps(dt){
     for(const m of mobs){if(m.state==='dead'||Math.floor(m.x)!==tr.x||Math.floor(m.y)!==tr.y)continue;
       if(tr.k==='ankle'){m.root=3+2*tr.lv;emote(m,'…',1.5);sfx('hit')}
       else{const s=S();fx.push({type:'boom',x:tr.x+.5,y:tr.y+.5,t:0,life:.5});sfx('gx');
-        hurtMob(m,Math.round(s.dex*(3+tr.lv)*(1+s.int/35)+tr.lv*20),'#ffb36b',22)}
+        hurtMob(m,Math.round(s.dex*(3+dmgLv(tr.lv))*(1+s.int/35)+dmgLv(tr.lv)*20),'#ffb36b',22)}
       tr.dead=true;break}}
   traps=traps.filter(t=>!t.dead);
 }
