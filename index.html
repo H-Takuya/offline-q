@@ -66,6 +66,7 @@ kbd{font-family:var(--f-display);font-size:10px;color:var(--muted);margin-left:2
 .slot.locked .ic{filter:grayscale(1);opacity:.25}
 .it.locked{opacity:.6}
 .quest .qs{display:block;font-size:10.5px;color:var(--muted);margin-top:2px}
+#w-talk{width:min(560px,calc(100vw - 32px))}
 .st-row{display:flex;gap:10px;align-items:flex-start}
 .portrait{width:72px;height:72px;flex:none;border-radius:10px;box-shadow:0 2px 6px var(--shade)}
 .st-text{flex:1;min-width:0;min-height:72px;cursor:pointer}
@@ -2316,14 +2317,16 @@ function toggleWin(id,force){
   if(open&&w.hidden){w.hidden=false;const r=w.getBoundingClientRect();
     if(!w.dataset.placed){let [l,t]=WPOS[id];
       if(VW<760||id==='shop'||id==='talk'){l=(VW-r.width)/2;t=Math.max(70,VH*.16)}else if(l<0)l=VW-r.width+l;
-      w.style.left=clamp(l,8,VW-r.width-8)+'px';w.style.top=clamp(t,8,VH-80)+'px';}
+      w.style.left=clamp(l,8,VW-r.width-8)+'px';w.style.top=clamp(t,8,VH-80)+'px';w.style.bottom='';
+      if(id==='talk'){const floor=Math.min(...['chat','dock'].map(k=>$(k)).filter(e=>e&&!e.hidden).map(e=>e.getBoundingClientRect().top),VH-8);
+        w.style.top='auto';w.style.bottom=Math.max(8,Math.min(VH-floor+8,VH-r.height-8))+'px'}}
     dirty=true;
   }else if(!open)w.hidden=true;
 }
 for(const w of document.querySelectorAll('.win')){
   const h=w.querySelector('header');let sx,sy,ox,oy,drag=false;
   h.addEventListener('pointerdown',e=>{if(e.target.closest('button'))return;drag=true;sx=e.clientX;sy=e.clientY;ox=w.offsetLeft;oy=w.offsetTop;h.setPointerCapture(e.pointerId)});
-  h.addEventListener('pointermove',e=>{if(!drag)return;w.style.left=clamp(ox+e.clientX-sx,0,VW-60)+'px';w.style.top=clamp(oy+e.clientY-sy,0,VH-40)+'px';w.dataset.placed=1});
+  h.addEventListener('pointermove',e=>{if(!drag)return;w.style.left=clamp(ox+e.clientX-sx,0,VW-60)+'px';w.style.top=clamp(oy+e.clientY-sy,0,VH-40)+'px';w.style.bottom='';w.dataset.placed=1});
   h.addEventListener('pointerup',()=>drag=false);
   w.addEventListener('pointerdown',()=>{for(const o of document.querySelectorAll('.win'))o.style.zIndex=20;w.style.zIndex=21});
 }
@@ -3176,6 +3179,27 @@ function hud(){
 
 /* ---------- 描画 ---------- */
 function label(t,x,y,col,size=12){ctx.font=`${size}px "DotGothic16",monospace`;ctx.textAlign='center';ctx.lineJoin='round';ctx.lineWidth=3;ctx.strokeStyle='rgba(10,14,22,.85)';ctx.strokeText(t,x,y);ctx.fillStyle=col;ctx.fillText(t,x,y)}
+// 頭上の名前と吹き出しは描画の最後にまとめて置き、重なったら上下にずらす
+let tags=[],tagBlock=[];
+const tagName=(t,x,y,col,size=12)=>tags.push({t,x,y,col,size});
+const tagRect=(x,y,w,top,bot)=>({l:x-w/2,r:x+w/2,t:y-top,b:y+bot});
+const tagHit=(r,list)=>list.some(o=>r.l<o.r&&r.r>o.l&&r.t<o.b&&r.b>o.t);
+function drawTags(){
+  const placed=tagBlock.slice(),bubbles=[];
+  for(const n of [...NPCS,P,...mercs.filter(mc=>!(mc.down>0))])if(n.bubble&&n.bubble.t>0){const [x,y]=iso(n.x,n.y);bubbles.push({t:n.bubble.text,x,y:y-70,me:n===P})}
+  // 自分の名前は動かさない。NPCの名前は 0 → 上 → 下 → … の順に空きを探す
+  const me=tags.find(g=>g.me),rest=tags.filter(g=>!g.me);
+  const fit=(g,w,top,bot,steps)=>{for(const dy of steps){const r=tagRect(g.x,g.y+dy,w,top,bot);if(!tagHit(r,placed)){placed.push(r);g.y+=dy;return}}
+    placed.push(tagRect(g.x,g.y,w,top,bot))};
+  if(me){ctx.font=`${me.size}px "DotGothic16",monospace`;placed.push(tagRect(me.x,me.y,ctx.measureText(me.t).width+4,me.size,3))}
+  for(const g of rest){ctx.font=`${g.size}px "DotGothic16",monospace`;const h=g.size+3;fit(g,ctx.measureText(g.t).width+4,g.size,3,[0,-h,h,-2*h,2*h])}
+  ctx.font='12px "Zen Maru Gothic",sans-serif';
+  for(const b of bubbles){b.w=Math.min(220,ctx.measureText(b.t).width+14);fit(b,b.w,14,6,[0,-22,-44,-66])}
+  for(const g of tags)label(g.t,g.x,g.y,g.col,g.size);
+  ctx.font='12px "Zen Maru Gothic",sans-serif';
+  for(const b of bubbles){ctx.fillStyle='rgba(255,255,255,.95)';ctx.beginPath();ctx.roundRect(b.x-b.w/2,b.y-14,b.w,20,6);ctx.fill();ctx.fillStyle='#232f47';ctx.textAlign='center';ctx.fillText(b.t,b.x,b.y,b.w-10)}
+  tags=[];tagBlock=[];
+}
 function shadow(x,y,rx,ry){ctx.fillStyle='rgba(0,0,0,.25)';ctx.beginPath();ctx.ellipse(x,y,rx,ry,0,0,7);ctx.fill()}
 function drawHuman(x,y,o){
   ctx.save();ctx.translate(x,y);shadow(0,0,13,5.5);if(o.face<0)ctx.scale(-1,1);
@@ -3519,11 +3543,11 @@ function draw(){
   if(P.swall)objs.push([P.swall.x+P.swall.y+1.1,drawSafetyWall]);
   if(harvest)for(const u of harvest.units)objs.push([u.x+u.y-.2,()=>drawHvUnit(u)]);
   for(const n of NPCS)objs.push([n.x+n.y,()=>{const [x,y]=iso(n.x,n.y);
-    if(n.sign){drawBoard(x,y);label(n.n,x,y-50,'#ffe9a8',11);if(boardMark())drawQuestMark(x,y-70,'?')}
+    if(n.sign){drawBoard(x,y);tagName(n.n,x,y-50,'#ffe9a8',11);if(boardMark()){drawQuestMark(x,y-70,'?');tagBlock.push(tagRect(x,y-70,22,15,11))}}
     else{const frozen=n.frozenNpc&&!villageThawed();drawHuman(x,y,{face:n.face,body:n.body,hair:n.hair,hat:n.hat});
       if(frozen){ctx.globalAlpha=.6;ctx.fillStyle='#bfe8ff';ctx.strokeStyle='#ffffff';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(x-16,y+2);ctx.lineTo(x-13,y-50);ctx.lineTo(x,y-60);ctx.lineTo(x+14,y-48);ctx.lineTo(x+16,y+2);ctx.closePath();ctx.fill();ctx.stroke();ctx.globalAlpha=1}
-      label(frozen?'凍った村人':n.n,x,y-56,frozen?'#bfe8ff':'#ffe9a8',12)}
-    const st=storyStep();if(st&&st.type==='talk'&&st.npc===n.id&&!st.auto)drawQuestMark(x,y-82)}]);
+      tagName(frozen?'凍った村人':n.n,x,y-56,frozen?'#bfe8ff':'#ffe9a8',12)}
+    const st=storyStep();if(st&&st.type==='talk'&&st.npc===n.id&&!st.auto){drawQuestMark(x,y-82);tagBlock.push(tagRect(x,y-82,22,15,11))}}]);
   if(!P.dead||true)objs.push([P.x+P.y,()=>{const [x,y]=iso(P.x,P.y);
     if(P.dead)ctx.globalAlpha=.5;
     const H=P.job==='hunter',M=P.job==='mage',wi=P.eq.weapon&&ITEMS[P.eq.weapon.id],wOk=wi&&wi.cls===JOBS[P.job].w;
@@ -3536,13 +3560,14 @@ function draw(){
     if(H&&tierOf('hunter')>=2&&!fx.some(f=>f.type==='falcon'))drawFalcon(x-15*P.face,y-60+(P.sit?9:0)+Math.sin(time*3)*2,P.face,false);
     if(P.frozen>time){ctx.globalAlpha=.55;ctx.fillStyle='#bfe8ff';ctx.strokeStyle='#ffffff';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(x-16,y+2);ctx.lineTo(x-13,y-50);ctx.lineTo(x,y-60);ctx.lineTo(x+14,y-48);ctx.lineTo(x+16,y+2);ctx.closePath();ctx.fill();ctx.stroke();ctx.globalAlpha=1}
     ctx.globalAlpha=1;const s=S();
-    ctx.fillStyle='rgba(10,14,22,.75)';ctx.fillRect(x-18,y+6,36,8);ctx.fillStyle=P.hp/s.mhp<.25?'#e9493f':'#4ecb5a';ctx.fillRect(x-17,y+7,34*clamp(P.hp/s.mhp,0,1),3);
+    ctx.fillStyle='rgba(10,14,22,.75)';ctx.fillRect(x-18,y+6,36,8);tagBlock.push(tagRect(x,y+6,36,0,8));ctx.fillStyle=P.hp/s.mhp<.25?'#e9493f':'#4ecb5a';ctx.fillRect(x-17,y+7,34*clamp(P.hp/s.mhp,0,1),3);
     ctx.fillStyle='#5b9cff';ctx.fillRect(x-17,y+11,34*clamp(P.sp/s.msp,0,1),2);
-    label(pname(),x,y+27,'#ffffff',12);
+    tags.push({t:pname(),x,y:y+27,col:'#ffffff',size:12,me:true});
     if(P.casting){const c=P.casting;ctx.fillStyle='rgba(10,14,22,.8)';ctx.fillRect(x-24,y-64,48,7);ctx.fillStyle='#ffb04a';ctx.fillRect(x-23,y-63,46*clamp(c.t/c.dur,0,1),5);label(SK[c.id].n,x,y-68,'#ffffff',11)}
   }]);
   objs.sort((a,b)=>a[0]-b[0]);for(const o of objs)o[1]();
   if(curMap.id==='field')drawTownSky();
+  drawTags();
   // エフェクト
   const [px,py]=iso(P.x,P.y);
   for(const f of fx){const p=f.t/f.life;
@@ -3621,8 +3646,6 @@ function draw(){
       ctx.closePath();ctx.fillStyle='#d8322a';ctx.fill();ctx.strokeStyle='#ffd23f';ctx.lineWidth=2;ctx.stroke();ctx.restore()}
     label(String(f.text),qx,qy,f.col,Math.round(f.size*pop));ctx.globalAlpha=1}
   for(const e of [P,...mobs])if(e.emote&&e.state!=='dead')drawEmote(e,e===P?(P.sit?62:72):40*e.def.size+14);
-  for(const n of [...NPCS,P,...mercs.filter(mc=>!(mc.down>0))]){if(n.bubble&&n.bubble.t>0){const [x,y]=iso(n.x,n.y);ctx.font='12px "Zen Maru Gothic",sans-serif';const w=Math.min(220,ctx.measureText(n.bubble.text).width+14);
-    ctx.fillStyle='rgba(255,255,255,.95)';ctx.beginPath();ctx.roundRect(x-w/2,y-84,w,20,6);ctx.fill();ctx.fillStyle='#232f47';ctx.textAlign='center';ctx.fillText(n.bubble.text,x,y-70,w-10)}}
   // ホバー表示
   if(mouse.x>=0&&!mouse.down){const m=pickMob(mouse.x,mouse.y);let cur=aiming?'cell':CUR.def;
     if(m){const [x,y]=iso(m.x,m.y);if(!m.def.boss)label(`${m.def.n} Lv${m.def.lv}`,x,y+24,m.def.aggro?'#ffb3a8':'#ffffff',12);cur=aiming?'cell':CUR.atk}
