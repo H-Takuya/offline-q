@@ -590,17 +590,17 @@ const dmgLv=l=>l<=10?l:10+(l-10)*.2;
 const buffLv=l=>Math.round(Math.min(l,10)*lvGrow(l));
 // 職業ごとの最大HP：アコライト系は前に立つので多め、マジシャン系は少なめ
 const JOB_HP={aco:1.5,hunter:1,mage:.8};
-// アコライト系の自己強化：ブレッシングでATK、速度増加で攻撃速度、マグニフィカートで被ダメージ軽減
-const acoSelf=()=>{const a=P.job==='aco';return {atk:a&&P.buff.bless>0?.03*P.buff.blessLv:0,spd:a&&P.buff.agi>0&&P.buff.agiSelf?Math.min(.3,.015*P.buff.agiLv):0,guard:a&&P.buff.magni>0?Math.min(.3,.015*(P.buff.magniLv||0)):0}};
+// アコライトで自分にかけた支援：持ち替えたどの職業でも大きく効く（ブレッシング=ATK・MATK、速度増加=攻撃速度、マグニフィカート=被ダメージ軽減）
+const acoSelf=()=>({atk:P.buff.bless>0&&P.buff.blessSelf?.03*P.buff.blessLv:0,spd:P.buff.agi>0&&P.buff.agiSelf?Math.min(.3,.015*P.buff.agiLv):0,guard:P.buff.magni>0&&P.buff.magniSelf?Math.min(.3,.015*(P.buff.magniLv||0)):0});
 const kiPct=l=>(2+4*Math.min(l,10)/10)*lvGrow(l);
 // 阿修羅覇凰拳の倍率：Lv1で×12、Lv10で×30、その先も伸びる（ダメージ用Lv）
 const asuraMul=l=>10+2*dmgLv(l);
 const SK={
-  bless:{job:'aco',n:'ブレッシング',max:10,sp:l=>10+2*l,target:false,g:'祝',c:'#d4a12a',d:l=>`${40+20*Math.min(l,30)}秒間 STR・INT・DEX+${buffLv(l)}。アコライト系はさらに ATK+${3*buffLv(l)}%`},
-  agi:{job:'aco',n:'速度増加',max:10,sp:l=>10+3*l,target:false,g:'速',c:'#3e82d6',d:l=>`60秒間 移動+30% / AGI+${2+buffLv(l)}。アコライト系はさらに 攻撃速度+${(1.5*buffLv(l)).toFixed(0)}%`},
+  bless:{job:'aco',n:'ブレッシング',max:10,sp:l=>10+2*l,target:false,g:'祝',c:'#d4a12a',d:l=>`${40+20*Math.min(l,30)}秒間 STR・INT・DEX+${buffLv(l)} / ATK・MATK+${3*buffLv(l)}%（ハンターやマジシャンに持ち替えても続く）`},
+  agi:{job:'aco',n:'速度増加',max:10,sp:l=>10+3*l,target:false,g:'速',c:'#3e82d6',d:l=>`${40+20*Math.min(l,30)}秒間 移動+30% / AGI+${2+buffLv(l)} / 攻撃速度+${(1.5*buffLv(l)).toFixed(0)}%（持ち替えても続く）`},
   heal:{job:'aco',n:'ヒール',max:10,sp:l=>10+3*l,target:false,g:'癒',c:'#4aae63',d:l=>`HPを約${healAmt(l)}回復`},
   kiko:{job:'aco',n:'気功',max:10,sp:l=>8,target:false,g:'気',c:'#e0a030',d:l=>`気功弾を1つ作る（最大5つ・10分）。1つにつき ATK+${kiPct(l).toFixed(1)}% / 攻撃速度+${(kiPct(l)/2).toFixed(1)}%`},
-  magni:{job:'aco',n:'マグニフィカート',max:5,sp:l=>12+2*l,cast:l=>1.2,target:false,g:'讃',c:'#7d8fe0',d:l=>`${30*Math.min(l,30)}秒間 HPとSPの自然回復が2倍・受けるダメージ-${(1.5*buffLv(l)).toFixed(0)}%（詠唱1.2秒）`},
+  magni:{job:'aco',n:'マグニフィカート',max:5,sp:l=>12+2*l,cast:l=>1.2,target:false,g:'讃',c:'#7d8fe0',d:l=>`${30*Math.min(l,30)}秒間 HPとSPの自然回復が2倍・受けるダメージ-${(1.5*buffLv(l)).toFixed(0)}%（持ち替えても続く・詠唱1.2秒）`},
   asura:{job:'aco',n:'阿修羅覇凰拳',max:10,sp:l=>1,cast:l=>.8,target:true,g:'阿',c:'#d0402a',d:l=>`気功弾5つと残りのSPをすべて使い、目の前の敵に ATK×${asuraMul(l).toFixed(0)} の一撃（防御無視・SPが多いほど強い）`},
   conc:{job:'hunter',n:'集中力向上',max:10,sp:l=>10+l,target:false,g:'集',c:'#3f9a6a',d:l=>`${40+20*Math.min(l,30)}秒間 AGI・DEX+${2+buffLv(l)}`},
   ds:{job:'hunter',n:'ダブルストレイフィング',max:10,sp:l=>12,target:true,g:'双',c:'#c8702e',d:l=>`矢を2連射（単体）。ATK ${Math.round(150+25*dmgLv(l))}%×2`},
@@ -1239,7 +1239,7 @@ function S(){
     // 職業ごとの物理攻撃：ハンター（DEX）＞アコライト（STR）＞マジシャン（ほぼ魔法頼み）
     atk:Math.floor((Math.floor(hunter?dex*2.6+dex*dex/25+str/5:P.job==='aco'?str*2.3+str*str/30+dex/5:str*1.4+dex/5)+Math.floor(luk/5)+w+b.atk+EL)*(1+b.pdmg/100)*(1+kiBonus()/100)*(1+acoSelf().atk)),
     range:hunter?8.5:0,
-    matk:Math.floor((int*3+Math.floor(int*int/25)+EL+(wi&&wi.cls===JOBS[P.job].w&&wi.matk?wi.matk:0))*(1+b.mdmg/100)),
+    matk:Math.floor((int*3+Math.floor(int*int/25)+EL+(wi&&wi.cls===JOBS[P.job].w&&wi.matk?wi.matk:0))*(1+b.mdmg/100)*(1+acoSelf().atk)),
     castMul:Math.max(.1,1-dex/120)*(P.bragi>time?.6:1)*(b.cast?.5:1),
     def:a,vdef:Math.floor(vit*.6),hit:EL+dex,flee:Math.floor((EL+agi)*(1-fleePen())),crit:1+luk*.3+b.crit,
     // 氷牙の王カード：ASPD上限195（攻撃間隔0.1秒）まで限界突破
@@ -1861,8 +1861,8 @@ function useSkill(id){
     P.casting={id,t:0,dur:castTime(id,lv)};dirty=true;return}
   if(id==='heal'){const a=healAmt(lv);P.hp=Math.min(s.mhp,P.hp+a);float(P.x,P.y,a,'#7dff8a',20);fx.push({type:'heal',t:0,life:1});sfx('heal')}
   if(id!=='heal')sfx('buff');
-  if(id==='agi'){P.buff.agi=60;P.buff.agiLv=buffLv(lv);P.buff.agiSelf=true;fx.push({type:'heal',t:0,life:1,col:'#9cd0ff'});msg('速度増加！ 足が軽くなった','sys')}
-  if(id==='bless'){P.buff.bless=40+20*Math.min(lv,30);P.buff.blessLv=buffLv(lv);fx.push({type:'lv',t:0,life:1.4,rgb:'255,240,180'});msg(`ブレッシング！ STR・INT・DEX+${buffLv(lv)}`,'sys')}
+  if(id==='agi'){P.buff.agi=40+20*Math.min(lv,30);P.buff.agiLv=buffLv(lv);P.buff.agiSelf=true;fx.push({type:'heal',t:0,life:1,col:'#9cd0ff'});msg('速度増加！ 足が軽くなった','sys')}
+  if(id==='bless'){P.buff.bless=40+20*Math.min(lv,30);P.buff.blessLv=buffLv(lv);P.buff.blessSelf=true;fx.push({type:'lv',t:0,life:1.4,rgb:'255,240,180'});msg(`ブレッシング！ STR・INT・DEX+${buffLv(lv)}`,'sys')}
   if(id==='amp'){P.amp={mul:ampMul(lv),t:30};fx.push({type:'lv',t:0,life:1.2,rgb:'200,120,255'});msg(`魔力増幅！ 次の魔法の威力 ×${P.amp.mul.toFixed(2)}`,'sys')}
   if(id==='kiko'&&(P.kikoT||0)>time){P.sp+=cost;return}
   if(id==='kiko'){P.kikoT=time+.6;P.spheres=Math.min(5,(P.spheres||0)+1);P.sphereT=600;fx.push({type:'heal',t:0,life:.8,col:'#ffd27a'});msg(`気功！ 気功弾 ${P.spheres}/5`,'sys')}
@@ -1881,7 +1881,7 @@ function updateCast(dt){
   if(c.t<c.dur)return;
   P.casting=null;const lv=P.skills[c.id];P.bubble={text:SK[c.id].n+'!!',t:1.2};
   if(SK[c.id].job==='mage'){castSpell(c,lv);return}
-  if(c.id==='magni'){P.buff.magni=30*Math.min(lv,30);P.buff.magniLv=buffLv(lv);fx.push({type:'lv',t:0,life:1.6,rgb:'170,205,255'});msg('マグニフィカート！ 自然回復が2倍になった','sys');dirty=true;sfx('buff')}
+  if(c.id==='magni'){P.buff.magni=30*Math.min(lv,30);P.buff.magniLv=buffLv(lv);P.buff.magniSelf=true;fx.push({type:'lv',t:0,life:1.6,rgb:'170,205,255'});msg('マグニフィカート！ 自然回復が2倍になった','sys');dirty=true;sfx('buff')}
   else if(c.id==='asura')asuraStrike(c.m,lv);
 }
 // 阿修羅覇凰拳：気功弾5つと残りのSPをすべて使う一撃。防御無視、SPが多いほど強い
@@ -1985,7 +1985,7 @@ function updateFireWalls(dt){
 const MERC_PRICE=5000,MERC_TIME=600,MERC_MAX=2;
 const mercPrice=slot=>slot===0?MERC_PRICE:MERC_PRICE*1000;
 const MERC_LOOK={
-  aco:{name:'クレア',jn:'アコライト',body:'#7a2a3a',hair:'#f0d878',robe:true,mace:true,weapon:'#a9b0bc',desc:'ヒール（最大HPの15%以上）と速度増加で支えつつ、メイスで殴る。ブレッシングはかけないので、自分でどうぞ'},
+  aco:{name:'クレア',jn:'アコライト',body:'#7a2a3a',hair:'#f0d878',robe:true,mace:true,weapon:'#a9b0bc',desc:'ヒール（最大HPの15%以上）と速度増加で支えつつ、メイスで殴る。ブレッシングはかけない。自分でかけた支援は、ほかの職業に持ち替えても大きく効く'},
   hunter:{name:'リオ',jn:'ハンター',body:'#3a6a5a',hair:'#f0d878',bow:true,quiver:true,weapon:'#8a5a2c',desc:'離れた位置から矢で攻撃。ときどき2連射'},
   mage:{name:'ミナ',jn:'マジシャン',body:'#2a5a7a',hair:'#f0d878',robe:true,staff:true,weapon:'#c08aff',desc:'ファイアーボルトと火球で攻撃'},
   bard:{name:'カノン',jn:'バード',body:'#2a7a5a',hair:'#e8b860',bow:true,quiver:true,weapon:'#c8a050',desc:'「ブラギの詩」を奏でる。足元の9マス（3×3）の中にいる間、スキルのディレイが70%短く、通常攻撃が15%速く、詠唱時間が40%短くなる。弓でも少し戦う'},
