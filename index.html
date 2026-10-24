@@ -134,6 +134,19 @@ kbd{font-family:var(--f-display);font-size:10px;color:var(--muted);margin-left:2
 .tabs{display:flex;gap:4px;margin-bottom:8px}
 .name-row{gap:6px;align-items:center}.name-row input{flex:1;min-width:0;font:14px var(--f-ui);padding:4px 8px;border:1px solid var(--line);border-radius:4px;background:#fff;color:var(--ink)}
 #hName{cursor:pointer}#hName:hover{text-decoration:underline dotted}
+.cslots{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 2px 34px}.cslots.none{font-size:11px;color:var(--muted)}
+.cslot{position:relative;width:62px;min-height:62px;border:2px dashed var(--line);border-radius:6px;background:var(--win-2);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;padding:3px;font:10px var(--f-display);color:var(--muted)}
+.cslot b{font-size:20px;line-height:1;color:var(--head)}.cslot.pick{border-color:#ff8a2a;background:#fff1e0}
+.cslot.on{border:2px solid #b89a5a;background:linear-gradient(#fbf3de,#efe0bc);color:#3a2a10}.cslot.on img{width:40px;height:40px;border-radius:3px}
+.cslot.on span{max-width:58px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.cslot em{position:absolute;top:2px;right:3px;font-style:normal;font-size:9px;color:#a83a2a;opacity:0}.cslot.on:hover em,.cslot.on:focus em{opacity:1}
+.eqsec{font:12px var(--f-display);color:var(--head);margin:10px 0 4px}
+.eqrow{border:1px solid var(--line);border-radius:6px;padding:6px 8px;margin-bottom:6px;background:var(--win)}.eqrow.on{border-color:var(--head);box-shadow:inset 3px 0 0 var(--head)}
+.eqrow.empty{display:flex;align-items:center;gap:8px}.eqh{font:11px var(--f-display);color:var(--muted);margin-bottom:2px}
+.eqmain{display:flex;align-items:center;gap:8px}.eqmain .tx{flex:1;min-width:0}
+.pickbox{border:2px solid #ff8a2a;border-radius:6px;padding:6px;margin:4px 0 8px;background:#fff7ec}.pickh{display:flex;justify-content:space-between;align-items:center;font:12px var(--f-display);margin-bottom:6px;gap:6px}
+.pickgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px}
+.pickcard{position:relative;display:grid;grid-template-columns:40px 1fr;grid-template-rows:auto auto;column-gap:6px;text-align:left;border:1px solid #b89a5a;border-radius:5px;background:linear-gradient(#fbf3de,#efe0bc);padding:4px;cursor:pointer;color:#3a2a10}
+.pickcard img{grid-row:1/3;width:40px;height:40px;border-radius:3px}.pickcard b{font-size:11px}.pickcard span{font-size:10px;color:#6a5a3a;line-height:1.3}.pickcard em{position:absolute;top:3px;right:5px;font-style:normal;font-size:10px}
 .cgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:8px;margin-top:4px}
 .cd{position:relative;background:linear-gradient(#fbf3de,#efe0bc);border:2px solid #b89a5a;border-radius:7px;padding:5px 5px 6px;text-align:center;box-shadow:0 2px 4px rgba(0,0,0,.18)}
 .cd.boss{border-color:#e0b83a;background:linear-gradient(#fff6d0,#f2d98a)}
@@ -170,6 +183,8 @@ kbd{font-family:var(--f-display);font-size:10px;color:var(--muted);margin-left:2
 @keyframes wob{from{transform:rotate(-2deg)}to{transform:rotate(2deg)}}
 @media (prefers-reduced-motion:reduce){.hotbar.editing .slot{animation:none}}
 @media (max-width:520px){.slot{width:36px;height:36px}.hotbar{gap:3px;padding:4px}.ic{width:24px;height:24px;font-size:14px}}
+</head>
+<body>
 @media (max-width:420px){.slot{width:33px;height:33px}.ic{width:22px;height:22px;font-size:13px}.slot .k{font-size:9px}.slot .n{font-size:9px}}
 /* 各パネルの「閉じる／小さくする」 */
 .hud-tg{position:absolute;top:5px;right:5px;z-index:2;min-width:22px;height:20px;padding:0 5px;border:1px solid var(--line);border-radius:4px;background:var(--win-2);color:var(--ink);font:12px/18px var(--f-display);cursor:pointer}
@@ -183,8 +198,6 @@ kbd{font-family:var(--f-display);font-size:10px;color:var(--muted);margin-left:2
 #chat.min{width:auto;padding:0;background:transparent}
 #chat.min #log,#chat.min #chatIn{display:none}
 #chat.min .hud-tg{position:static;height:28px;padding:0 10px;background:var(--chat-bg);border-color:var(--chat-line);font-size:12px}
-</head>
-<body>
 #chat.min .hud-tg.new{border-color:var(--c-sys);color:var(--c-sys)}
 #chat:not(.min) #log{margin-right:26px}
 .menu.min .btn:not(.menu-tg){display:none}
@@ -2393,15 +2406,41 @@ function renderCardBook(){
       ${own?`<button class="btn" data-act="inv" data-i="${i}">挿す</button>`:''}</div>`}).join('');
   return `<p class="note">カード帳　集めた種類 <b>${got} / ${CARD_IDS.length}</b>　持っているカードは「挿す」で空きスロットのある装備へ。金の枠はボスのカード</p><div class="cgrid">${cards}</div>`;
 }
+// アイテム窓：アイテム／装備／カード帳の3つに分ける
+let cardPickRef=null;
+function cardSlots(e){const it=ITEMS[e.id],n=it.slots||0,i=P.inv.indexOf(e);let h='';
+  for(let k=0;k<n;k++){const c=e.cards[k];
+    h+=c?`<button class="cslot on" data-act="card-out" data-i="${i}" data-k="${k}" title="${ITEMS[c].n}（タップで外す）"><img src="${cardArt(c)}" alt=""><span>${ITEMS[c].n.replace('カード','')}</span><em>外す</em></button>`
+       :`<button class="cslot${cardPickRef===e?' pick':''}" data-act="card-pick" data-i="${i}" title="カードを挿す"><b>＋</b><span>空き</span></button>`}
+  return n?`<div class="cslots">${h}</div>`:'<div class="cslots none">スロットなし</div>'}
+function equipRow(e,head){const it=ITEMS[e.id],eq=P.eq.weapon===e||P.eq.armor===e,i=P.inv.indexOf(e),ok=it.t!=='weapon'||it.cls===JOBS[P.job].w;
+  const cardFx=e.cards.length?`<div class="ds">カード：${e.cards.map(c=>ITEMS[c].d).join(' ／ ')}</div>`:'';
+  return `<div class="eqrow${eq?' on':''}">${head?`<div class="eqh">${head}</div>`:''}<div class="eqmain">${itemIcon(e.id)}<div class="tx"><div class="nm">${esc(it.n)}${eq?'<span class="tag">E</span>':''}</div><div class="ds">${it.d}${ok?'':'（今の職業では装備できない）'}</div>${cardFx}</div>
+    <button class="btn" data-act="inv" data-i="${i}" ${!eq&&!ok?'disabled':''}>${eq?'外す':'装備'}</button></div>${cardSlots(e)}</div>`}
+function renderEquip(){
+  const W=P.eq.weapon,A=P.eq.armor;
+  let pick='';
+  if(cardPickRef&&P.inv.includes(cardPickRef)){const owned=P.inv.filter(e=>ITEMS[e.id].t==='card');
+    pick=`<div class="pickbox"><div class="pickh">「${esc(ITEMS[cardPickRef.id].n)}」に挿すカードを選ぶ<button class="btn" data-act="card-cancel">やめる</button></div>`+
+      (owned.length?`<div class="pickgrid">${owned.map(e=>`<button class="pickcard" data-act="card-in" data-c="${e.id}"><img src="${cardArt(e.id)}" alt=""><b>${ITEMS[e.id].n}</b><span>${ITEMS[e.id].d}</span><em>×${e.qty}</em></button>`).join('')}</div>`
+        :'<p class="note">挿せるカードを持っていません</p>')+`</div>`}
+  else cardPickRef=null;
+  const others=P.inv.filter(e=>(ITEMS[e.id].t==='weapon'||ITEMS[e.id].t==='armor')&&e!==W&&e!==A);
+  return `<p class="note">スロットの「＋」をタップしてカードを挿す。挿してあるカードはタップで外せる（カードはカバンに戻る）</p>
+    <div class="eqsec">装備中（${JOBS[P.job].n}）</div>`+
+    (W?equipRow(W,'武器'):`<div class="eqrow empty"><div class="eqh">武器</div><p class="note">なし</p></div>`)+
+    (A?equipRow(A,'防具'):`<div class="eqrow empty"><div class="eqh">防具</div><p class="note">なし</p></div>`)+pick+
+    `<div class="eqsec">持っている装備</div>`+(others.length?others.map(e=>equipRow(e)).join(''):'<p class="note">ほかの装備はありません</p>');
+}
 function renderInv(){
-  const nCard=P.inv.reduce((a,e)=>a+(ITEMS[e.id].t==='card'?e.qty:0),0);
-  const tabs=`<div class="tabs"><button class="btn" data-act="invtab" data-k="item" aria-pressed="${invTab==='item'}">アイテム</button><button class="btn" data-act="invtab" data-k="card" aria-pressed="${invTab==='card'}">カード帳${nCard?`（${nCard}）`:''}</button></div>`;
+  const nCard=P.inv.reduce((a,e)=>a+(ITEMS[e.id].t==='card'?e.qty:0),0),nEq=P.inv.filter(e=>ITEMS[e.id].t==='weapon'||ITEMS[e.id].t==='armor').length;
+  const tab=(k,n)=>`<button class="btn" data-act="invtab" data-k="${k}" aria-pressed="${invTab===k}">${n}</button>`;
+  const tabs=`<div class="tabs">${tab('item','アイテム')}${tab('equip',`装備（${nEq}）`)}${tab('card',`カード帳${nCard?`（${nCard}）`:''}`)}</div>`;
   if(invTab==='card'){$('b-inv').innerHTML=tabs+renderCardBook();return}
-  const rows=P.inv.map((e,i)=>{const it=ITEMS[e.id];let act='',tag='';if(it.t==='card')return '';
-    if(it.t==='use')act='使う';else if(it.t==='weapon'||it.t==='armor'){const eq=P.eq.weapon===e||P.eq.armor===e;act=eq?'外す':'装備';if(eq)tag='<span class="tag">E</span>'}
-    const cards=e.cards.length?' / '+e.cards.map(c=>ITEMS[c].n).join('・'):'';
-    return `<div class="it${act?' click':''}" ${act?`data-act="inv" data-i="${i}" role="button" tabindex="0"`:''}>${itemIcon(e.id)}<div class="tx"><div class="nm">${esc(itemName(e))}${e.qty>1?' ×'+e.qty:''}${tag}</div><div class="ds">${it.d}${cards}</div></div><span class="act">${act}</span></div>`}).join('');
-  $('b-inv').innerHTML=tabs+`<p class="note">タップで使う・装備。カードは「カード帳」で管理します。</p><div class="list">${rows||'<p class="note">何も持っていません</p>'}</div><div class="foot"><span>所持金</span><b class="price">${P.zeny.toLocaleString()} z</b></div>`;
+  if(invTab==='equip'){$('b-inv').innerHTML=tabs+renderEquip();return}
+  const rows=P.inv.map((e,i)=>{const it=ITEMS[e.id];if(it.t==='card'||it.t==='weapon'||it.t==='armor')return '';const act=it.t==='use'?'使う':'';
+    return `<div class="it${act?' click':''}" ${act?`data-act="inv" data-i="${i}" role="button" tabindex="0"`:''}>${itemIcon(e.id)}<div class="tx"><div class="nm">${esc(it.n)}${e.qty>1?' ×'+e.qty:''}</div><div class="ds">${it.d}</div></div><span class="act">${act}</span></div>`}).join('');
+  $('b-inv').innerHTML=tabs+`<p class="note">タップで使う。装備とカードはそれぞれのタブで管理します。</p><div class="list">${rows||'<p class="note">何も持っていません</p>'}</div><div class="foot"><span>所持金</span><b class="price">${P.zeny.toLocaleString()} z</b></div>`;
 }
 function renderSkill(){
   const rows=Object.keys(SK).filter(id=>SK[id].job===P.job).map(id=>{const sk=SK[id],lv=P.skills[id],nl=Math.max(1,lv);
@@ -2997,13 +3036,19 @@ document.addEventListener('click',e=>{
     if(it.t==='use')useItem(e2.id);
     else if(it.t==='weapon'&&it.cls!==JOBS[P.job].w&&P.eq.weapon!==e2){msg(`${it.n} は${JOBS[P.job].n}では装備できません`,'warn')}
     else if(it.t==='weapon'||it.t==='armor'){const slot=it.t;if(P.eq[slot]===e2){P.eq[slot]=null;msg(`${it.n} を外しました`,'sys')}else{P.eq[slot]=e2;msg(`${it.n} を装備しました`,'sys')}}
-    else if(it.t==='card'){const tgt=[P.eq.weapon,P.eq.armor].find(x=>x&&x.cards.length<(ITEMS[x.id].slots||0));
+    else if(it.t==='card'){const tgt=[P.eq.weapon,P.eq.armor].find(x=>x&&x.cards.length<(ITEMS[x.id].slots||0));if(!tgt){invTab='equip';msg('装備中の武器・防具に空きスロットがありません。装備タブで挿す先を選べます','warn');dirty=true;return}
       if(!tgt)msg('空きスロットのある装備を身につけてください','warn');else{tgt.cards.push(e2.id);removeEntry(e2);msg(`${it.n} を ${ITEMS[tgt.id].n} に挿しました`,'item')}}}
   else if(act==='buy'){const id=a.dataset.id,q=+a.dataset.q,cost=ITEMS[id].price*q;if(P.zeny>=cost){P.zeny-=cost;addItem(id,q);msg(`${ITEMS[id].n} ×${q} を購入 (-${cost}z)`,'item')}}
   else if(act==='sell'){const e2=P.inv[+a.dataset.i],q=+a.dataset.q;if(!e2||!sellPrice(e2.id))return;const g=sellPrice(e2.id)*q;P.zeny+=g;msg(`${ITEMS[e2.id].n} ×${q} を売却 (+${g}z)`,'item');removeEntry(e2,q)}
   else if(act==='selletc'){let g=0;for(const e2 of P.inv.slice())if(ITEMS[e2.id].t==='etc'){g+=sellPrice(e2.id)*e2.qty;removeEntry(e2,e2.qty)}msg(g?`収集品を売却 (+${g}z)`:'売れる収集品がありません',g?'item':'warn');P.zeny+=g}
   else if(act==='tab'){shopTab=a.dataset.k}
-  else if(act==='invtab'){invTab=a.dataset.k}
+  else if(act==='invtab'){invTab=a.dataset.k;cardPickRef=null}
+  else if(act==='card-pick'){const e2=P.inv[+a.dataset.i];cardPickRef=cardPickRef===e2?null:e2}
+  else if(act==='card-cancel'){cardPickRef=null}
+  else if(act==='card-in'){const tgt=cardPickRef,ce=P.inv.find(x=>x.id===a.dataset.c);
+    if(tgt&&ce&&tgt.cards.length<(ITEMS[tgt.id].slots||0)){tgt.cards.push(ce.id);removeEntry(ce);msg(`${ITEMS[ce.id].n} を ${ITEMS[tgt.id].n} に挿しました`,'item');sfx('pick')}
+    cardPickRef=null}
+  else if(act==='card-out'){const e2=P.inv[+a.dataset.i],k=+a.dataset.k;if(e2&&e2.cards[k]){const c=e2.cards.splice(k,1)[0];addItem(c);msg(`${ITEMS[c].n} を外しました（カバンに戻りました）`,'item');sfx('pick')}}
   else if(act==='hotedit'){setHotEdit(!hotEdit)}
   else if(act==='rename'){toggleWin('status',true);renderStatus();setTimeout(()=>{const el=$('nameIn');if(el){el.focus();el.select()}},50);return}
   else if(act==='rename-ok'){applyName()}
