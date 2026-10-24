@@ -594,18 +594,20 @@ function boss(n,kind,lv,hp,atk,def,col,size,exp,card,o={}){
 }
 const EXP_RATE=300, MAX_LV=999, MAX_STAT=999;
 
-// 魔力増幅の倍率：Lv10で×1.5、そこからはゆっくり伸びてLv1000で×2.0（それ以上は伸びない）
-const ampMul=l=>l<=10?1+.05*l:Math.min(2,1.5+.5*(l-10)/990);
-// 気功弾1つあたりのATK上昇（%）。Lv10で6%、その先はゆっくり伸びてLv1000で2倍
-const lvGrow=l=>l<=10?1:Math.min(2,1+(l-10)/990);
+// Lv1000を超えたぶんの伸び：0から1へ近づく（Lv2000で0.5、Lv3000で0.67、Lv5000で0.8）
+const overGrow=l=>l<=1000?0:(l-1000)/(l-1000+1000);
+// 魔力増幅の倍率：Lv10で×1.5、Lv1000で×2.0、その先はさらにゆっくり伸びて×2.5に近づく
+const ampMul=l=>l<=10?1+.05*l:l<=1000?1.5+.5*(l-10)/990:2+.5*overGrow(l);
+// 気功弾1つあたりのATK上昇（%）。Lv10で6%、Lv1000で2倍、その先は3倍に近づく
+const lvGrow=l=>l<=10?1:l<=1000?1+(l-10)/990:2+overGrow(l);
 // ダメージ用のスキルLv：Lv10まではそのまま、その先は伸びを1/5に（転生でLvが伸びても暴走しないように）
 const dmgLv=l=>l<=10?l:10+(l-10)*.2;
-// 支援スキルのLv：Lv10で10、Lv1000で20
+// 支援スキルのLv：Lv10で10、Lv1000で20、その先は30に近づく
 const buffLv=l=>Math.round(Math.min(l,10)*lvGrow(l));
 // 職業ごとの最大HP：アコライト系は前に立つので多め、マジシャン系は少なめ
 const JOB_HP={aco:1.5,hunter:1,mage:.8};
 // アコライトで自分にかけた支援：持ち替えたどの職業でも大きく効く（ブレッシング=ATK・MATK、速度増加=攻撃速度、マグニフィカート=被ダメージ軽減）
-const acoSelf=()=>({atk:P.buff.bless>0&&P.buff.blessSelf?.03*P.buff.blessLv:0,spd:P.buff.agi>0&&P.buff.agiSelf?Math.min(.3,.015*P.buff.agiLv):0,guard:P.buff.magni>0&&P.buff.magniSelf?Math.min(.3,.015*(P.buff.magniLv||0)):0});
+const acoSelf=()=>({atk:P.buff.bless>0&&P.buff.blessSelf?.03*P.buff.blessLv:0,spd:P.buff.agi>0&&P.buff.agiSelf?Math.min(.45,.015*P.buff.agiLv):0,guard:P.buff.magni>0&&P.buff.magniSelf?Math.min(.45,.015*(P.buff.magniLv||0)):0});
 const kiPct=l=>(2+4*Math.min(l,10)/10)*lvGrow(l);
 // 阿修羅覇凰拳の倍率：Lv1で×12、Lv10で×30、その先も伸びる（ダメージ用Lv）
 const asuraMul=l=>10+2*dmgLv(l);
@@ -622,7 +624,7 @@ const SK={
   blitz:{job:'hunter',n:'ブリッツビート',max:5,sp:l=>10+3*l,target:true,g:'鷹',c:'#8a6a3a',d:l=>`鷹が${Math.min(l,10)}回攻撃（1回 ATK${Math.round(35*dmgLv(l)/Math.min(l,10))}%、必中・防御無視）。対象のまわり3×3マスを巻き込むが、巻き込んだ数でダメージを分け合う。通常攻撃のたびに 10%＋LUK÷3% で自動発動`},
   ankle:{job:'hunter',n:'アンクルスネア',max:5,sp:l=>12,target:false,g:'罠',c:'#6f7480',d:l=>`足元に罠を置く。踏んだ敵を${3+2*l}秒その場に縛る`},
   fb:{job:'mage',n:'ファイアーボルト',max:10,sp:l=>10+2*l,cast:l=>.02+.01*l,range:9,target:true,el:'fire',g:'炎',c:'#e0582a',d:l=>`炎の矢を${Math.min(l,10)}本落とす（単体）。1本 MATK×${(.35*dmgLv(l)/Math.min(l,10)).toFixed(2)}`},
-  amp:{job:'mage',n:'魔力増幅',max:10,sp:l=>10+2*l,target:false,g:'増',c:'#b04ad0',d:l=>`魔力を高め、次に使う魔法1回の威力が ×${ampMul(l).toFixed(2)}（30秒以内。詠唱なし。Lv1000で最大×2.0）`},
+  amp:{job:'mage',n:'魔力増幅',max:10,sp:l=>10+2*l,target:false,g:'増',c:'#b04ad0',d:l=>`魔力を高め、次に使う魔法1回の威力が ×${ampMul(l).toFixed(2)}（30秒以内。詠唱なし。Lv1000で×2.0、その先は×2.5に近づく）`},
   tstorm:{job:'mage',n:'サンダーストーム',max:10,sp:l=>25+4*l,cast:l=>.04+.01*l,range:9,target:true,el:'bolt',g:'雷',c:'#8a7ad8',d:l=>`対象の周囲5×5に雷を${Math.min(l,10)}回。範囲内の敵すべてに1回 MATK×${(.3*dmgLv(l)/Math.min(l,10)).toFixed(2)}`},
   sgust:{job:'mage',n:'ストームガスト',max:10,sp:l=>50+5*l,cast:l=>.2+.03*l,range:9,ground:true,r:3.5,el:'cold',g:'嵐',c:'#5ab8f0',d:l=>`クリックした場所の周囲7×7に吹雪を10回（射程9）。1回 MATK×${(.4+.06*dmgLv(l)).toFixed(2)}。3回目で敵を3秒凍らせる`},
   fwall:{job:'mage',n:'ファイアーウォール',max:10,sp:l=>30+2*l,cast:l=>.04,target:false,g:'壁',c:'#e86a2a',d:l=>`マウスの方向に炎の壁（3マス）。触れた敵に MATK×0.6 と押し返し。1マスあたり${2+l}回 / ${5+l}秒`},
@@ -1661,7 +1663,8 @@ const castTime=(id,lv)=>SK[id].cast(Math.min(lv,10))*S().castMul+(cardBonus().no
 function castInterrupt(){if(P.casting&&!cardBonus().nocancel){P.casting=null;float(P.x,P.y-.6,'詠唱中断','#d8b8ff',15);msg('ダメージを受けて詠唱が中断された！','warn')}}
 const fleePen=()=>Math.min(.8,Math.max(0,(P.mobbed||0)-1)*.1)*(cardBonus().surround?.5:1);
 // SP消費（カードで最大50%まで軽くなる）
-const spCost=(id,lv)=>Math.max(1,Math.round(SK[id].sp(lv)*(1-Math.min(50,cardBonus().spcost)/100)));
+// SP消費はLv1000より増えない（それ以上上げても損をしない）
+const spCost=(id,lv)=>Math.max(1,Math.round(SK[id].sp(Math.min(lv,1000))*(1-Math.min(50,cardBonus().spcost)/100)));
 function updateMobs(dt,s){
   let near=0;
   for(const m of mobs){
@@ -2448,7 +2451,7 @@ function renderInv(){
 function renderSkill(){
   const rows=Object.keys(SK).filter(id=>SK[id].job===P.job).map(id=>{const sk=SK[id],lv=P.skills[id],nl=Math.max(1,lv);
     const lock=skillLocked(id),mx=skillMax(id),dis=lock||P.skillPts<1||lv>=mx?'disabled':'';
-    return `<div class="it${lock?' locked':''}">${icon(lock?'封':sk.g,lock?'#8a8f9a':sk.c)}<div class="tx"><div class="nm">${sk.n} <span class="ds">${lock?`${JOB_NAMES[sk.job][sk.tier-1]}で解放`:`Lv ${lv}/${mx}`}</span></div><div class="ds">${sk.d(nl)} ・ SP ${sk.sp(nl)}</div></div><div class="btns"><button class="btn plus" data-act="skill" data-k="${id}" data-n="1" ${dis} aria-label="${sk.n}を1上げる">+</button><button class="btn plus10" data-act="skill" data-k="${id}" data-n="99" ${dis} aria-label="${sk.n}を上限まで上げる">MAX</button></div></div>`}).join('');
+    return `<div class="it${lock?' locked':''}">${icon(lock?'封':sk.g,lock?'#8a8f9a':sk.c)}<div class="tx"><div class="nm">${sk.n} <span class="ds">${lock?`${JOB_NAMES[sk.job][sk.tier-1]}で解放`:`Lv ${lv}/${mx}`}</span></div><div class="ds">${sk.d(nl)} ・ SP ${spCost(id,nl)}</div></div><div class="btns"><button class="btn plus" data-act="skill" data-k="${id}" data-n="1" ${dis} aria-label="${sk.n}を1上げる">+</button><button class="btn plus10" data-act="skill" data-k="${id}" data-n="99" ${dis} aria-label="${sk.n}を上限まで上げる">MAX</button></div></div>`}).join('');
   const nb=skillCapBonus(),next=(nb+1)*30;
   $('b-skill').innerHTML=`<div class="btns" style="justify-content:flex-end;margin-bottom:6px"><button class="btn" data-act="hotedit">${hotEdit?'並べ替えを終える':'ホットバーを並べ替える'}</button></div><p class="note">残りスキルポイント：<b>${P.skillPts}</b>　スキル上限 +${nb}（Job Lv ${next} で +${nb+1}）</p><div class="list">${rows}</div>`;
 }
