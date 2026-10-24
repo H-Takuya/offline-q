@@ -591,7 +591,7 @@ const buffLv=l=>Math.round(Math.min(l,10)*lvGrow(l));
 // 職業ごとの最大HP：アコライト系は前に立つので多め、マジシャン系は少なめ
 const JOB_HP={aco:1.5,hunter:1,mage:.8};
 // アコライト系の自己強化：ブレッシングでATK、速度増加で攻撃速度、マグニフィカートで被ダメージ軽減
-const acoSelf=()=>{const a=P.job==='aco';return {atk:a&&P.buff.bless>0?.03*P.buff.blessLv:0,spd:a&&P.buff.agi>0?Math.min(.3,.015*P.buff.agiLv):0,guard:a&&P.buff.magni>0?Math.min(.3,.015*(P.buff.magniLv||0)):0}};
+const acoSelf=()=>{const a=P.job==='aco';return {atk:a&&P.buff.bless>0?.03*P.buff.blessLv:0,spd:a&&P.buff.agi>0&&P.buff.agiSelf?Math.min(.3,.015*P.buff.agiLv):0,guard:a&&P.buff.magni>0?Math.min(.3,.015*(P.buff.magniLv||0)):0}};
 const kiPct=l=>(2+4*Math.min(l,10)/10)*lvGrow(l);
 // 阿修羅覇凰拳の倍率：Lv1で×12、Lv10で×30、その先も伸びる（ダメージ用Lv）
 const asuraMul=l=>10+2*dmgLv(l);
@@ -607,9 +607,9 @@ const SK={
   as:{job:'hunter',n:'アローシャワー',max:10,sp:l=>15,target:true,g:'雨',c:'#4f86c9',d:l=>`対象の周囲3×3に矢の雨。ATK ${Math.round(50+5*dmgLv(l))}%`},
   blitz:{job:'hunter',n:'ブリッツビート',max:5,sp:l=>10+3*l,target:true,g:'鷹',c:'#8a6a3a',d:l=>`鷹が${Math.min(l,10)}回攻撃（1回 ATK${Math.round(35*dmgLv(l)/Math.min(l,10))}%、必中・防御無視）。対象のまわり3×3マスを巻き込むが、巻き込んだ数でダメージを分け合う。通常攻撃のたびに 10%＋LUK÷3% で自動発動`},
   ankle:{job:'hunter',n:'アンクルスネア',max:5,sp:l=>12,target:false,g:'罠',c:'#6f7480',d:l=>`足元に罠を置く。踏んだ敵を${3+2*l}秒その場に縛る`},
-  fb:{job:'mage',n:'ファイアーボルト',max:10,sp:l=>10+2*l,cast:l=>.04+.02*l,range:9,target:true,el:'fire',g:'炎',c:'#e0582a',d:l=>`炎の矢を${Math.min(l,10)}本落とす（単体）。1本 MATK×${(.35*dmgLv(l)/Math.min(l,10)).toFixed(2)}`},
+  fb:{job:'mage',n:'ファイアーボルト',max:10,sp:l=>10+2*l,cast:l=>.02+.01*l,range:9,target:true,el:'fire',g:'炎',c:'#e0582a',d:l=>`炎の矢を${Math.min(l,10)}本落とす（単体）。1本 MATK×${(.35*dmgLv(l)/Math.min(l,10)).toFixed(2)}`},
   amp:{job:'mage',n:'魔力増幅',max:10,sp:l=>10+2*l,target:false,g:'増',c:'#b04ad0',d:l=>`魔力を高め、次に使う魔法1回の威力が ×${ampMul(l).toFixed(2)}（30秒以内。詠唱なし。Lv1000で最大×2.0）`},
-  tstorm:{job:'mage',n:'サンダーストーム',max:10,sp:l=>25+4*l,cast:l=>.1+.02*l,range:9,target:true,el:'bolt',g:'雷',c:'#8a7ad8',d:l=>`対象の周囲5×5に雷を${Math.min(l,10)}回。範囲内の敵すべてに1回 MATK×${(.3*dmgLv(l)/Math.min(l,10)).toFixed(2)}`},
+  tstorm:{job:'mage',n:'サンダーストーム',max:10,sp:l=>25+4*l,cast:l=>.04+.01*l,range:9,target:true,el:'bolt',g:'雷',c:'#8a7ad8',d:l=>`対象の周囲5×5に雷を${Math.min(l,10)}回。範囲内の敵すべてに1回 MATK×${(.3*dmgLv(l)/Math.min(l,10)).toFixed(2)}`},
   sgust:{job:'mage',n:'ストームガスト',max:10,sp:l=>50+5*l,cast:l=>.2+.03*l,range:9,ground:true,r:3.5,el:'cold',g:'嵐',c:'#5ab8f0',d:l=>`クリックした場所の周囲7×7に吹雪を10回（射程9）。1回 MATK×${(.4+.06*dmgLv(l)).toFixed(2)}。3回目で敵を3秒凍らせる`},
   fwall:{job:'mage',n:'ファイアーウォール',max:10,sp:l=>30+2*l,cast:l=>.04,target:false,g:'壁',c:'#e86a2a',d:l=>`マウスの方向に炎の壁（3マス）。触れた敵に MATK×0.6 と押し返し。1マスあたり${2+l}回 / ${5+l}秒`},
   swall:{job:'mage',n:'セーフティウォール',max:10,sp:l=>30+3*l,cast:l=>.05,target:false,g:'護',c:'#e88ab8',d:l=>`足元に光の柱。その上にいる間、敵の攻撃を${l+1}回まで防ぐ（30秒）`},
@@ -1240,11 +1240,11 @@ function S(){
     atk:Math.floor((Math.floor(hunter?dex*2.6+dex*dex/25+str/5:P.job==='aco'?str*2.3+str*str/30+dex/5:str*1.4+dex/5)+Math.floor(luk/5)+w+b.atk+EL)*(1+b.pdmg/100)*(1+kiBonus()/100)*(1+acoSelf().atk)),
     range:hunter?8.5:0,
     matk:Math.floor((int*3+Math.floor(int*int/25)+EL+(wi&&wi.cls===JOBS[P.job].w&&wi.matk?wi.matk:0))*(1+b.mdmg/100)),
-    castMul:Math.max(.1,1-dex/120)*(P.bragi>time?.8:1)*(b.cast?.5:1),
+    castMul:Math.max(.1,1-dex/120)*(P.bragi>time?.6:1)*(b.cast?.5:1),
     def:a,vdef:Math.floor(vit*.6),hit:EL+dex,flee:Math.floor((EL+agi)*(1-fleePen())),crit:1+luk*.3+b.crit,
     // 氷牙の王カード：ASPD上限195（攻撃間隔0.1秒）まで限界突破
     delay:Math.max(b.lb?.1:0,Math.max(b.lb?.1:.16,(.85-agi*.012-dex*.003)*(1-Math.min(30,b.aspd+kiBonus()/2)/100))*(P.buff.agi>0?.9:1)*(1-acoSelf().spd)),
-    // ブラギの詩：スキルを使ったあとのディレイが60%短くなる（通常攻撃の間隔＝ASPDはそのまま）
+    // ブラギの詩：スキルのディレイ-70%、通常攻撃の間隔-15%、詠唱-40%
     bragi:P.bragi>time,
     mhp:Math.floor((38+EL*11)*(1+vit*.02)*(1+b.hpPct/100)*(JOB_HP[P.job]||1))+b.mhp,
     msp:Math.floor((12+EL*3)*(1+int*.025)),
@@ -1861,7 +1861,7 @@ function useSkill(id){
     P.casting={id,t:0,dur:castTime(id,lv)};dirty=true;return}
   if(id==='heal'){const a=healAmt(lv);P.hp=Math.min(s.mhp,P.hp+a);float(P.x,P.y,a,'#7dff8a',20);fx.push({type:'heal',t:0,life:1});sfx('heal')}
   if(id!=='heal')sfx('buff');
-  if(id==='agi'){P.buff.agi=60;P.buff.agiLv=buffLv(lv);fx.push({type:'heal',t:0,life:1,col:'#9cd0ff'});msg('速度増加！ 足が軽くなった','sys')}
+  if(id==='agi'){P.buff.agi=60;P.buff.agiLv=buffLv(lv);P.buff.agiSelf=true;fx.push({type:'heal',t:0,life:1,col:'#9cd0ff'});msg('速度増加！ 足が軽くなった','sys')}
   if(id==='bless'){P.buff.bless=40+20*Math.min(lv,30);P.buff.blessLv=buffLv(lv);fx.push({type:'lv',t:0,life:1.4,rgb:'255,240,180'});msg(`ブレッシング！ STR・INT・DEX+${buffLv(lv)}`,'sys')}
   if(id==='amp'){P.amp={mul:ampMul(lv),t:30};fx.push({type:'lv',t:0,life:1.2,rgb:'200,120,255'});msg(`魔力増幅！ 次の魔法の威力 ×${P.amp.mul.toFixed(2)}`,'sys')}
   if(id==='kiko'&&(P.kikoT||0)>time){P.sp+=cost;return}
@@ -1921,10 +1921,10 @@ function castSpell(c,lv){
   const hits=Math.min(lv,10),mul=dmgLv(lv)/hits;
   if(c.id==='fb'){
     if(m.state==='dead')return;
-    for(let i=0;i<hits;i++)fx.push({type:'spell',el:'fire',m,x:c.x,y:c.y,t:-i*.12,at:.22,life:.5,cb:()=>{if(m.state!=='dead'){hurtMob(m,mdmg(m,.35*mul*A),EL_COL.fire,20);sfx('hit')}}});
+    for(let i=0;i<hits;i++)fx.push({type:'spell',el:'fire',m,x:c.x,y:c.y,t:-i*.07,at:.22,life:.5,cb:()=>{if(m.state!=='dead'){hurtMob(m,mdmg(m,.35*mul*A),EL_COL.fire,20);sfx('hit')}}});
   }else if(c.id==='tstorm'){
     for(let i=0;i<hits;i++){const x=c.x+(rnd()-.5)*3,y=c.y+(rnd()-.5)*3;
-      fx.push({type:'spell',el:'bolt',x,y,t:-i*.15,at:.22,life:.5,cb:()=>{sfx('hit');aoe(x,y,2.5,o=>hurtMob(o,mdmg(o,.3*mul*A),'#fff27a',20))}})}
+      fx.push({type:'spell',el:'bolt',x,y,t:-i*.07,at:.22,life:.5,cb:()=>{sfx('hit');aoe(x,y,2.5,o=>hurtMob(o,mdmg(o,.3*mul*A),'#fff27a',20))}})}
   }
   if(m.state!=='dead')P.target={kind:'mob',ref:m,stay:true};
 }
@@ -1985,10 +1985,10 @@ function updateFireWalls(dt){
 const MERC_PRICE=5000,MERC_TIME=600,MERC_MAX=2;
 const mercPrice=slot=>slot===0?MERC_PRICE:MERC_PRICE*1000;
 const MERC_LOOK={
-  aco:{name:'クレア',jn:'アコライト',body:'#7a2a3a',hair:'#f0d878',robe:true,mace:true,weapon:'#a9b0bc',desc:'回復とブレッシング・速度増加で支えつつ、メイスで殴る'},
+  aco:{name:'クレア',jn:'アコライト',body:'#7a2a3a',hair:'#f0d878',robe:true,mace:true,weapon:'#a9b0bc',desc:'ヒール（最大HPの15%以上）と速度増加で支えつつ、メイスで殴る。ブレッシングはかけないので、自分でどうぞ'},
   hunter:{name:'リオ',jn:'ハンター',body:'#3a6a5a',hair:'#f0d878',bow:true,quiver:true,weapon:'#8a5a2c',desc:'離れた位置から矢で攻撃。ときどき2連射'},
   mage:{name:'ミナ',jn:'マジシャン',body:'#2a5a7a',hair:'#f0d878',robe:true,staff:true,weapon:'#c08aff',desc:'ファイアーボルトと火球で攻撃'},
-  bard:{name:'カノン',jn:'バード',body:'#2a7a5a',hair:'#e8b860',bow:true,quiver:true,weapon:'#c8a050',desc:'「ブラギの詩」を奏でる。足元の9マス（3×3）の中にいる間、スキルのディレイが60%短くなり、詠唱時間も20%短くなる。弓でも少し戦う'},
+  bard:{name:'カノン',jn:'バード',body:'#2a7a5a',hair:'#e8b860',bow:true,quiver:true,weapon:'#c8a050',desc:'「ブラギの詩」を奏でる。足元の9マス（3×3）の中にいる間、スキルのディレイが70%短く、通常攻撃が15%速く、詠唱時間が40%短くなる。弓でも少し戦う'},
 };
 let mercs=[];
 const fmtTime=s=>{s=Math.max(0,Math.ceil(s));return `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`};
@@ -2029,9 +2029,10 @@ function updateOneMerc(merc,dt){
   }
   // アコライトは回復と支援
   if(job==='aco'&&!P.dead){const s=S();
-    if(merc.healT<=0&&P.hp<s.mhp*.7){const a=st.heal;P.hp=Math.min(s.mhp,P.hp+a);float(P.x,P.y,a,'#7dff8a',18);fx.push({type:'heal',t:0,life:.8});merc.bubble={text:'ヒール！',t:1};merc.healT=2.5;sfx('heal')}
-    else if(merc.buffT<=0){const lv=Math.min(10,1+Math.floor(P.lv/50));P.buff.bless=60;P.buff.blessLv=Math.max(P.buff.blessLv,lv);P.buff.agi=60;P.buff.agiLv=Math.max(P.buff.agiLv,lv);
-      merc.bubble={text:'ブレッシング！ 速度増加！',t:1.5};merc.buffT=55;dirty=true;sfx('buff')}}
+    // クレアは回復と速度増加が本業。ヒールは最大HPの15%＋α。ブレッシングは自分でかけると効果絶大
+    if(merc.healT<=0&&P.hp<s.mhp*.8){const a=Math.round(st.heal+s.mhp*.15);P.hp=Math.min(s.mhp,P.hp+a);float(P.x,P.y,a,'#7dff8a',18);fx.push({type:'heal',t:0,life:.8});merc.bubble={text:'ヒール！',t:1};merc.healT=1.8;sfx('heal')}
+    else if(merc.buffT<=0&&!(P.buff.agi>0&&P.buff.agiSelf)){const lv=Math.min(10,1+Math.floor(effLv()/50));P.buff.agi=60;P.buff.agiLv=lv;P.buff.agiSelf=false;
+      merc.bubble={text:'速度増加！',t:1.2};merc.buffT=55;dirty=true;sfx('buff')}}
   // 詠唱中
   if(merc.cast){merc.cast.t-=dt;if(merc.cast.t<=0){const m=merc.cast.m,big=merc.cast.big;merc.cast=null;
       if(m.state!=='dead'){if(big){fx.push({type:'fball',sx:merc.x,sy:merc.y,x:m.x,y:m.y,t:0,at:.3,life:.32,cb:()=>{const cx=m.x,cy=m.y;fx.push({type:'boom',x:cx,y:cy,t:0,life:.6,big:true});sfx('gx');aoe(cx,cy,2.5,o=>hurtMob(o,mercDmg(o,st.matk*1.2),'#ffb36b',20,false,'mage'))}});merc.bubble={text:'ファイアーボール！',t:1}}
@@ -2218,7 +2219,7 @@ function updateTarget(dt,s){
         if(P.queued){const id=P.queued.id;P.queued=null;doSkill(id,e);usedSk=true}
         else if(P.job==='hunter')hunterShot(e);
         else playerAttack(e,s,1,0,false);
-        P.atkT=usedSk?s.delay*(s.bragi?.4:1)*(s.b.sdelay?.5:1):s.delay;P.swingT=Math.min(.22,s.delay*.9)}
+        P.atkT=usedSk?s.delay*(s.bragi?.3:1)*(s.b.sdelay?.5:1):s.delay*(s.bragi?.85:1);P.swingT=Math.min(.22,s.delay*.9)}
     }else if(T.kind==='npc'){openNpc(e);P.target=null}
     else{pickup(e);P.target=null}
     return;
