@@ -591,14 +591,14 @@ function boss(n,kind,lv,hp,atk,def,col,size,exp,card,o={}){
     zone:[16,25],count:1,respawn:150+lv*2,drops:[['gold',1],['gold',.5],['blue',.5],['yellow',.8],[card,.05]],zeny:[lv*20,lv*40],
     mvp:[[card,.05],['gold',.6],['blue',1]],look:o};
 }
-const EXP_RATE=300, MAX_LV=999, MAX_STAT=999;
+const EXP_RATE=300, MAX_LV=999, MAX_STAT=999, MAX_JLV=50;
 
 // 魔力増幅の倍率：Lv10で×1.5、そこからはゆっくり伸びてLv1000で×2.0（それ以上は伸びない）
 const ampMul=l=>l<=10?1+.05*l:Math.min(2,1.5+.5*(l-10)/990);
 // 気功弾1つあたりのATK上昇（%）。Lv10で6%、その先はゆっくり伸びてLv1000で2倍
 const lvGrow=l=>l<=10?1:Math.min(2,1+(l-10)/990);
-// ダメージ用のスキルLv：Lv10まではそのまま、その先は伸びを1/5に（転生でLvが伸びても暴走しないように）
-const dmgLv=l=>l<=10?l:10+(l-10)*.2;
+// ダメージ用のスキルLv：Lv10まではそのまま、その先は伸びを半分に
+const dmgLv=l=>l<=10?l:10+(l-10)*.5;
 // 支援スキルのLv：Lv10で10、Lv1000で20
 const buffLv=l=>Math.round(Math.min(l,10)*lvGrow(l));
 // 職業ごとの最大HP：アコライト系は前に立つので多め、マジシャン系は少なめ
@@ -637,6 +637,9 @@ let HOT=[];
 /* ---------- 転職：1次職 → 2次職（Job Lv100）→ 3次職（Job Lv200） ---------- */
 const JOB_NAMES={aco:['アコライト','プリースト','阿修羅'],hunter:['アーチャー','ハンター','スナイパー'],mage:['マジシャン','ウィザード','ハイウィザード']};
 const TIER_REQ=[0,100,200];
+// 転職の条件：2次職はJob Lv25（転生後はいつでも）、3次職は転生1回以上でJob Lv25（転生2回目からはいつでも）
+const tierOk=t=>t===1?(P.jlv>=25||P.reb>=1):t===2?((P.reb>=1&&P.jlv>=25)||P.reb>=2):false;
+const tierNeed=t=>t===1?'Job Lv 25（転生後はいつでも）':'転生1回以上で Job Lv 25（転生2回目からはいつでも）';
 // スキルを覚えられる職の段階
 const SK_TIER={bless:1,heal:1,agi:2,magni:2,kiko:3,asura:3, ds:1,conc:1,ankle:2,blitz:2,as:3,mine:3, fb:1,amp:1,tstorm:2,fwall:2,sgust:3,swall:3};
 for(const k in SK)SK[k].tier=SK_TIER[k]||1;
@@ -647,7 +650,7 @@ for(const j in JOBS)Object.defineProperty(JOBS[j],'n',{get:()=>JOB_NAMES[j][tier
 // その段階のスキルをLv1で覚えさせる（転職のごほうび）
 function grantTierSkills(j,tier,skills){for(const k in SK)if(SK[k].job===j&&SK[k].tier<=tier&&!(skills[k]>0))skills[k]=1}
 function promote(j){
-  const t=tierOf(j);if(t>=3)return;const need=TIER_REQ[t];if(effJob()<need){msg(`Job Lv ${need} が必要です`,'warn');return}
+  const t=tierOf(j);if(t>=3)return;if(!tierOk(t)){msg(`転職の条件：${tierNeed(t)}`,'warn');return}
   const before=JOB_NAMES[j][t-1],after=JOB_NAMES[j][t];P.tiers[j]=t+1;
   if(j===P.job)grantTierSkills(j,t+1,P.skills);else if(P.jobData[j])grantTierSkills(j,t+1,P.jobData[j].skills);
   fx.push({type:'lv',t:0,life:2.2,angel:true,rgb:'255,230,150'},{type:'shock',t:0,life:1.2,rgb:'255,230,150'});
@@ -658,19 +661,22 @@ function jobMasterHTML(){
   $('talkName').textContent='転職官 ギルベルト';
   const rows=Object.keys(JOBS).map(j=>{const t=tierOf(j),cur=JOB_NAMES[j][t-1];
     if(t>=3)return `<div class="it"><div class="tx"><div class="nm">${cur}</div><div class="ds">最上位職に到達している</div></div><button class="btn" disabled>最上位</button></div>`;
-    const nx=JOB_NAMES[j][t],need=TIER_REQ[t],ok=effJob()>=need,newSk=Object.keys(SK).filter(k=>SK[k].job===j&&SK[k].tier===t+1).map(k=>SK[k].n).join('・');
-    return `<div class="it"><div class="tx"><div class="nm">${cur} → ${nx}</div><div class="ds">条件：Job Lv ${need}（現在 ${effJob()}）<br>覚えるスキル：${newSk}</div></div><button class="btn" data-act="promote" data-job="${j}" ${ok?'':'disabled'}>転職する</button></div>`}).join('');
-  return `<p class="talk-t">わしは転職官ギルベルト。Job Lv ${TIER_REQ[1]} で2次職、Job Lv ${TIER_REQ[2]} で3次職へ導こう。<br>転職すると、新しいスキルを覚えられるようになるぞ。</p><div class="list">${rows}</div>`;
+    const nx=JOB_NAMES[j][t],ok=tierOk(t),newSk=Object.keys(SK).filter(k=>SK[k].job===j&&SK[k].tier===t+1).map(k=>SK[k].n).join('・');
+    return `<div class="it"><div class="tx"><div class="nm">${cur} → ${nx}</div><div class="ds">条件：${tierNeed(t)}（今：Job Lv ${P.jlv}・転生${P.reb}回）<br>覚えるスキル：${newSk}</div></div><button class="btn" data-act="promote" data-job="${j}" ${ok?'':'disabled'}>転職する</button></div>`}).join('');
+  return `<p class="talk-t">わしは転職官ギルベルト。Job Lv 25 で2次職、転生してからJob Lv 25 で3次職へ導こう。<br>転職すると、新しいスキルを覚えられるようになるぞ。</p><div class="list">${rows}</div>`;
 }
 const BUFFS=[['bless','ブレッシング'],['agi','速度増加'],['magni','マグニフィカート'],['conc','集中力向上']];
 const earnedStatPts=lv=>{let s=0;for(let l=2;l<=lv;l++)s+=3+Math.floor(l/5);return s};
 const GXS=[];for(let dy=-3;dy<=3;dy++)for(let dx=-3;dx<=3;dx++)if(((dx===0||dy===0)&&Math.abs(dx+dy)<=3)||(Math.abs(dx)===1&&Math.abs(dy)===1))GXS.push([dx,dy]);
 const needBase=l=>Math.floor(18*Math.pow(l,1.85)+10);
-const needJob=l=>Math.floor(14*Math.pow(l,1.75)+8);
-const skillCapBonus=()=>Math.floor((P.jlv+P.rebJ)/30);
+// Job経験値：Job Lv50に着くのがBase Lv999のころになるよう、Lvの3乗で増える
+const needJob=l=>Math.floor(1041*Math.pow(l,3)+8);
+// スキルの上限：転生するたびに 1.8倍ぶんずつ伸びる（Lv10のスキルは転生1回で+8）。Job Lvは毎回1〜50で49ポイント
+const SKILL_GROW=.8;
+const skillCapBonus=()=>0;
 // 転生しても強さはそのまま：計算には「今のLv＋これまでの転生で積み上げたLv」を使う
 const effLv=()=>P.lv+(P.rebLv||0);
-const skillMax=id=>SK[id].max+skillCapBonus();
+const skillMax=id=>Math.round(SK[id].max*(1+SKILL_GROW*(P.reb||0)));
 const statCost=v=>2+Math.floor((v-1)/10);
 
 /* ---------- 状態 ---------- */
@@ -1223,7 +1229,7 @@ function newPlayer(){
   const p={x:SPAWN[0],y:SPAWN[1],face:1,path:[],target:null,queued:null,casting:null,
     lv:1,exp:0,jlv:1,jexp:0,statPts:0,skillPts:0,str:7,agi:6,vit:4,int:4,dex:5,luk:3,
     hp:1,sp:1,zeny:120,inv:[],eq:{weapon:null,armor:null},skills:{...JOBS.aco.skills},job:'aco',jobData:{},
-    buff:{agi:0,agiLv:0,magni:0,bless:0,blessLv:0,angelus:0,angelusLv:0,conc:0,concLv:0},atkT:0,swingT:0,walk:0,dead:false,bubble:null,sit:false,emote:null,reb:0,rebLv:0,rebJ:0,finalClear:false,maxCombo:0,story:null,side:null,nm:{k:0,best:0},cardsSeen:{},name:'冒険者',hotOrder:{},tiers:{aco:1,hunter:1,mage:1}};
+    buff:{agi:0,agiLv:0,magni:0,bless:0,blessLv:0,angelus:0,angelusLv:0,conc:0,concLv:0},atkT:0,swingT:0,walk:0,dead:false,bubble:null,sit:false,emote:null,reb:0,rebLv:0,rebJ:0,finalClear:false,maxCombo:0,story:null,side:null,nm:{k:0,best:0},cardsSeen:{},name:'冒険者',hotOrder:{},jlv50:true,tiers:{aco:1,hunter:1,mage:1}};
   return p;
 }
 function addItem(id,q=1){
@@ -1269,7 +1275,7 @@ const healAmt=l=>{const s=P?S():{int:5,mhp:0,b:{heal:0}},d=dmgLv(l);return Math.
 /* ---------- 保存 ---------- */
 const SAVE_KEY='rune-meadow-save-v1';
 function serialize(){
-  const keys=['x','y','lv','exp','jlv','jexp','statPts','skillPts','str','agi','vit','int','dex','luk','hp','sp','zeny','skills','reb','rebLv','rebJ','finalClear','maxCombo','story','side','tiers','nm','cardsSeen','name','hotOrder'];
+  const keys=['x','y','lv','exp','jlv','jexp','statPts','skillPts','str','agi','vit','int','dex','luk','hp','sp','zeny','skills','reb','rebLv','rebJ','finalClear','maxCombo','story','side','tiers','nm','cardsSeen','name','hotOrder','jlv50'];
   const o={}; for(const k of keys) o[k]=P[k];
   o.inv=P.inv.map(e=>({id:e.id,qty:e.qty,cards:e.cards.slice()}));
   o.eqW=P.inv.indexOf(P.eq.weapon); o.eqA=P.inv.indexOf(P.eq.armor);
@@ -1301,6 +1307,12 @@ function deserialize(o){
   if(P.story&&!P.story.v){const st=P.story;if(st.ch===3)st.step=st.step>=2?4:st.step;if(st.ch>=3)st.ch++;st.v=2}
   // さらに封印の三章（古代樹海・炎の封印・天空の時計塔）を追加した：旧「時の番人」の途中なら古代樹海の章から、Lv999到達後なら最後の報告から
   if(P.story&&P.story.v===2){const st=P.story;if(st.ch===4){if(st.step>=4){st.ch=7;st.step=3}else st.step=0}else if(st.ch>4)st.ch+=3;st.v=3}
+  // Job Lvは50まで・スキル上限は転生ごとに伸びる仕様になった：上限を超えたぶんのポイントは返す
+  if(!o.jlv50){if(P.jlv>MAX_JLV){P.jlv=MAX_JLV;P.jexp=0}
+    const capOf=(k)=>Math.round(SK[k].max*(1+SKILL_GROW*(P.reb||0)));
+    for(const k in P.skills)if(SK[k]&&P.skills[k]>capOf(k)){P.skillPts+=P.skills[k]-capOf(k);P.skills[k]=capOf(k)}
+    for(const j in o.jobData||{}){const d=o.jobData[j];if(d&&d.skills)for(const k in d.skills)if(SK[k]&&d.skills[k]>capOf(k)){d.skillPts=(d.skillPts||0)+d.skills[k]-capOf(k);d.skills[k]=capOf(k)}}}
+  P.jlv50=true;
   // 旧職のスキル（強打・ファイアボルト）に振ったポイントは返却
   P.skillPts+=Math.max(0,(old.bash||0)+(old.bolt||0)-2);
   P.inv=(o.inv||[]).filter(e=>ITEMS[e.id]).map(e=>({id:e.id,qty:e.qty,cards:e.cards||[]}));
@@ -1794,8 +1806,8 @@ function gainExp(b,j){
   let bl=0,jl=0;
   const others=Object.values(P.jobData);
   while(P.lv<MAX_LV&&P.exp>=needBase(P.lv)){P.exp-=needBase(P.lv);P.lv++;const g=3+Math.floor(P.lv/5);P.statPts+=g;for(const d of others)d.statPts+=g;bl++}
-  while(P.jlv<MAX_LV&&P.jexp>=needJob(P.jlv)){P.jexp-=needJob(P.jlv);P.jlv++;P.skillPts++;for(const d of others)d.skillPts++;jl++}
-  if(P.lv>=MAX_LV)P.exp=0; if(P.jlv>=MAX_LV)P.jexp=0;
+  while(P.jlv<MAX_JLV&&P.jexp>=needJob(P.jlv)){P.jexp-=needJob(P.jlv);P.jlv++;P.skillPts++;for(const d of others)d.skillPts++;jl++}
+  if(P.lv>=MAX_LV)P.exp=0; if(P.jlv>=MAX_JLV)P.jexp=0;
   if(bl){const s=S();P.hp=s.mhp;P.sp=s.msp;
     msg(`ベースレベルが ${P.lv} になりました！${bl>1?`（+${bl}）`:''} ステータスポイントを振れます (A)`,'sys');
     if(!wasBoost&&expBoost()>1){msg('★ 初回の旅ボーナス：Base Lv200 から経験値が2倍になりました（転生まで） ★','item');fx.push({type:'lvbig',t:0,life:3.2,title:'EXP ×2',lines:['初回の旅ボーナス','転生まで経験値2倍']})}}
@@ -1804,7 +1816,7 @@ function gainExp(b,j){
     for(let i=s0;i<s1;i++)msg(`街が発展した！ ${TOWN_STAGES[i][1]}ができました`,'item')}
   if(bl){const t0=Math.min(9,Math.floor((P.lv-bl)/100)),t1=bossTier();
     if(t1>t0){msg(`Base Lv ${t1*100} 到達！ ボス段階${t1+1}：新しいボスが出現するようになりました`,'item');spawnRandomBoss(2)}}
-  if(jl){const up=Math.floor(P.jlv/30)-Math.floor((P.jlv-jl)/30);if(up>0)msg(`スキルの上限レベルが +${up} 開放されました！（現在 +${Math.floor(P.jlv/30)}）`,'item')}
+  if(jl&&P.jlv>=MAX_JLV)msg(`Job Lv ${MAX_JLV}（最大）！ 転生すると、またJob Lv1から50まで上げてスキルポイントを稼げる`,'item');
   if(bl||jl)levelUpFx(bl?`Base Lv ${P.lv-bl} → ${P.lv}`:null,jl?`Job Lv ${P.jlv-jl} → ${P.jlv}`:null,!bl);
   dirty=true;
 }
@@ -2446,8 +2458,7 @@ function renderSkill(){
   const rows=Object.keys(SK).filter(id=>SK[id].job===P.job).map(id=>{const sk=SK[id],lv=P.skills[id],nl=Math.max(1,lv);
     const lock=skillLocked(id),mx=skillMax(id),dis=lock||P.skillPts<1||lv>=mx?'disabled':'';
     return `<div class="it${lock?' locked':''}">${icon(lock?'封':sk.g,lock?'#8a8f9a':sk.c)}<div class="tx"><div class="nm">${sk.n} <span class="ds">${lock?`${JOB_NAMES[sk.job][sk.tier-1]}で解放`:`Lv ${lv}/${mx}`}</span></div><div class="ds">${sk.d(nl)} ・ SP ${sk.sp(nl)}</div></div><div class="btns"><button class="btn plus" data-act="skill" data-k="${id}" data-n="1" ${dis} aria-label="${sk.n}を1上げる">+</button><button class="btn plus10" data-act="skill" data-k="${id}" data-n="99" ${dis} aria-label="${sk.n}を上限まで上げる">MAX</button></div></div>`}).join('');
-  const nb=skillCapBonus(),next=(nb+1)*30;
-  $('b-skill').innerHTML=`<div class="btns" style="justify-content:flex-end;margin-bottom:6px"><button class="btn" data-act="hotedit">${hotEdit?'並べ替えを終える':'ホットバーを並べ替える'}</button></div><p class="note">残りスキルポイント：<b>${P.skillPts}</b>　スキル上限 +${nb}（Job Lv ${next} で +${nb+1}）</p><div class="list">${rows}</div>`;
+  $('b-skill').innerHTML=`<div class="btns" style="justify-content:flex-end;margin-bottom:6px"><button class="btn" data-act="hotedit">${hotEdit?'並べ替えを終える':'ホットバーを並べ替える'}</button></div><p class="note">残りスキルポイント：<b>${P.skillPts}</b>　Job Lv ${P.jlv}/${MAX_JLV}<br>スキルの上限は転生するたびに上がる（今：Lv10のスキルは最大Lv${Math.round(10*(1+SKILL_GROW*(P.reb||0)))}、次の転生で${Math.round(10*(1+SKILL_GROW*((P.reb||0)+1)))}）</p><div class="list">${rows}</div>`;
 }
 function renderShop(){
   let body;
@@ -3016,7 +3027,7 @@ function openRebirth(){
 function doRebirth(){
   if(!P.finalClear)return;
   const bl=P.lv,jl=P.jlv;
-  P.rebLv+=P.lv-1;P.rebJ+=P.jlv-1;P.lv=1;P.jlv=1;P.exp=0;P.jexp=0;P.reb++;P.finalClear=false;storySkipTo(chOf('めぐる時'));
+  P.rebLv+=P.lv-1;P.rebJ+=P.jlv-1;P.lv=1;P.jlv=1;P.exp=0;P.jexp=0;P.reb++;P.finalClear=false;storySkipTo(chOf('めぐる時'));msg(`スキルの上限が上がった！（Lv10のスキルは最大Lv${Math.round(10*(1+SKILL_GROW*P.reb))}に）`,'item');
   if(curMap.id!=='field')enterMap(FIELD,SPAWN[0],SPAWN[1]);
   const s=S();P.hp=s.mhp;P.sp=s.msp;
   fx.push({type:'lv',t:0,life:2.4,angel:true,rgb:'200,170,255'},{type:'shock',t:0,life:1.2,rgb:'200,170,255'});
@@ -3024,14 +3035,26 @@ function doRebirth(){
   sfx('mvp');msg(`転生した！（${P.reb}回目）Lv1からの新たな旅が始まる。強さは引き継がれている`,'item');
   dirty=true;save();
 }
+function statUp(k,n){let up=0;for(let i=0;i<n;i++){const c=statCost(P[k]);if(P.statPts<c||P[k]>=MAX_STAT)break;P.statPts-=c;P[k]++;up++}if(up)dirty=true;return up}
+function skillUp(k,n){const before=P.skills[k];if(skillLocked(k))return 0;
+  for(let i=0;i<n&&P.skillPts>0&&P.skills[k]<skillMax(k);i++){P.skillPts--;P.skills[k]++}
+  if(P.skills[k]>before){msg(`${SK[k].n} Lv${P.skills[k]} を習得`,'sys');dirty=true}return P.skills[k]-before}
+// ＋ボタンは押したままで連続して上がる（長く押すほど速く）
+let holdT=null,holdFired=false;
+function holdStop(){if(holdT){clearTimeout(holdT);holdT=null}}
+document.addEventListener('pointerdown',e=>{const a=e.target.closest('.btn.plus[data-act="stat"],.btn.plus[data-act="skill"]');if(!a||a.disabled)return;
+  const act=a.dataset.act,k=a.dataset.k,t0=performance.now();holdFired=false;holdStop();
+  const tick=()=>{const held=performance.now()-t0,n=held>2500?10:held>1200?3:1,got=act==='stat'?statUp(k,n):skillUp(k,n);holdFired=true;
+    if(!got){holdStop();return}if(act==='stat'&&!$('w-status').hidden)renderStatus();if(act==='skill'&&!$('w-skill').hidden)renderSkill();holdT=setTimeout(tick,70)};
+  holdT=setTimeout(tick,380)});
+for(const ev of ['pointerup','pointercancel','blur'])addEventListener(ev,holdStop);
 document.addEventListener('click',e=>{
   const o=e.target.closest('[data-open]');if(o){toggleWin(o.dataset.open);return}
   const c=e.target.closest('[data-close]');if(c){c.closest('.win').hidden=true;return}
   const a=e.target.closest('[data-act]');if(!a)return;const act=a.dataset.act;
-  if(act==='stat'){const k=a.dataset.k;for(let i=0;i<(+a.dataset.n||1);i++){const c=statCost(P[k]);if(P.statPts<c||P[k]>=MAX_STAT)break;P.statPts-=c;P[k]++}}
-  else if(act==='skill'){const k=a.dataset.k,before=P.skills[k];if(skillLocked(k))return;
-    for(let i=0;i<(+a.dataset.n||1)&&P.skillPts>0&&P.skills[k]<skillMax(k);i++){P.skillPts--;P.skills[k]++}
-    if(P.skills[k]>before)msg(`${SK[k].n} Lv${P.skills[k]} を習得`,'sys')}
+  if(holdFired){holdFired=false;return}
+  if(act==='stat')statUp(a.dataset.k,+a.dataset.n||1);
+  else if(act==='skill')skillUp(a.dataset.k,+a.dataset.n||1);
   else if(act==='inv'){const e2=P.inv[+a.dataset.i];if(!e2)return;const it=ITEMS[e2.id];
     if(it.t==='use')useItem(e2.id);
     else if(it.t==='weapon'&&it.cls!==JOBS[P.job].w&&P.eq.weapon!==e2){msg(`${it.n} は${JOBS[P.job].n}では装備できません`,'warn')}
