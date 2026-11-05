@@ -542,16 +542,16 @@ const TIER_BOSSES=[
 ];
 // フィールドボスのカード（TIER_BOSSESと同じ順）。段階5以上は特殊効果つき
 const TB_CARDS=[
-  {vit:5,reduce:5,heal:10},{agi:5,aspd:5,r_wolf:15},
-  {str:10,asuraSp:1},{vit:6,r_ghost:20,heal:15},{dex:8,r_wolf:20,crit:5},
-  {int:8,r_kino:25,spRegen:40},{agi:8,aspd:8,drain:1},{vit:8,reduce:8,surround:1},
-  {int:10,mdmg:10,r_human:15},{luk:10,r_ghost:30,crit:8},{agi:10,crit:12,aspd:5},
-  {str:10,r_dragon:25,hpPct:10},{vit:12,merc:40,reduce:5},{dex:12,pdmg:10,r_ghost:15},
-  {vit:10,reduce:12,surround:1},{int:12,heal:30,hpPct:15},{vit:15,aoe:40,nocancel:1},
-  {luk:15,drop:30,zeny:30},{int:15,mdmg:15,spcost:15},{agi:15,aspd:12,r_dragon:20},
-  {vit:15,drain:2,hpPct:15},{int:12,exp:20,hpRegen:50,spRegen:50},{agi:15,crit:20,pdmg:12},
-  {int:20,mdmg:22,boss:10},{str:20,pdmg:22,r_human:20},{dex:20,reduce:18,aoe:25},
-  {str:10,agi:10,vit:10,int:10,dex:10,luk:10,boss:30,drain:3},{vit:20,hpPct:25,reduce:15,heal:30},{dex:20,pdmg:25,crit:15,aspd:10},
+  {vit:8,reduce:8,heal:15},{agi:8,aspd:8,r_wolf:25},
+  {str:15,asuraSp:1},{vit:10,r_ghost:35,heal:20},{dex:12,r_wolf:35,crit:10},
+  {int:12,r_kino:40,spRegen:60},{agi:12,aspd:10,drain:2},{vit:12,reduce:10,surround:1},
+  {int:15,mdmg:12,r_human:25,autoBolt:8},{luk:15,r_ghost:45,crit:12},{agi:15,crit:15,aspd:8,critDmg:25},
+  {str:15,r_dragon:40,hpPct:15},{vit:15,merc:60,reduce:8},{dex:15,pdmg:12,r_ghost:25,stun:6},
+  {vit:15,reduce:15,surround:1},{int:15,heal:40,hpPct:20,killHp:3},{vit:20,aoe:50,nocancel:1},
+  {luk:20,drop:40,zeny:50},{int:20,mdmg:20,spcost:20},{agi:20,aspd:15,r_dragon:30,autoBolt:10},
+  {vit:20,drain:3,hpPct:20},{int:15,exp:25,hpRegen:80,spRegen:80},{agi:20,crit:25,pdmg:15,critDmg:40},
+  {int:25,mdmg:28,boss:15},{str:25,pdmg:28,r_human:30,stun:8},{dex:25,reduce:20,aoe:30},
+  {str:15,agi:15,vit:15,int:15,dex:15,luk:15,boss:35,drain:4},{vit:25,hpPct:30,reduce:18,heal:40,killHp:5},{dex:25,pdmg:30,crit:20,aspd:12,critDmg:30},
 ];
 // カードの効果を文章にする
 const CARD_STAT={str:'STR',agi:'AGI',vit:'VIT',int:'INT',dex:'DEX',luk:'LUK',atk:'ATK',def:'DEF',mhp:'最大HP'};
@@ -567,7 +567,7 @@ function cardDesc(b){const out=[],st=['str','agi','vit','int','dex','luk'];
   if(b.reduce)out.push(`受けるダメージ-${b.reduce}%`);if(b.aoe)out.push(`ボスの範囲攻撃ダメージ-${b.aoe}%`);if(b.surround)out.push('囲まれたときのFLEE低下が半分');
   if(b.heal)out.push(`ヒール回復量+${b.heal}%`);if(b.hpRegen)out.push(`HP自然回復+${b.hpRegen}%`);if(b.spRegen)out.push(`SP自然回復+${b.spRegen}%`);if(b.spcost)out.push(`SP消費-${b.spcost}%`);
   if(b.merc)out.push(`傭兵の能力+${b.merc}%`);if(b.zeny)out.push(`Zeny獲得+${b.zeny}%`);if(b.drop)out.push(`ドロップ率+${b.drop}%`);if(b.exp)out.push(`経験値+${b.exp}%`);
-  if(b.sdelay)out.push('スキルのディレイが半分');if(b.cast)out.push('詠唱時間が半分');if(b.lb)out.push('ASPD上限が195に（限界突破）');if(b.spd)out.push('移動速度+30%');if(b.nofreeze)out.push('凍結しない');if(b.nocancel)out.push('詠唱が中断されない（詠唱時間+1秒）');if(b.asuraSp)out.push('阿修羅覇凰拳でSPを消費しない');
+  if(b.sdelay)out.push('スキルのディレイが半分');if(b.cast)out.push('詠唱時間が半分');if(b.lb)out.push('ASPD上限が195に（限界突破）');if(b.spd)out.push('移動速度+30%');if(b.nofreeze)out.push('凍結しない');if(b.nocancel)out.push('詠唱が中断されない（詠唱時間+1秒）');if(b.asuraSp)out.push('阿修羅覇凰拳でSPを消費しない');if(b.critDmg)out.push(`クリティカルダメージ+${b.critDmg}%`);if(b.autoBolt)out.push(`通常攻撃のとき${b.autoBolt}%で雷を落とす（ATKかMATKの2倍）`);if(b.stun)out.push(`通常攻撃のとき${b.stun}%で敵を2秒止める（ボス以外）`);if(b.killHp)out.push(`敵を倒すたびHPを${b.killHp}%回復`);if(b.killSp)out.push(`敵を倒すたびSPを${b.killSp}%回復`);
   return out.join(' / ')}
 TIER_BOSSES.forEach(([tier,n,kind,col,size,resist,look],i)=>{
   ITEMS['c_tb'+i]={n:n+'カード',t:'card',b:TB_CARDS[i],sell:0,g:'札',c:col,d:cardDesc(TB_CARDS[i])};
@@ -579,14 +579,14 @@ TIER_BOSSES.forEach(([tier,n,kind,col,size,resist,look],i)=>{
 });
 // カードの効果（モンスターごとにひとつの特徴）。説明文はすべて効果から作る
 const CARD_FX={
-  c_prun:{vit:5,hpRegen:50,hpPct:5},c_kino:{int:5,spRegen:50,spcost:5},c_wolf:{agi:5,r_wolf:20,aspd:5},
-  c_mist:{int:8,mdmg:8,spcost:10},c_gold:{luk:10,zeny:50,drop:10},c_gtb:{agi:10,surround:1},
-  c_kking:{vit:8,r_kino:30,hpRegen:30},c_wlord:{str:8,r_wolf:30,pdmg:10},c_witch:{int:10,mdmg:12,spcost:10},
-  c_skel:{str:8,r_human:25,merc:30},c_knight:{vit:8,pdmg:15,reduce:5},c_ghost:{agi:8,r_ghost:30,drain:2},c_dragon:{str:10,r_dragon:30,boss:10},
-  c_pharaoh:{int:10,drop:25,zeny:30},c_glacia:{agi:12,spd:1,nofreeze:1},c_barbaro:{str:12,zeny:60,pdmg:10},c_leviath:{vit:15,reduce:12,aoe:30},
-  c_thalassa:{int:15,dex:15,cast:1},c_glacies:{agi:15,lb:1,aspd:5},c_celsia:{int:20,mdmg:15,spcost:10,nofreeze:1},
-  c_dryad:{vit:15,hpRegen:100,heal:20},c_ifrit:{str:15,pdmg:15,boss:15},c_hora:{dex:15,aspd:10,sdelay:1},
-  c_apoc:{str:20,agi:20,vit:20,int:20,dex:20,luk:20,pdmg:20,mdmg:20,boss:20,exp:30},
+  c_prun:{vit:8,hpPct:10,hpRegen:80,killHp:2},c_kino:{int:8,spRegen:80,spcost:10,killSp:3},c_wolf:{agi:8,aspd:8,r_wolf:30},
+  c_mist:{int:12,mdmg:15,spcost:10},c_gold:{luk:20,zeny:100,drop:20},c_gtb:{agi:15,crit:10,surround:1},
+  c_kking:{vit:12,r_kino:50,hpRegen:50,killHp:3},c_wlord:{str:12,pdmg:15,r_wolf:50,stun:8},c_witch:{int:15,mdmg:18,spcost:15,autoBolt:10},
+  c_skel:{str:12,r_human:40,merc:50},c_knight:{vit:12,pdmg:20,reduce:8},c_ghost:{agi:12,r_ghost:50,drain:3},c_dragon:{str:15,r_dragon:50,boss:15,critDmg:30},
+  c_pharaoh:{int:15,drop:40,zeny:50,exp:10},c_glacia:{agi:18,spd:1,nofreeze:1,stun:10},c_barbaro:{str:18,pdmg:15,zeny:100,critDmg:30},c_leviath:{vit:20,reduce:15,aoe:40},
+  c_thalassa:{int:20,dex:20,mdmg:10,cast:1},c_glacies:{agi:20,aspd:10,lb:1},c_celsia:{int:25,mdmg:20,nofreeze:1,autoBolt:15},
+  c_dryad:{vit:20,heal:30,hpRegen:150,killHp:5},c_ifrit:{str:20,pdmg:20,boss:20,autoBolt:12},c_hora:{dex:20,aspd:15,sdelay:1},
+  c_apoc:{str:25,agi:25,vit:25,int:25,dex:25,luk:25,pdmg:25,mdmg:25,boss:25,exp:40},
 };
 for(const id in CARD_FX)if(ITEMS[id])ITEMS[id].b=CARD_FX[id];
 for(const id in ITEMS)if(ITEMS[id].t==='card'){ITEMS[id].d=cardDesc(ITEMS[id].b);ITEMS[id].sell=0}
@@ -1266,7 +1266,7 @@ const kiBonus=()=>P.job==='aco'&&P.spheres>0?P.spheres*kiPct(P.skills.kiko||1):0
 // 装備に挿したカードの効果の合計
 function cardBonus(){
   const b={str:0,agi:0,vit:0,int:0,dex:0,luk:0,atk:0,mhp:0,def:0,cast:0,lb:0,spd:0,crit:0,hpPct:0,reduce:0,drop:0,mdmg:0,pdmg:0,exp:0,sdelay:0,
-    aspd:0,boss:0,drain:0,aoe:0,surround:0,heal:0,hpRegen:0,spRegen:0,spcost:0,merc:0,zeny:0,nofreeze:0,nocancel:0,asuraSp:0,r_wolf:0,r_kino:0,r_human:0,r_ghost:0,r_dragon:0,r_prun:0,r_gtb:0};
+    aspd:0,boss:0,drain:0,aoe:0,surround:0,heal:0,hpRegen:0,spRegen:0,spcost:0,merc:0,zeny:0,nofreeze:0,nocancel:0,asuraSp:0,critDmg:0,autoBolt:0,stun:0,killHp:0,killSp:0,r_wolf:0,r_kino:0,r_human:0,r_ghost:0,r_dragon:0,r_prun:0,r_gtb:0};
   for(const e of [P.eq.weapon,P.eq.armor]) if(e) for(const c of e.cards){const bb=ITEMS[c].b;for(const k in bb)b[k]+=bb[k]}
   return b;
 }
@@ -1771,10 +1771,15 @@ function playerAttack(m,s,mult,hitBonus,skill){
   const hit=clamp(80+s.hit+hitBonus-m.def.flee,5,100);
   if(!crit&&rnd()*100>=hit){float(m.x,m.y,'Miss','#bfe3ff',16);aggro(m);return}
   let dmg=s.atk*(.85+rnd()*.3);
-  dmg=crit?dmg*1.4:dmg*(1-m.def.def/100)-m.def.def*.5;
+  const cb=cardBonus();
+  dmg=crit?dmg*1.4*(1+cb.critDmg/100):dmg*(1-m.def.def/100)-m.def.def*.5;
   dmg=Math.max(1,Math.round(dmg*mult));
   fx.push({type:'ring',x:m.x,y:m.y,t:0,life:.25,col:skill?'#ffb347':'#ffffff',r:skill?30:18});
   hurtMob(m,dmg,crit?'#ffe14a':'#ffffff',crit?24:skill?22:18,crit);sfx(crit?'crit':'hit');
+  // カードの自動発動（通常攻撃のときだけ）：雷・足止め
+  if(!skill&&m.state!=='dead'){
+    if(cb.autoBolt&&rnd()*100<Math.min(40,cb.autoBolt)){const d=Math.round(Math.max(s.atk,s.matk)*2*(.9+rnd()*.2));fx.push({type:'spell',el:'bolt',x:m.x,y:m.y,t:0,at:.15,life:.5,cb:()=>{if(m.state!=='dead'){hurtMob(m,d,'#fff27a',24);sfx('hit')}}})}
+    if(cb.stun&&!m.def.boss&&rnd()*100<Math.min(30,cb.stun)){m.iceT=Math.max(m.iceT||0,time+2);m.root=Math.max(m.root||0,2);emote(m,'★',1.2)}}
 }
 function aggro(m){if(m.state==='dead')return;if(m.state==='idle')emote(m,'!',1.4);m.state='chase'}
 // カードの種族特効・ボス特効（冒険者自身の攻撃だけ。傭兵の攻撃はsrcJobつき）
@@ -1791,6 +1796,7 @@ function hurtMob(m,dmg,col,size,crit,srcJob){
   if(m.hp<=0) killMob(m);
 }
 function killMob(m){
+  {const cb=cardBonus();if((cb.killHp||cb.killSp)&&!P.dead){const s=S();if(cb.killHp)P.hp=Math.min(s.mhp,P.hp+s.mhp*cb.killHp/100);if(cb.killSp)P.sp=Math.min(s.msp,P.sp+s.msp*cb.killSp/100)}}
   m.state='dead';m.fade=0;m.respawnAt=m.def.boss?Infinity:time+m.def.respawn;
   if(P.target&&P.target.ref===m){P.target=null;P.queued=null}
   // 爽快ボーナス：5秒以内に倒し続けるとコンボ。5体ごとに経験値+10%
