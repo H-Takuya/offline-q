@@ -439,6 +439,9 @@ const ITEMS={
   hbow:{n:'ハンターボウ',t:'weapon',cls:'bow',atk:75,slots:0,sell:2000,g:'弓',c:'#a8862e',d:'ATK 75 / 弓（ハンター）'},
   rod:{n:'ロッド',t:'weapon',cls:'staff',atk:15,matk:20,slots:2,price:150,g:'杖',c:'#7a5ab0',d:'ATK 15 / MATK+20 / 杖（マジシャン）'},
   wstaff:{n:'ウィザードスタッフ',t:'weapon',cls:'staff',atk:25,matk:90,slots:1,price:1600,g:'杖',c:'#3a6ad0',d:'ATK 25 / MATK+90 / 杖（マジシャン）'},
+  fmace:{n:'炎鉄のメイス',t:'weapon',cls:'mace',atk:150,slots:4,sell:0,g:'鎚',c:'#d0502a',d:'ATK 150 / 鈍器（アコライト）/ 鍛冶師ガンツが火山の熱で鍛えた逸品'},
+  fbow:{n:'炎鉄の弓',t:'weapon',cls:'bow',atk:160,slots:4,sell:0,g:'弓',c:'#d0502a',d:'ATK 160 / 弓（ハンター）/ 鍛冶師ガンツが火山の熱で鍛えた逸品'},
+  fstaff:{n:'炎鉄の杖',t:'weapon',cls:'staff',atk:50,matk:400,slots:4,sell:0,g:'杖',c:'#d0502a',d:'ATK 50 / MATK+400 / 杖（マジシャン）/ 鍛冶師ガンツが火山の熱で鍛えた逸品'},
   scepter:{n:'砂漠の王笏',t:'weapon',cls:'staff',atk:40,matk:250,slots:0,sell:3000,g:'杖',c:'#d9a52c',d:'ATK 40 / MATK+250 / 杖（マジシャン）'},
   cloth:{n:'見習いの法衣',t:'armor',def:2,slots:0,price:40,g:'衣',c:'#3a4166',d:'DEF 2'},
   leather:{n:'シルクローブ',t:'armor',def:7,slots:1,price:720,g:'衣',c:'#6e2c44',d:'DEF 7'},
@@ -622,7 +625,7 @@ const SK={
   asura:{job:'aco',n:'阿修羅覇凰拳',max:10,sp:l=>1,cast:l=>.8,target:true,g:'阿',c:'#d0402a',d:l=>`気功弾5つと残りのSPをすべて使い、目の前の敵に ATK×${asuraMul(l).toFixed(0)} の一撃（防御無視・SPが多いほど強い）`},
   conc:{job:'hunter',n:'集中力向上',max:10,sp:l=>10+l,target:false,g:'集',c:'#3f9a6a',d:l=>`${40+20*Math.min(l,30)}秒間 AGI・DEX+${2+buffLv(l)}`},
   ds:{job:'hunter',n:'ダブルストレイフィング',max:10,sp:l=>12,target:true,g:'双',c:'#c8702e',d:l=>`矢を${hitsOf('ds',l,2)}連射（単体）。合計 ATK ${Math.round((150+25*dmgLv(l))*2)}%`},
-  as:{job:'hunter',n:'アローシャワー',max:10,sp:l=>15,target:true,g:'雨',c:'#4f86c9',d:l=>`対象の周囲3×3に矢の雨。ATK ${Math.round(50+5*dmgLv(l))}%`},
+  as:{job:'hunter',n:'アローシャワー',max:10,sp:l=>15,target:true,g:'雨',c:'#4f86c9',d:l=>`対象の周囲5×5に矢の雨。ATK ${Math.round(80+8*dmgLv(l))}% と、当たった敵を自分から1.5マス押し離す（ボス以外）。囲まれたときの立て直しに`},
   blitz:{job:'hunter',n:'ブリッツビート',max:5,sp:l=>10+3*l,target:true,g:'鷹',c:'#8a6a3a',d:l=>`鷹が${hitsOf('blitz',l,Math.min(l,5))}回攻撃（1回 ATK${Math.round(35*dmgLv(l)/hitsOf('blitz',l,Math.min(l,5)))}%、必中・防御無視）。対象のまわり3×3マスを巻き込むが、巻き込んだ数でダメージを分け合う。通常攻撃のたびに 10%＋LUK÷3% で自動発動`},
   ankle:{job:'hunter',n:'アンクルスネア',max:5,sp:l=>12,target:false,g:'罠',c:'#6f7480',d:l=>`足元に罠を置く。踏んだ敵を${3+2*l}秒その場に縛る`},
   fb:{job:'mage',n:'ファイアーボルト',max:10,sp:l=>10+2*l,cast:l=>.02+.01*l,range:9,target:true,el:'fire',g:'炎',c:'#e0582a',d:l=>`炎の矢を${hitsOf('fb',l,Math.min(l,10))}本落とす（単体）。1本 MATK×${(.35*dmgLv(l)/hitsOf('fb',l,Math.min(l,10))).toFixed(2)}`},
@@ -827,6 +830,17 @@ function sealDefs(id){
     col:B.col,size:B.size,aura:B.aura,look:B.look,special:B.special,
     count:1,respawn:0,drops:[['relic',1],['relic',1],['gold',1],['blue',1],[B.card,.1]],zeny:[lv*150,lv*300],mvp:[[B.card,.06],['relic',1]]};
   return out;
+}
+// 鍛冶師ガンツの鍛冶：カードスロット4つの武器（炎の封印の章を終えたら、または転生後）
+const FORGE=[['fmace','アコライト用'],['fbow','ハンター用'],['fstaff','マジシャン用']],FORGE_Z=3000000,FORGE_RELIC=10;
+const forgeOpen=()=>P.reb>=1||(P.story&&(P.story.done||P.story.ch>chOf('炎の封印')));
+function forgeHTML(){
+  if(!forgeOpen())return `<p class="note" style="margin-top:8px">「火山の封印を取り戻したら、その熱でお前の武器を鍛えてやる」</p>`;
+  const rel=count('relic');
+  return `<p class="talk-t" style="margin-top:8px">約束どおり、武器を鍛えてやる。カードを4枚挿せる逸品だ。<br>1本 ${FORGE_Z.toLocaleString()}z と、古代の秘宝 ${FORGE_RELIC}個（今 ${rel}個）だ。</p><div class="list">`+
+    FORGE.map(([id,who])=>{const it=ITEMS[id],ok=P.zeny>=FORGE_Z&&rel>=FORGE_RELIC;
+      return `<div class="it">${itemIcon(id)}<div class="tx"><div class="nm">${it.n}（${who}）</div><div class="ds">${it.d.split(' / 鍛冶師')[0]} / カードスロット4</div></div><button class="btn" data-act="forge" data-id="${id}" ${ok?'':'disabled'}>鍛える</button></div>`}).join('')+
+    `</div><div class="foot"><span>所持金</span><b class="price">${P.zeny.toLocaleString()} z</b></div>`;
 }
 const SEAL_GUIDE={leaf:'forest',ganz:'volcano',stella:'tower'};
 const SEAL_TALK={
@@ -2204,8 +2218,10 @@ function doSkill(id,m){
   if(sk.cast){P.sp-=cost;P.casting={id,t:0,dur:castTime(id,lv),m,x:m.x,y:m.y};return}
   P.sp-=cost;P.bubble={text:sk.n+'!!',t:1};
   if(id==='ds'){const n=hitsOf('ds',lv,2);for(let i=0;i<n;i++)shoot(m,()=>playerAttack(m,S(),(1.5+.25*dmgLv(lv))*2/n,10,true),i*Math.min(.12,.6/n))}
-  else if(id==='as'){const cx=m.x,cy=m.y;fx.push({type:'rain',x:cx,y:cy,t:0,life:.6});
-    later(.35,()=>{for(const o of mobs)if(o.state!=='dead'&&Math.abs(o.x-cx)<=1.5&&Math.abs(o.y-cy)<=1.5&&los(cx,cy,o.x,o.y))playerAttack(o,S(),.5+.05*dmgLv(lv),10,true)})}
+  // アローシャワー：5×5に矢の雨を降らせ、当たった敵を自分から遠ざける（ボスは動かない）。囲まれたときの立て直し用
+  else if(id==='as'){const cx=m.x,cy=m.y;fx.push({type:'rain',x:cx,y:cy,t:0,life:.6,big:true});
+    later(.35,()=>{for(const o of mobs)if(o.state!=='dead'&&Math.abs(o.x-cx)<=2.5&&Math.abs(o.y-cy)<=2.5&&los(cx,cy,o.x,o.y)){playerAttack(o,S(),.8+.08*dmgLv(lv),10,true);
+      if(o.state!=='dead'&&!o.def.boss){const dx=o.x-P.x,dy=o.y-P.y,d=Math.hypot(dx,dy)||1;for(const st of [1.5,1,.5]){const nx=o.x+dx/d*st,ny=o.y+dy/d*st;if(mobPass(nx,ny)){o.x=nx;o.y=ny;break}}}}})}
   else if(id==='blitz')blitz(m,lv);
 }
 function updateTraps(dt){
@@ -2541,6 +2557,7 @@ function openNpc(n){
     html=P.lv>=G.lv
       ?`<p class="talk-t">${T.open}<br>安全なのは入口の9マスだけ。敵の強さはあなたのLvに合わせて目を覚ます。</p><div class="btns"><button class="btn" data-act="warp-seal" data-id="${id}">${G.name}へ行く</button><button class="btn" data-close>やめておく</button></div>`
       :`<p class="talk-t">${T.closed}<br>${G.name}へ行けるのは Base Lv ${G.lv} から。今のあなたは Lv ${P.lv}。</p><div class="btns"><button class="btn" data-close>わかった</button></div>`;
+    if(n.id==='ganz')html+=forgeHTML();
   }
   else if(n.id==='ice'){
     html=P.lv>=ICE_LV
@@ -3076,6 +3093,11 @@ document.addEventListener('click',e=>{
   else if(act==='sell'){const e2=P.inv[+a.dataset.i],q=+a.dataset.q;if(!e2||!sellPrice(e2.id))return;const g=sellPrice(e2.id)*q;P.zeny+=g;msg(`${ITEMS[e2.id].n} ×${q} を売却 (+${g}z)`,'item');removeEntry(e2,q)}
   else if(act==='selletc'){let g=0;for(const e2 of P.inv.slice())if(ITEMS[e2.id].t==='etc'){g+=sellPrice(e2.id)*e2.qty;removeEntry(e2,e2.qty)}msg(g?`収集品を売却 (+${g}z)`:'売れる収集品がありません',g?'item':'warn');P.zeny+=g}
   else if(act==='tab'){shopTab=a.dataset.k}
+  else if(act==='forge'){const id=a.dataset.id;if(!forgeOpen()||!FORGE.some(f=>f[0]===id))return;
+    if(P.zeny<FORGE_Z||count('relic')<FORGE_RELIC){msg('Zenyか古代の秘宝が足りない','warn');return}
+    P.zeny-=FORGE_Z;removeEntry(P.inv.find(e=>e.id==='relic'),FORGE_RELIC);addItem(id);
+    msg(`ガンツが ${ITEMS[id].n} を鍛え上げた！（カードスロット4）`,'item');sfx('mvp');fx.push({type:'boom',x:P.x,y:P.y,t:0,life:.7,big:true});
+    if(talkNpc)openNpc(talkNpc);return}
   else if(act==='invtab'){invTab=a.dataset.k;cardPickRef=null}
   else if(act==='card-pick'){const e2=P.inv[+a.dataset.i];cardPickRef=cardPickRef===e2?null:e2}
   else if(act==='card-cancel'){cardPickRef=null}
@@ -3639,7 +3661,7 @@ function draw(){
       ctx.strokeStyle='#5a3d1c';ctx.lineWidth=1.6;ctx.beginPath();ctx.moveTo(-13,0);ctx.lineTo(1,0);ctx.stroke();ctx.fillStyle='#dfe4ec';ctx.beginPath();ctx.moveTo(4,0);ctx.lineTo(-1,-2.6);ctx.lineTo(-1,2.6);ctx.fill();
       ctx.fillStyle='#f2ead4';ctx.fillRect(-14,-2.2,3.5,4.4);ctx.restore()}
     else if(f.type==='rain'){const [x,y]=iso(f.x,f.y);ctx.strokeStyle=`rgba(90,60,30,${1-p})`;ctx.lineWidth=1.5;
-      for(let i=0;i<14;i++){const ox=((i*37)%60)-30,oy=((i*23)%30)-15,fall=clamp(p*1.6-(i%5)*.1,0,1),yy=y+oy-120*(1-fall);ctx.beginPath();ctx.moveTo(x+ox+6,yy-14);ctx.lineTo(x+ox,yy);ctx.stroke()}}
+      const RS=f.big?1.7:1;for(let i=0;i<(f.big?28:14);i++){const ox=(((i*37)%60)-30)*RS,oy=(((i*23)%30)-15)*RS,fall=clamp(p*1.6-(i%5)*.1,0,1),yy=y+oy-120*(1-fall);ctx.beginPath();ctx.moveTo(x+ox+6,yy-14);ctx.lineTo(x+ox,yy);ctx.stroke()}}
     else if(f.type==='cardpillar'){const [x,y]=iso(f.x,f.y),a=p<.05?p/.05:p>.7?(1-p)/.3:1,h=(time*120)%360,H=260;
       ctx.globalAlpha=a;const g=ctx.createLinearGradient(0,y-H,0,y);g.addColorStop(0,`hsla(${h},95%,75%,0)`);g.addColorStop(.6,`hsla(${(h+80)%360},95%,72%,.45)`);g.addColorStop(1,'rgba(255,255,255,.85)');
       ctx.fillStyle=g;ctx.fillRect(x-14,y-H,28,H);ctx.fillStyle='rgba(255,255,255,.7)';ctx.fillRect(x-3,y-H,6,H);
