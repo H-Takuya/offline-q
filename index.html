@@ -767,7 +767,7 @@ function finalDefs(){
   const mk=(n,kind,col,size,off,o={})=>{const lv=L+off;
     return {n,kind,lv,hp:Math.round(8*Math.pow(lv,1.35)+60),atk:[Math.round(lv*1.6),Math.round(lv*2.3)],def:40,hit:lv+40,flee:Math.round(lv*.7),
       exp:Math.round(Math.pow(lv,1.25)),jexp:Math.round(Math.pow(lv,1.25)*.7),speed:o.speed||2.3,delay:o.delay||1.2,aggro:true,aggroR:9,chaseR:20,col,size,
-      count:o.count||10,respawn:12,look:o.look||{},drops:[['blue',.15],['relic',.12],['gold',.1]],zeny:[lv*4,lv*8]}};
+      count:o.count||10,respawn:5,look:o.look||{},drops:[['blue',.15],['relic',.12],['gold',.1]],zeny:[lv*4,lv*8]}};
   const lv=L+300;
   const boss={n:'終焉の王 アポカリオン',kind:'dragon',lv,hp:Math.round(150*Math.pow(lv,1.3)*4),atk:[Math.round(lv*3),Math.round(lv*4)],def:55,hit:lv+60,flee:Math.round(lv*.9),
     exp:Math.round(Math.pow(lv,1.6)*3),jexp:Math.round(Math.pow(lv,1.6)*2),speed:2.4,delay:1.1,aggro:true,aggroR:10,chaseR:30,boss:true,final:true,tier:bossTier(),
@@ -889,7 +889,7 @@ function getRush(){
   return RUSH={id:'rush',name:'ボスの闘技場',tiles:D.tiles,shade:D.shade,ground:renderDungeonGround(D,PAL_ARENA,null),objs:dungeonObjs(D,imgs,PAL_ARENA),safe:noSafe,noSafe:true,bgm:'rush',vig:'30,14,0',dark:true,
     npcs:[],spawn:()=>farFloor(D,5),bossSpawn:()=>farFloor(D,5),
     initMobs:()=>{mobs=[];for(let i=0;i<RUSH_ALIVE;i++){const m={key:'rush',def:rushBoss(),seed:rnd()*10};spawnMob(m);mobs.push(m)}},
-    onKill:m=>{m.def=rushBoss();m.respawnAt=time+5}};
+    onKill:m=>{m.def=rushBoss();m.respawnAt=time+2}};
 }
 // ナイトメア：倒すたびに深度+1。敵のLvは深度×3ずつ上がり、HPと攻撃力も1%ずつ増える
 const NM_MOBS=[['nwolf','悪夢の狼','wolf','#5a2a4a',1.25,0,{speed:3.2}],['nprun','悪夢プルン','prun','#6a1a3a',1.3,-20,{}],['nghost','うつろな影','ghost','#3a2a5a',1.1,20,{speed:2.8}],
@@ -900,7 +900,7 @@ function nmDef(key){
   const [,n,kind,col,size,off,o]=NM_MOBS.find(a=>a[0]===key),k=nmState().k,lv=nmLv()+off,mul=1+k*.01;
   return {n,kind,lv,hp:Math.round((10*Math.pow(lv,1.35)+80)*mul),atk:[Math.round(lv*1.8*mul),Math.round(lv*2.5*mul)],def:Math.min(60,15+Math.floor(lv/30)),hit:lv+35,flee:Math.round(lv*.75),
     exp:Math.round(Math.pow(lv,1.27)*(1+k*.005)),jexp:Math.round(Math.pow(lv,1.27)*.7),speed:o.speed||2.5,delay:o.delay||1.05,aggro:true,aggroR:16,chaseR:60,col,size,
-    count:7,respawn:6,look:o.look||{},drops:[['yellow',.2],['blue',.1],['relic',.08],['gold',.08]],zeny:[lv*4,lv*8]};
+    count:7,respawn:1.5,look:o.look||{},drops:[['yellow',.2],['blue',.1],['relic',.08],['gold',.08]],zeny:[lv*4,lv*8]};
 }
 // 50体ごとに現れる「悪夢の化身」。どこかのボスのカードをひとつ持っている
 function nmAvatar(){
