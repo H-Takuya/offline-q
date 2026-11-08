@@ -135,6 +135,7 @@ kbd{font-family:var(--f-display);font-size:10px;color:var(--muted);margin-left:2
 .tabs{display:flex;gap:4px;margin-bottom:8px}
 .name-row{gap:6px;align-items:center}.name-row input{flex:1;min-width:0;font:14px var(--f-ui);padding:4px 8px;border:1px solid var(--line);border-radius:4px;background:#fff;color:var(--ink)}
 #hName{cursor:pointer}#hName:hover{text-decoration:underline dotted}
+.refn{color:#d07a10}
 .cslots{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 2px 34px}.cslots.none{font-size:11px;color:var(--muted)}
 .cslot{position:relative;width:62px;min-height:62px;border:2px dashed var(--line);border-radius:6px;background:var(--win-2);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;padding:3px;font:10px var(--f-display);color:var(--muted)}
 .cslot b{font-size:20px;line-height:1;color:var(--head)}.cslot.pick{border-color:#ff8a2a;background:#fff1e0}
@@ -831,6 +832,21 @@ function sealDefs(id){
     count:1,respawn:0,drops:[['relic',1],['relic',1],['gold',1],['blue',1],[B.card,.1]],zeny:[lv*150,lv*300],mvp:[[B.card,.06],['relic',1]]};
   return out;
 }
+// 精錬（+1〜+10）：武器はATK・MATK全体に、防具は受けるダメージに効く。+4までは必ず成功、失敗しても壊れず-1（+4より下がらない）
+const REF_MAX=10,REF_SAFE=4,REF_RATE=[1,1,1,1,1,.8,.65,.5,.35,.25,.15];
+const refW=L=>L<=4?.03*L:.12+.06*(L-4);
+const refA=L=>.015*L;
+const refCost=L=>({z:20000*L*L,r:Math.max(0,L-3)});
+function refineHTML(){
+  const gear=P.inv.filter(e=>ITEMS[e.id].t==='weapon'||ITEMS[e.id].t==='armor').sort((a,b)=>((b===P.eq.weapon||b===P.eq.armor)-(a===P.eq.weapon||a===P.eq.armor)));
+  if(!gear.length)return '';
+  const rel=count('relic');
+  return `<p class="talk-t" style="margin-top:10px">精錬もやってるぞ。+${REF_SAFE}までは必ず成功。その先は運だ。失敗しても壊しはしねえ、1つ下がるだけだ。</p><div class="list">`+
+    gear.map(e=>{const it=ITEMS[e.id],L=(e.ref||0)+1,i=P.inv.indexOf(e),eq=e===P.eq.weapon||e===P.eq.armor,w=it.t==='weapon';
+      if(L>REF_MAX)return `<div class="it">${itemIcon(e.id)}<div class="tx"><div class="nm">+${REF_MAX} ${it.n}${eq?'<span class="tag">E</span>':''}</div><div class="ds">${w?`ATK・MATK +${Math.round(refW(REF_MAX)*100)}%`:`受けるダメージ -${Math.round(refA(REF_MAX)*100)}%`}（最大）</div></div><button class="btn" disabled>最大</button></div>`;
+      const c=refCost(L),ok=P.zeny>=c.z&&rel>=c.r,now=e.ref||0;
+      return `<div class="it">${itemIcon(e.id)}<div class="tx"><div class="nm">${now?'+'+now+' ':''}${it.n}${eq?'<span class="tag">E</span>':''} → +${L}</div><div class="ds">${w?`ATK・MATK +${Math.round(refW(now)*100)}% → +${Math.round(refW(L)*100)}%`:`受けるダメージ -${(refA(now)*100).toFixed(1)}% → -${(refA(L)*100).toFixed(1)}%`}<br>成功率 ${Math.round(REF_RATE[L]*100)}% ／ ${c.z.toLocaleString()}z${c.r?`＋古代の秘宝${c.r}個（今 ${rel}個）`:''}</div></div><button class="btn" data-act="refine" data-i="${i}" ${ok?'':'disabled'}>精錬</button></div>`}).join('')+`</div>`;
+}
 // 鍛冶師ガンツの鍛冶：カードスロット4つの武器（炎の封印の章を終えたら、または転生後）
 const FORGE=[['fmace','アコライト用'],['fbow','ハンター用'],['fstaff','マジシャン用']],FORGE_Z=3000000,FORGE_RELIC=10;
 const forgeOpen=()=>P.reb>=1||(P.story&&(P.story.done||P.story.ch>chOf('炎の封印')));
@@ -1277,9 +1293,9 @@ function S(){
   const EL=effLv(),hunter=P.job==='hunter',wi=P.eq.weapon&&ITEMS[P.eq.weapon.id],w=wi&&wi.cls===JOBS[P.job].w?wi.atk:0,a=(P.eq.armor?ITEMS[P.eq.armor.id].def:0)+(P.buff.angelus>0?2*P.buff.angelusLv:0)+b.def;
   return {str,agi,vit,int,dex,luk,b,agiB,
     // 職業ごとの物理攻撃：ハンター（DEX）＞アコライト（STR）＞マジシャン（ほぼ魔法頼み）
-    atk:Math.floor((Math.floor(hunter?dex*2.6+dex*dex/25+str/5:P.job==='aco'?str*2.3+str*str/30+dex/5:str*1.4+dex/5)+Math.floor(luk/5)+w+b.atk+EL)*(1+b.pdmg/100)*(1+kiBonus()/100)*(1+acoSelf().atk)),
+    atk:Math.floor((Math.floor(hunter?dex*2.6+dex*dex/25+str/5:P.job==='aco'?str*2.3+str*str/30+dex/5:str*1.4+dex/5)+Math.floor(luk/5)+w+b.atk+EL)*(1+b.pdmg/100)*(1+kiBonus()/100)*(1+acoSelf().atk)*(1+refW((P.eq.weapon&&P.eq.weapon.ref)||0))),
     range:hunter?8.5:0,
-    matk:Math.floor((int*3+Math.floor(int*int/25)+EL+(wi&&wi.cls===JOBS[P.job].w&&wi.matk?wi.matk:0))*(1+b.mdmg/100)*(1+acoSelf().atk)),
+    matk:Math.floor((int*3+Math.floor(int*int/25)+EL+(wi&&wi.cls===JOBS[P.job].w&&wi.matk?wi.matk:0))*(1+b.mdmg/100)*(1+acoSelf().atk)*(1+refW((P.eq.weapon&&P.eq.weapon.ref)||0))),
     castMul:Math.max(.1,1-dex/120)*(P.bragi>time?.6:1)*(b.cast?.5:1),
     def:a,vdef:Math.floor(vit*.6),hit:EL+dex,flee:Math.floor((EL+agi)*(1-fleePen())),crit:1+luk*.3+b.crit,
     // 氷牙の王カード：ASPD上限195（攻撃間隔0.1秒）まで限界突破
@@ -1298,7 +1314,7 @@ const SAVE_KEY='rune-meadow-save-v1';
 function serialize(){
   const keys=['x','y','lv','exp','jlv','jexp','statPts','skillPts','str','agi','vit','int','dex','luk','hp','sp','zeny','skills','reb','rebLv','rebJ','finalClear','maxCombo','story','side','tiers','nm','cardsSeen','name','hotOrder','jlv50'];
   const o={}; for(const k of keys) o[k]=P[k];
-  o.inv=P.inv.map(e=>({id:e.id,qty:e.qty,cards:e.cards.slice()}));
+  o.inv=P.inv.map(e=>({id:e.id,qty:e.qty,cards:e.cards.slice(),...(e.ref?{ref:e.ref}:{})}));
   o.eqW=P.inv.indexOf(P.eq.weapon); o.eqA=P.inv.indexOf(P.eq.armor);
   if(curMap.id!=='field'){o.x=SPAWN[0];o.y=SPAWN[1]}
   o.mercs=mercs.map(m=>({job:m.job,remain:Math.max(0,m.end-time)}));
@@ -1336,7 +1352,7 @@ function deserialize(o){
   P.jlv50=true;
   // 旧職のスキル（強打・ファイアボルト）に振ったポイントは返却
   P.skillPts+=Math.max(0,(old.bash||0)+(old.bolt||0)-2);
-  P.inv=(o.inv||[]).filter(e=>ITEMS[e.id]).map(e=>({id:e.id,qty:e.qty,cards:e.cards||[]}));
+  P.inv=(o.inv||[]).filter(e=>ITEMS[e.id]).map(e=>({id:e.id,qty:e.qty,cards:e.cards||[],...(e.ref?{ref:e.ref}:{})}));
   P.eq.weapon=P.inv[o.eqW]||null; P.eq.armor=P.inv[o.eqA]||null;
   for(const j in o.jobData||{}) if(JOBS[j]){const d=o.jobData[j];P.jobData[j]={...d,skills:{...JOBS[j].skills,...d.skills},weapon:P.inv[d.weapon]||null}}
   // マジシャンのスキル整理（コールド／ライトニングボルト・フロストダイバー廃止）：振っていたポイントを返す
@@ -1727,7 +1743,7 @@ function updateMobs(dt,s){
       const sp=m.def.special;
       if(sp&&d<8){m.spT=(m.spT==null?5:m.spT)-dt;if(m.spT<=0){m.spT=sp.every;const cx=m.x,cy=m.y,r=sp.r,big=m.def.atk[1]*sp.mult;
         fx.push({type:'warn',col:sp.col,x:cx,y:cy,r,t:0,at:1.3,life:1.32,cb:()=>{fx.push(sp.freeze?{type:'spell',el:'cold',x:cx,y:cy,t:.22,at:.22,life:.5,done:true}:{type:'boom',x:cx,y:cy,t:0,life:.7,big:true});sfx('gx');
-          if(!P.dead&&Math.hypot(P.x-cx,P.y-cy)<=r&&los(cx,cy,P.x,P.y)){const s2=S(),dmg=Math.max(1,Math.round((big*(1-Math.min(.5,s2.def/100))-s2.vdef)*(1-Math.min(70,s2.b.aoe)/100)));P.hp-=dmg;float(P.x,P.y,dmg,'#ff4a3a',24,1,true);castInterrupt();
+          if(!P.dead&&Math.hypot(P.x-cx,P.y-cy)<=r&&los(cx,cy,P.x,P.y)){const s2=S(),dmg=Math.max(1,Math.round((1-refA((P.eq.armor&&P.eq.armor.ref)||0))*(big*(1-Math.min(.5,s2.def/100))-s2.vdef)*(1-Math.min(70,s2.b.aoe)/100)));P.hp-=dmg;float(P.x,P.y,dmg,'#ff4a3a',24,1,true);castInterrupt();
             if(sp.freeze&&P.hp>0&&!s2.b.nofreeze){P.frozen=time+sp.freeze;P.casting=null;msg('凍りついて動けない！','warn')}if(P.hp<=0)die()}
           for(const mc of mercs)if(!(mc.down>0)&&Math.hypot(mc.x-cx,mc.y-cy)<=r&&los(cx,cy,mc.x,mc.y)){mc.hp-=Math.round(big*.6);if(mc.hp<=0)mercDown(mc)}}});
         m.bubble=null;msg(sp.msg,'warn')}}
@@ -1761,7 +1777,7 @@ function mobAttack(m,s){
   const hit=clamp(80+m.def.hit-s.flee,5,95);
   if(rnd()*100>=hit){float(P.x,P.y,'Miss','#bfe3ff',16);return}
   const raw=irand(m.def.atk[0],m.def.atk[1]);
-  const dmg=Math.max(1,Math.round((raw*(1-Math.min(.5,s.def/100))-s.vdef)*(1-Math.min(60,s.b.reduce)/100)*(1-acoSelf().guard)));
+  const dmg=Math.max(1,Math.round((raw*(1-Math.min(.5,s.def/100))-s.vdef)*(1-Math.min(60,s.b.reduce)/100)*(1-acoSelf().guard)*(1-refA((P.eq.armor&&P.eq.armor.ref)||0))));
   P.hp-=dmg; float(P.x,P.y,dmg,'#ff5a4c',18,1,true); sfx('hurt');castInterrupt();
   if(P.hp<=0) die();
 }
@@ -2388,7 +2404,7 @@ for(const w of document.querySelectorAll('.win')){
 const icon=(g,c,pot)=>`<span class="ic${pot?' pot':''}" style="background:${c}">${g}</span>`;
 const itemIcon=id=>{const it=ITEMS[id];return icon(it.g,it.c,it.t==='use')};
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-function itemName(e){const it=ITEMS[e.id];if(!it.slots&&!e.cards.length)return it.n;return `${it.n} [${e.cards.length}/${it.slots}]`}
+function itemName(e){const it=ITEMS[e.id],r=e.ref?`+${e.ref} `:'';if(!it.slots&&!e.cards.length)return r+it.n;return `${r}${it.n} [${e.cards.length}/${it.slots}]`}
 
 let shopTab='buy',resetArm=false;
 // 冒険者の名前（ステータス窓からいつでも変えられる）
@@ -2473,7 +2489,7 @@ function cardSlots(e){const it=ITEMS[e.id],n=it.slots||0,i=P.inv.indexOf(e);let 
   return n?`<div class="cslots">${h}</div>`:'<div class="cslots none">スロットなし</div>'}
 function equipRow(e,head){const it=ITEMS[e.id],eq=P.eq.weapon===e||P.eq.armor===e,i=P.inv.indexOf(e),ok=it.t!=='weapon'||it.cls===JOBS[P.job].w;
   const cardFx=e.cards.length?`<div class="ds">カード：${e.cards.map(c=>ITEMS[c].d).join(' ／ ')}</div>`:'';
-  return `<div class="eqrow${eq?' on':''}">${head?`<div class="eqh">${head}</div>`:''}<div class="eqmain">${itemIcon(e.id)}<div class="tx"><div class="nm">${esc(it.n)}${eq?'<span class="tag">E</span>':''}</div><div class="ds">${it.d}${ok?'':'（今の職業では装備できない）'}</div>${cardFx}</div>
+  return `<div class="eqrow${eq?' on':''}">${head?`<div class="eqh">${head}</div>`:''}<div class="eqmain">${itemIcon(e.id)}<div class="tx"><div class="nm">${e.ref?`<b class="refn">+${e.ref}</b> `:''}${esc(it.n)}${eq?'<span class="tag">E</span>':''}</div><div class="ds">${it.d}${e.ref?(it.t==='weapon'?` / 精錬 ATK・MATK+${Math.round(refW(e.ref)*100)}%`:` / 精錬 被ダメージ-${(refA(e.ref)*100).toFixed(1)}%`):''}${ok?'':'（今の職業では装備できない）'}</div>${cardFx}</div>
     <button class="btn" data-act="inv" data-i="${i}" ${!eq&&!ok?'disabled':''}>${eq?'外す':'装備'}</button></div>${cardSlots(e)}</div>`}
 function renderEquip(){
   const W=P.eq.weapon,A=P.eq.armor;
@@ -2576,7 +2592,7 @@ function openNpc(n){
     html=P.lv>=G.lv
       ?`<p class="talk-t">${T.open}<br>安全なのは入口の9マスだけ。敵の強さはあなたのLvに合わせて目を覚ます。</p><div class="btns"><button class="btn" data-act="warp-seal" data-id="${id}">${G.name}へ行く</button><button class="btn" data-close>やめておく</button></div>`
       :`<p class="talk-t">${T.closed}<br>${G.name}へ行けるのは Base Lv ${G.lv} から。今のあなたは Lv ${P.lv}。</p><div class="btns"><button class="btn" data-close>わかった</button></div>`;
-    if(n.id==='ganz')html+=forgeHTML();
+    if(n.id==='ganz')html+=forgeHTML()+refineHTML();
   }
   else if(n.id==='ice'){
     html=P.lv>=ICE_LV
@@ -3112,6 +3128,13 @@ document.addEventListener('click',e=>{
   else if(act==='sell'){const e2=P.inv[+a.dataset.i],q=+a.dataset.q;if(!e2||!sellPrice(e2.id))return;const g=sellPrice(e2.id)*q;P.zeny+=g;msg(`${ITEMS[e2.id].n} ×${q} を売却 (+${g}z)`,'item');removeEntry(e2,q)}
   else if(act==='selletc'){let g=0;for(const e2 of P.inv.slice())if(ITEMS[e2.id].t==='etc'){g+=sellPrice(e2.id)*e2.qty;removeEntry(e2,e2.qty)}msg(g?`収集品を売却 (+${g}z)`:'売れる収集品がありません',g?'item':'warn');P.zeny+=g}
   else if(act==='tab'){shopTab=a.dataset.k}
+  else if(act==='refine'){const e2=P.inv[+a.dataset.i];if(!e2)return;const L=(e2.ref||0)+1;if(L>REF_MAX)return;const c=refCost(L);
+    if(P.zeny<c.z||count('relic')<c.r){msg('Zenyか古代の秘宝が足りない','warn');return}
+    P.zeny-=c.z;if(c.r)removeEntry(P.inv.find(e=>e.id==='relic'),c.r);
+    const nm=ITEMS[e2.id].n;
+    if(rnd()<REF_RATE[L]){e2.ref=L;msg(`カーン！ 精錬成功！ +${L} ${nm}`,'item');sfx(L>=7?'mvp':'buff');fx.push({type:'lv',t:0,life:1.4,rgb:L>=7?'255,210,90':'200,230,255'});if(L>=7)fx.push({type:'lvbig',t:0,life:2.6,title:`+${L}`,lines:[nm,'精錬成功！']})}
+    else{const back=Math.max(REF_SAFE,(e2.ref||0)-1);const was=e2.ref||0;e2.ref=Math.min(was,back);msg(`……精錬失敗。${nm} は +${e2.ref} になった`,'warn');sfx('hurt');fx.push({type:'shock',t:0,life:.9,rgb:'140,140,150'})}
+    dirty=true;if(talkNpc)openNpc(talkNpc);return}
   else if(act==='forge'){const id=a.dataset.id;if(!forgeOpen()||!FORGE.some(f=>f[0]===id))return;
     if(P.zeny<FORGE_Z||count('relic')<FORGE_RELIC){msg('Zenyか古代の秘宝が足りない','warn');return}
     P.zeny-=FORGE_Z;removeEntry(P.inv.find(e=>e.id==='relic'),FORGE_RELIC);addItem(id);
