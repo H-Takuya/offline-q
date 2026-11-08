@@ -622,16 +622,16 @@ const SK={
   heal:{job:'aco',n:'ヒール',max:10,sp:l=>10+3*l,target:false,g:'癒',c:'#4aae63',d:l=>`HPを約${healAmt(l)}回復`},
   kiko:{job:'aco',n:'気功',max:10,sp:l=>8,target:false,g:'気',c:'#e0a030',d:l=>`気功弾を1つ作る（最大5つ・10分）。1つにつき ATK+${kiPct(l).toFixed(1)}% / 攻撃速度+${(kiPct(l)/2).toFixed(1)}%`},
   magni:{job:'aco',n:'マグニフィカート',max:5,sp:l=>12+2*l,cast:l=>1.2,target:false,g:'讃',c:'#7d8fe0',d:l=>`${30*Math.min(l,30)}秒間 HPとSPの自然回復が2倍・受けるダメージ-${(100*softPct(buffLv(l))).toFixed(0)}%（持ち替えても続く・詠唱1.2秒）`},
-  asura:{job:'aco',n:'阿修羅覇凰拳',max:10,sp:l=>1,cast:l=>.8,target:true,g:'阿',c:'#d0402a',d:l=>`気功弾5つと残りのSPをすべて使い、目の前の敵に ATK×${asuraMul(l).toFixed(0)} の一撃（防御無視・SPが多いほど強い）`},
+  asura:{job:'aco',n:'阿修羅覇凰拳',max:10,sp:l=>1,cast:l=>.8,target:true,g:'阿',c:'#d0402a',d:l=>`気功弾5つと残りのSPをすべて使い、目の前の敵に ATK×${asuraMul(l).toFixed(0)} の一撃（防御無視・SPが多いほど強い）。止まっている敵（凍結・縛り）には×1.3`},
   conc:{job:'hunter',n:'集中力向上',max:10,sp:l=>10+l,target:false,g:'集',c:'#3f9a6a',d:l=>`${40+20*Math.min(l,30)}秒間 AGI・DEX+${2+buffLv(l)}`},
   ds:{job:'hunter',n:'ダブルストレイフィング',max:10,sp:l=>12,target:true,g:'双',c:'#c8702e',d:l=>`矢を${hitsOf('ds',l,2)}連射（単体）。合計 ATK ${Math.round((150+25*dmgLv(l))*2)}%`},
   as:{job:'hunter',n:'アローシャワー',max:10,sp:l=>15,target:true,g:'雨',c:'#4f86c9',d:l=>`対象の周囲5×5に矢の雨。ATK ${Math.round(80+8*dmgLv(l))}% と、当たった敵を自分から1.5マス押し離す（ボス以外）。囲まれたときの立て直しに`},
   blitz:{job:'hunter',n:'ブリッツビート',max:5,sp:l=>10+3*l,target:true,g:'鷹',c:'#8a6a3a',d:l=>`鷹が${hitsOf('blitz',l,Math.min(l,5))}回攻撃（1回 ATK${Math.round(35*dmgLv(l)/hitsOf('blitz',l,Math.min(l,5)))}%、必中・防御無視）。対象のまわり3×3マスを巻き込むが、巻き込んだ数でダメージを分け合う。通常攻撃のたびに 10%＋LUK÷3% で自動発動`},
-  ankle:{job:'hunter',n:'アンクルスネア',max:5,sp:l=>12,target:false,g:'罠',c:'#6f7480',d:l=>`足元に罠を置く。踏んだ敵を${3+2*l}秒その場に縛る`},
-  fb:{job:'mage',n:'ファイアーボルト',max:10,sp:l=>10+2*l,cast:l=>.02+.01*l,range:9,target:true,el:'fire',g:'炎',c:'#e0582a',d:l=>`炎の矢を${hitsOf('fb',l,Math.min(l,10))}本落とす（単体）。1本 MATK×${(.35*dmgLv(l)/hitsOf('fb',l,Math.min(l,10))).toFixed(2)}`},
+  ankle:{job:'hunter',n:'アンクルスネア',max:5,sp:l=>12,target:false,g:'罠',c:'#6f7480',d:l=>`足元に罠を置く。踏んだ敵を${3+2*l}秒その場に縛る。縛った敵にはダブルストレイフィングとブリッツが×1.5`},
+  fb:{job:'mage',n:'ファイアーボルト',max:10,sp:l=>10+2*l,cast:l=>.02+.01*l,range:9,target:true,el:'fire',g:'炎',c:'#e0582a',d:l=>`炎の矢を${hitsOf('fb',l,Math.min(l,10))}本落とす（単体）。1本 MATK×${(.35*dmgLv(l)/hitsOf('fb',l,Math.min(l,10))).toFixed(2)}。凍った敵には×2（氷が砕ける）`},
   amp:{job:'mage',n:'魔力増幅',max:10,sp:l=>10+2*l,target:false,g:'増',c:'#b04ad0',d:l=>`魔力を高め、次に使う魔法1回の威力が ×${ampMul(l).toFixed(2)}（30秒以内。詠唱なし。Lv1000で×2.0、その先も伸びる）`},
-  tstorm:{job:'mage',n:'サンダーストーム',max:10,sp:l=>25+4*l,cast:l=>.04+.01*l,range:9,target:true,el:'bolt',g:'雷',c:'#8a7ad8',d:l=>`対象の周囲5×5に雷を${hitsOf('tstorm',l,Math.min(l,10))}回。範囲内の敵すべてに1回 MATK×${(.3*dmgLv(l)/hitsOf('tstorm',l,Math.min(l,10))).toFixed(2)}`},
-  sgust:{job:'mage',n:'ストームガスト',max:10,sp:l=>50+5*l,cast:l=>.2+.03*l,range:9,ground:true,r:3.5,el:'cold',g:'嵐',c:'#5ab8f0',d:l=>`クリックした場所の周囲7×7に吹雪を${hitsOf('sgust',l,10)}回（射程9）。1回 MATK×${((.4+.06*dmgLv(l))*10/hitsOf('sgust',l,10)).toFixed(2)}。3回目で敵を3秒凍らせる`},
+  tstorm:{job:'mage',n:'サンダーストーム',max:10,sp:l=>25+4*l,cast:l=>.04+.01*l,range:9,target:true,el:'bolt',g:'雷',c:'#8a7ad8',d:l=>`対象の周囲5×5に雷を${hitsOf('tstorm',l,Math.min(l,10))}回。範囲内の敵すべてに1回 MATK×${(.3*dmgLv(l)/hitsOf('tstorm',l,Math.min(l,10))).toFixed(2)}。凍った敵には×1.5`},
+  sgust:{job:'mage',n:'ストームガスト',max:10,sp:l=>50+5*l,cast:l=>.2+.03*l,range:9,ground:true,r:3.5,el:'cold',g:'嵐',c:'#5ab8f0',d:l=>`クリックした場所の周囲7×7に吹雪を${hitsOf('sgust',l,10)}回（射程9）。1回 MATK×${((.4+.06*dmgLv(l))*10/hitsOf('sgust',l,10)).toFixed(2)}。3回目で敵を3秒凍らせる。凍った敵には火が×2（砕ける）・雷が×1.5`},
   fwall:{job:'mage',n:'ファイアーウォール',max:10,sp:l=>30+2*l,cast:l=>.04,target:false,g:'壁',c:'#e86a2a',d:l=>`マウスの方向に炎の壁（3マス）。触れた敵に MATK×0.6 と押し返し。1マスあたり${2+l}回 / ${5+l}秒`},
   swall:{job:'mage',n:'セーフティウォール',max:10,sp:l=>30+3*l,cast:l=>.05,target:false,g:'護',c:'#e88ab8',d:l=>`足元に光の柱。その上にいる間、敵の攻撃を${l+1}回まで防ぐ（30秒）`},
   mine:{job:'hunter',n:'ランドマイン',max:5,sp:l=>10,target:false,g:'爆',c:'#c94a3a',d:l=>`足元に地雷を置く。踏んだ敵にDEXとINT依存の大ダメージ`},
@@ -1778,14 +1778,25 @@ function playerAttack(m,s,mult,hitBonus,skill){
   hurtMob(m,dmg,crit?'#ffe14a':'#ffffff',crit?24:skill?22:18,crit);sfx(crit?'crit':'hit');
   // カードの自動発動（通常攻撃のときだけ）：雷・足止め
   if(!skill&&m.state!=='dead'){
-    if(cb.autoBolt&&rnd()*100<Math.min(40,cb.autoBolt)){const d=Math.round(Math.max(s.atk,s.matk)*2*(.9+rnd()*.2));fx.push({type:'spell',el:'bolt',x:m.x,y:m.y,t:0,at:.15,life:.5,cb:()=>{if(m.state!=='dead'){hurtMob(m,d,'#fff27a',24);sfx('hit')}}})}
+    if(cb.autoBolt&&rnd()*100<Math.min(40,cb.autoBolt)){const d=Math.round(Math.max(s.atk,s.matk)*2*(.9+rnd()*.2));fx.push({type:'spell',el:'bolt',x:m.x,y:m.y,t:0,at:.15,life:.5,cb:()=>{if(m.state!=='dead'){tagged('bolt',()=>hurtMob(m,d,'#fff27a',24));sfx('hit')}}})}
     if(cb.stun&&!m.def.boss&&rnd()*100<Math.min(30,cb.stun)){m.iceT=Math.max(m.iceT||0,time+2);m.root=Math.max(m.root||0,2);emote(m,'★',1.2)}}
 }
 function aggro(m){if(m.state==='dead')return;if(m.state==='idle')emote(m,'!',1.4);m.state='chase'}
 // カードの種族特効・ボス特効（冒険者自身の攻撃だけ。傭兵の攻撃はsrcJobつき）
 const raceOf=m=>{const k=m.def.kind||m.key;return RACE_N[k]?k:'prun'};
+// 状態異常の連携：凍った敵に火は×2（氷が砕けて凍結が解ける）、雷は×1.5。縛った敵にハンターの矢と鷹は×1.5
+let hitTag=null;
+function tagged(tag,fn){const o=hitTag;hitTag=tag;try{fn()}finally{hitTag=o}}
+function comboMul(m){
+  const frozen=m.frozenT>time;let k=1,t=null,c='#bfe8ff';
+  if(hitTag==='fire'&&frozen){k=2;t='砕けた！';m.frozenT=0;m.iceT=0;m.root=0;fx.push({type:'spell',el:'cold',x:m.x,y:m.y,t:.22,at:.22,life:.5,done:true});sfx('crit')}
+  else if(hitTag==='bolt'&&frozen){k=1.5;t='感電！';c='#fff27a'}
+  else if(hitTag==='hunt'&&(m.root>0||frozen)){k=1.5;t='狙い撃ち！';c='#ffd27a'}
+  if(t&&(m.comboT||0)<time){m.comboT=time+.5;float(m.x,m.y-.6,t,c,16)}
+  return k}
 function hurtMob(m,dmg,col,size,crit,srcJob){
   if(m.state==='dead')return;
+  if(hitTag&&!srcJob){const k=comboMul(m);if(k>1)dmg=Math.round(dmg*k)}
   const cb=srcJob?null:cardBonus();
   if(cb){const mul=1+(cb['r_'+raceOf(m)]||0)/100+(m.def.boss?cb.boss/100+(P.job==='hunter'?.25:0):0);if(mul!==1)dmg=Math.max(1,Math.round(dmg*mul))}
   if(m.def.resist===(srcJob||P.job)){dmg=Math.max(1,Math.round(dmg*.1));col='#9aa0aa';crit=false;
@@ -1952,7 +1963,9 @@ function asuraStrike(m,lv){
   const parts=[];for(let i=0;i<34;i++){const a=rnd()*Math.PI*2;parts.push({a,v:60+rnd()*170,up:120+rnd()*220,sz:2+rnd()*4,c:rnd()<.5?'#ffd27a':'#8a5a3a'})}
   fx.push({type:'asura',x:m.x,y:m.y,t:0,life:1.9,parts},{type:'asuraBan',t:0,life:2.3},{type:'boom',x:m.x,y:m.y,t:0,life:.9,big:true});
   shake(14,.9);sfx('asura');P.bubble={text:'阿修羅覇凰拳!!',t:1.8};
-  hurtMob(m,dmg,'#ffb030',46,true);
+  // 止まっている敵（凍結・縛り・足止め）には×1.3
+  const still=m.iceT>time||m.root>0;if(still)float(m.x,m.y-.8,'無防備！','#ffb030',18);
+  hurtMob(m,still?Math.round(dmg*1.3):dmg,'#ffb030',46,true);
 }
 /* ---------- マジシャンの魔法 ---------- */
 const mdmg=(m,mult)=>Math.max(1,Math.round(S().matk*mult*(.9+rnd()*.2)-m.def.def*.3));
@@ -1974,10 +1987,10 @@ function castSpell(c,lv){
   const hits=hitsOf(c.id,lv,Math.min(lv,10)),mul=dmgLv(lv)/hits,gap=Math.min(.07,1.2/hits);
   if(c.id==='fb'){
     if(m.state==='dead')return;
-    for(let i=0;i<hits;i++)fx.push({type:'spell',el:'fire',m,x:c.x,y:c.y,t:-i*gap,at:.22,life:.5,cb:()=>{if(m.state!=='dead'){hurtMob(m,mdmg(m,.35*mul*A),EL_COL.fire,20);sfx('hit')}}});
+    for(let i=0;i<hits;i++)fx.push({type:'spell',el:'fire',m,x:c.x,y:c.y,t:-i*gap,at:.22,life:.5,cb:()=>{if(m.state!=='dead'){tagged('fire',()=>hurtMob(m,mdmg(m,.35*mul*A),EL_COL.fire,20));sfx('hit')}}});
   }else if(c.id==='tstorm'){
     for(let i=0;i<hits;i++){const x=c.x+(rnd()-.5)*3,y=c.y+(rnd()-.5)*3;
-      fx.push({type:'spell',el:'bolt',x,y,t:-i*gap,at:.22,life:.5,cb:()=>{sfx('hit');aoe(x,y,2.5,o=>hurtMob(o,mdmg(o,.3*mul*A),'#fff27a',20))}})}
+      fx.push({type:'spell',el:'bolt',x,y,t:-i*gap,at:.22,life:.5,cb:()=>{sfx('hit');aoe(x,y,2.5,o=>tagged('bolt',()=>hurtMob(o,mdmg(o,.3*mul*A),'#fff27a',20)))}})}
   }
   if(m.state!=='dead')P.target={kind:'mob',ref:m,stay:true};
 }
@@ -1988,7 +2001,7 @@ function stormGust(cx,cy,lv,A=1){
   for(let k=0;k<W;k++)later(.15+k*gap,()=>{aoe(cx,cy,3.5,o=>{hurtMob(o,mdmg(o,(.4+.06*dmgLv(lv))*A*10/W),'#a8e4ff',18);
     // 凍るまでは吹雪で押し流す（ノックバック）。ボスは動かない
     if(k<2&&o.state!=='dead'&&!o.def.boss&&!(o.iceT>time)){const a=rnd()*Math.PI*2,nx=o.x+Math.cos(a)*.7,ny=o.y+Math.sin(a)*.7;if(mobPass(nx,ny)){o.x=nx;o.y=ny}}
-    if(k===2&&o.state!=='dead'&&!o.def.boss){o.root=Math.max(o.root||0,3);o.iceT=time+3}});if(k%Math.max(3,Math.round(W/3.3))===0)sfx('hit')});
+    if(k===2&&o.state!=='dead'&&!o.def.boss){o.root=Math.max(o.root||0,3);o.iceT=time+3;o.frozenT=time+3}});if(k%Math.max(3,Math.round(W/3.3))===0)sfx('hit')});
 }
 // 位置指定の魔法：射程外なら歩いて近づき、届いたら詠唱を始める
 function startGroundCast(id,x,y){
@@ -2028,7 +2041,7 @@ function updateFireWalls(dt){
   for(const w of fwalls){w.t+=dt;
     for(const tl of w.tiles){if(tl.hits<=0)continue;
       for(const m of mobs){if(m.state==='dead'||Math.floor(m.x)!==tl.x||Math.floor(m.y)!==tl.y)continue;
-        if((m.fwT||0)>time)continue;m.fwT=time+.3;tl.hits--;hurtMob(m,mdmg(m,.6*(w.amp||1)),'#ffb36b',18);
+        if((m.fwT||0)>time)continue;m.fwT=time+.3;tl.hits--;tagged('fire',()=>hurtMob(m,mdmg(m,.6*(w.amp||1)),'#ffb36b',18));
         // 押し返す（プレイヤーから遠ざける方向）
         const nx=m.x+w.dx*.8,ny=m.y+w.dy*.8;if(m.state!=='dead'&&mobPass(nx,ny)){m.x=nx;m.y=ny}
         if(tl.hits<=0)break}}}
@@ -2210,7 +2223,7 @@ function blitz(m,lv){
     const tx=m.state!=='dead'?Math.floor(m.x):cx,ty=m.state!=='dead'?Math.floor(m.y):cy;
     const hit=mobs.filter(o=>o.state!=='dead'&&Math.abs(Math.floor(o.x)-tx)<=1&&Math.abs(Math.floor(o.y)-ty)<=1);if(!hit.length)return;
     const s=S(),base=(s.atk*.35+(s.dex*.8+s.int*1.5+60)*2)*mul/hit.length;
-    for(const o of hit)hurtMob(o,Math.max(1,Math.round(base*(.9+rnd()*.2))),'#ffe08a',hit.length>1?16:20);sfx('hit')});
+    for(const o of hit)tagged('hunt',()=>hurtMob(o,Math.max(1,Math.round(base*(.9+rnd()*.2))),'#ffe08a',hit.length>1?16:20));sfx('hit')});
 }
 function hunterShot(m){
   shoot(m,()=>{const s=S();playerAttack(m,s,1,0,false);
@@ -2223,7 +2236,7 @@ function doSkill(id,m){
   if(P.sp<cost){msg('SPが足りません','warn');if(P.job==='hunter')hunterShot(m);return}
   if(sk.cast){P.sp-=cost;P.casting={id,t:0,dur:castTime(id,lv),m,x:m.x,y:m.y};return}
   P.sp-=cost;P.bubble={text:sk.n+'!!',t:1};
-  if(id==='ds'){const n=hitsOf('ds',lv,2);for(let i=0;i<n;i++)shoot(m,()=>playerAttack(m,S(),(1.5+.25*dmgLv(lv))*2/n,10,true),i*Math.min(.12,.6/n))}
+  if(id==='ds'){const n=hitsOf('ds',lv,2);for(let i=0;i<n;i++)shoot(m,()=>tagged('hunt',()=>playerAttack(m,S(),(1.5+.25*dmgLv(lv))*2/n,10,true)),i*Math.min(.12,.6/n))}
   // アローシャワー：5×5に矢の雨を降らせ、当たった敵を自分から遠ざける（ボスは動かない）。囲まれたときの立て直し用
   else if(id==='as'){const cx=m.x,cy=m.y;fx.push({type:'rain',x:cx,y:cy,t:0,life:.6,big:true});
     later(.35,()=>{for(const o of mobs)if(o.state!=='dead'&&Math.abs(o.x-cx)<=2.5&&Math.abs(o.y-cy)<=2.5&&los(cx,cy,o.x,o.y)){playerAttack(o,S(),.8+.08*dmgLv(lv),10,true);
