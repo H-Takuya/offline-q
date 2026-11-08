@@ -440,9 +440,9 @@ const ITEMS={
   hbow:{n:'ハンターボウ',t:'weapon',cls:'bow',atk:75,slots:0,sell:2000,g:'弓',c:'#a8862e',d:'ATK 75 / 弓（ハンター）'},
   rod:{n:'ロッド',t:'weapon',cls:'staff',atk:15,matk:20,slots:2,price:150,g:'杖',c:'#7a5ab0',d:'ATK 15 / MATK+20 / 杖（マジシャン）'},
   wstaff:{n:'ウィザードスタッフ',t:'weapon',cls:'staff',atk:25,matk:90,slots:1,price:1600,g:'杖',c:'#3a6ad0',d:'ATK 25 / MATK+90 / 杖（マジシャン）'},
-  fmace:{n:'炎鉄のメイス',t:'weapon',cls:'mace',atk:150,slots:4,sell:0,g:'鎚',c:'#d0502a',d:'ATK 150 / 鈍器（アコライト）/ 鍛冶師ガンツが火山の熱で鍛えた逸品'},
-  fbow:{n:'炎鉄の弓',t:'weapon',cls:'bow',atk:160,slots:4,sell:0,g:'弓',c:'#d0502a',d:'ATK 160 / 弓（ハンター）/ 鍛冶師ガンツが火山の熱で鍛えた逸品'},
-  fstaff:{n:'炎鉄の杖',t:'weapon',cls:'staff',atk:50,matk:400,slots:4,sell:0,g:'杖',c:'#d0502a',d:'ATK 50 / MATK+400 / 杖（マジシャン）/ 鍛冶師ガンツが火山の熱で鍛えた逸品'},
+  fmace:{n:'炎鉄のメイス',t:'weapon',cls:'mace',atk:150,slots:4,sell:1500000,g:'鎚',c:'#d0502a',d:'ATK 150 / 鈍器（アコライト）/ 鍛冶師ガンツが火山の熱で鍛えた逸品'},
+  fbow:{n:'炎鉄の弓',t:'weapon',cls:'bow',atk:160,slots:4,sell:1500000,g:'弓',c:'#d0502a',d:'ATK 160 / 弓（ハンター）/ 鍛冶師ガンツが火山の熱で鍛えた逸品'},
+  fstaff:{n:'炎鉄の杖',t:'weapon',cls:'staff',atk:50,matk:400,slots:4,sell:1500000,g:'杖',c:'#d0502a',d:'ATK 50 / MATK+400 / 杖（マジシャン）/ 鍛冶師ガンツが火山の熱で鍛えた逸品'},
   scepter:{n:'砂漠の王笏',t:'weapon',cls:'staff',atk:40,matk:250,slots:0,sell:3000,g:'杖',c:'#d9a52c',d:'ATK 40 / MATK+250 / 杖（マジシャン）'},
   cloth:{n:'見習いの法衣',t:'armor',def:2,slots:0,price:40,g:'衣',c:'#3a4166',d:'DEF 2'},
   leather:{n:'シルクローブ',t:'armor',def:7,slots:1,price:720,g:'衣',c:'#6e2c44',d:'DEF 7'},
@@ -849,13 +849,15 @@ function refineHTML(){
 }
 // 鍛冶師ガンツの鍛冶：カードスロット4つの武器（炎の封印の章を終えたら、または転生後）
 const FORGE=[['fmace','アコライト用'],['fbow','ハンター用'],['fstaff','マジシャン用']],FORGE_Z=3000000,FORGE_RELIC=10;
+// 間違って何本も鍛えないよう、1回目のタップで確認、2回目で鍛える
+let forgeArm=null;
 const forgeOpen=()=>P.reb>=1||(P.story&&(P.story.done||P.story.ch>chOf('炎の封印')));
 function forgeHTML(){
   if(!forgeOpen())return `<p class="note" style="margin-top:8px">「火山の封印を取り戻したら、その熱でお前の武器を鍛えてやる」</p>`;
   const rel=count('relic');
   return `<p class="talk-t" style="margin-top:8px">約束どおり、武器を鍛えてやる。カードを4枚挿せる逸品だ。<br>1本 ${FORGE_Z.toLocaleString()}z と、古代の秘宝 ${FORGE_RELIC}個（今 ${rel}個）だ。</p><div class="list">`+
-    FORGE.map(([id,who])=>{const it=ITEMS[id],ok=P.zeny>=FORGE_Z&&rel>=FORGE_RELIC;
-      return `<div class="it">${itemIcon(id)}<div class="tx"><div class="nm">${it.n}（${who}）</div><div class="ds">${it.d.split(' / 鍛冶師')[0]} / カードスロット4</div></div><button class="btn" data-act="forge" data-id="${id}" ${ok?'':'disabled'}>鍛える</button></div>`}).join('')+
+    FORGE.map(([id,who])=>{const it=ITEMS[id],ok=P.zeny>=FORGE_Z&&rel>=FORGE_RELIC,own=P.inv.filter(e=>e.id===id).length,arm=forgeArm&&forgeArm.id===id&&forgeArm.t>time;
+      return `<div class="it">${itemIcon(id)}<div class="tx"><div class="nm">${it.n}（${who}）${own?`<span class="tag">所持 ${own}本</span>`:''}</div><div class="ds">${it.d.split(' / 鍛冶師')[0]} / カードスロット4</div></div><button class="btn${arm?' warn':''}" data-act="forge" data-id="${id}" ${ok?'':'disabled'}>${arm?'本当に鍛える？':'鍛える'}</button></div>`}).join('')+
     `</div><div class="foot"><span>所持金</span><b class="price">${P.zeny.toLocaleString()} z</b></div>`;
 }
 const SEAL_GUIDE={leaf:'forest',ganz:'volcano',stella:'tower'};
@@ -1396,7 +1398,13 @@ function switchJob(j){
 const logEl=$('log');
 function msg(t,cls='sys'){const p=document.createElement('p');p.className=cls;p.textContent=t;logEl.appendChild(p);while(logEl.children.length>80)logEl.firstChild.remove();logEl.scrollTop=logEl.scrollHeight;
   const ct=document.querySelector('#chat .hud-tg');if(ct&&$('chat').classList.contains('min'))ct.classList.add('new')}
-function float(x,y,text,col,size=18,rise=1,arc=false,crit=false){floats.push({x,y,text,col,size,t:0,life:arc?1:1.1,rise,dx:(rnd()-.5)*10,arc,crit,dir:rnd()<.5?-1:1})}
+// ダメージの数字：同じ場所に続けて出る数字は1つにまとめて足し、画面に出す数にも上限をつける（多段を連打しても重くならないように）
+const FLOAT_MAX=150;
+function float(x,y,text,col,size=18,rise=1,arc=false,crit=false){
+  if(typeof text==='number'){for(let i=floats.length-1;i>=0&&i>=floats.length-40;i--){const f=floats[i];
+    if(typeof f.text==='number'&&f.t<.18&&f.col===col&&Math.abs(f.x-x)<.6&&Math.abs(f.y-y)<.6){f.text+=text;f.hits=(f.hits||1)+1;f.size=Math.min(30,Math.max(f.size,size)+.4);f.crit=f.crit||crit;return}}}
+  floats.push({x,y,text,col,size,t:0,life:arc?1:1.1,rise,dx:(rnd()-.5)*10,arc,crit,dir:rnd()<.5?-1:1});
+  if(floats.length>FLOAT_MAX)floats.splice(0,floats.length-FLOAT_MAX)}
 const EMO={'!':['!','#e0342a'],'?':['?','#3b78dc'],'♪':['♪','#a04fd0'],'♥':['♥','#e0457a'],'…':['…','#555566'],'怒':['怒','#d23a2a'],thx:['Thx','#2c8a4a']};
 const EMO_CMD={'/!':'!','/?':'?','/ho':'♪','/lv':'♥','/...':'…','/an':'怒','/thx':'thx'};
 function emote(e,k,life=2.2){e.emote={k,t:life,life}}
@@ -3151,7 +3159,8 @@ document.addEventListener('click',e=>{
     else if(it.t==='card'){const tgt=[P.eq.weapon,P.eq.armor].find(x=>x&&x.cards.length<(ITEMS[x.id].slots||0));if(!tgt){invTab='equip';msg('装備中の武器・防具に空きスロットがありません。装備タブで挿す先を選べます','warn');dirty=true;return}
       if(!tgt)msg('空きスロットのある装備を身につけてください','warn');else{tgt.cards.push(e2.id);removeEntry(e2);msg(`${it.n} を ${ITEMS[tgt.id].n} に挿しました`,'item')}}}
   else if(act==='buy'){const id=a.dataset.id,q=+a.dataset.q,cost=ITEMS[id].price*q;if(P.zeny>=cost){P.zeny-=cost;addItem(id,q);msg(`${ITEMS[id].n} ×${q} を購入 (-${cost}z)`,'item')}}
-  else if(act==='sell'){const e2=P.inv[+a.dataset.i],q=+a.dataset.q;if(!e2||!sellPrice(e2.id))return;const g=sellPrice(e2.id)*q;P.zeny+=g;msg(`${ITEMS[e2.id].n} ×${q} を売却 (+${g}z)`,'item');removeEntry(e2,q)}
+  else if(act==='sell'){const e2=P.inv[+a.dataset.i],q=+a.dataset.q;if(!e2||!sellPrice(e2.id))return;
+    if(e2.cards&&e2.cards.length){for(const c of e2.cards)addItem(c);msg(`挿していたカード ${e2.cards.length}枚 はカバンに戻りました`,'item');e2.cards=[]}const g=sellPrice(e2.id)*q;P.zeny+=g;msg(`${ITEMS[e2.id].n} ×${q} を売却 (+${g}z)`,'item');removeEntry(e2,q)}
   else if(act==='selletc'){let g=0;for(const e2 of P.inv.slice())if(ITEMS[e2.id].t==='etc'){g+=sellPrice(e2.id)*e2.qty;removeEntry(e2,e2.qty)}msg(g?`収集品を売却 (+${g}z)`:'売れる収集品がありません',g?'item':'warn');P.zeny+=g}
   else if(act==='tab'){shopTab=a.dataset.k}
   else if(act==='refine'){const e2=P.inv[+a.dataset.i];if(!e2)return;const L=(e2.ref||0)+1;if(L>REF_MAX)return;const c=refCost(L);
@@ -3163,7 +3172,8 @@ document.addEventListener('click',e=>{
     dirty=true;if(talkNpc)openNpc(talkNpc);return}
   else if(act==='forge'){const id=a.dataset.id;if(!forgeOpen()||!FORGE.some(f=>f[0]===id))return;
     if(P.zeny<FORGE_Z||count('relic')<FORGE_RELIC){msg('Zenyか古代の秘宝が足りない','warn');return}
-    P.zeny-=FORGE_Z;removeEntry(P.inv.find(e=>e.id==='relic'),FORGE_RELIC);addItem(id);
+    if(!(forgeArm&&forgeArm.id===id&&forgeArm.t>time)){forgeArm={id,t:time+4};if(talkNpc)openNpc(talkNpc);return}
+    forgeArm=null;P.zeny-=FORGE_Z;removeEntry(P.inv.find(e=>e.id==='relic'),FORGE_RELIC);addItem(id);
     msg(`ガンツが ${ITEMS[id].n} を鍛え上げた！（カードスロット4）`,'item');sfx('mvp');fx.push({type:'boom',x:P.x,y:P.y,t:0,life:.7,big:true});
     if(talkNpc)openNpc(talkNpc);return}
   else if(act==='invtab'){invTab=a.dataset.k;cardPickRef=null}
