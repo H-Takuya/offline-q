@@ -1669,7 +1669,26 @@ function findSpawn(z){
     if(d>=z[0]&&d<=z[1]&&pass(x,y)&&!townXY(x+.5,y+.5)) return [x+.5,y+.5];}
   return [CX+12.5,CY+12.5];
 }
-function spawnMob(m){const [x,y]=((m.def.final||m.def.far)&&curMap.bossSpawn?curMap.bossSpawn:curMap.spawn)(m.def);Object.assign(m,{x,y,hp:m.def.hp,state:'idle',wt:rnd()*3,wx:x,wy:y,atkT:1,flash:0,hpShow:0,face:1,moving:false,fade:0,loot:[],lootT:rnd(),lootTarget:null,emote:null,hinted:false,root:0})}
+// エリート雑魚：ダンジョンとナイトメアにまれに出る金色の個体。HP×4、経験値・ドロップ×3、性質を1つ持つ
+const ELITE_MAPS=new Set(['nightmare','final','forest','volcano','tower','ice','abyss','castle','pyramid']);
+const ELITE_N={guard:'堅牢',fast:'俊足',antimagic:'反魔',summon:'群れ呼び',bomb:'爆散'};
+const ELITE_D={guard:'1発のダメージは最大HPの25%まで',fast:'移動1.5倍・攻撃が速い',antimagic:'魔法ダメージ1/3',summon:'HPが半分で仲間を3体呼ぶ',bomb:'倒すと1秒後に爆発'};
+const eliteRate=()=>curMap.id==='nightmare'?Math.min(.2,.08+.02*Math.floor(((P.nm&&P.nm.k)||0)/100)):.08;
+function rollElite(m){
+  if(!m.def.boss&&!m.temp&&ELITE_MAPS.has(curMap.id)&&rnd()<eliteRate()){const ks=Object.keys(ELITE_N);m.elite=ks[Math.floor(rnd()*ks.length)];m.mhp=m.def.hp*4;m.hp=m.mhp;m.summoned=false}
+  else{m.elite=null;m.mhp=m.def.hp}}
+function eliteSummon(m){
+  if(mobs.filter(o=>o.temp&&o.state!=='dead').length>=12)return;
+  emote(m,'!!',1.4);msg(`〈群れ呼び〉${m.def.n} が仲間を呼んだ！`,'warn');
+  for(let i=0;i<3;i++){const c={key:m.key,def:m.def,seed:rnd()*10,temp:true};spawnMob(c);
+    for(let k=0;k<8;k++){const a=rnd()*Math.PI*2,nx=m.x+Math.cos(a)*1.2,ny=m.y+Math.sin(a)*1.2;if(mobPass(nx,ny)){c.x=nx;c.y=ny;break}}
+    c.state='chase';mobs.push(c)}}
+function eliteBomb(m){
+  const cx=m.x,cy=m.y,big=m.def.atk[1]*1.5;
+  fx.push({type:'warn',col:'255,60,40',x:cx,y:cy,r:2,t:0,at:1,life:1.02,cb:()=>{fx.push({type:'boom',x:cx,y:cy,t:0,life:.7,big:true});sfx('gx');
+    if(!P.dead&&Math.hypot(P.x-cx,P.y-cy)<=2){const s2=S(),d=Math.max(1,Math.round((big*(1-Math.min(.5,s2.def/100))-s2.vdef)*(1-Math.min(70,s2.b.aoe)/100)*(1-refA((P.eq.armor&&P.eq.armor.ref)||0))*(1-acoSelf().guard)));
+      P.hp-=d;float(P.x,P.y,d,'#ff4a3a',24,1,true);castInterrupt();if(P.hp<=0)die()}}})}
+function spawnMob(m){const [x,y]=((m.def.final||m.def.far)&&curMap.bossSpawn?curMap.bossSpawn:curMap.spawn)(m.def);Object.assign(m,{x,y,hp:m.def.hp,state:'idle',wt:rnd()*3,wx:x,wy:y,atkT:1,flash:0,hpShow:0,face:1,moving:false,fade:0,loot:[],lootT:rnd(),lootTarget:null,emote:null,hinted:false,root:0});rollElite(m)}
 function initMobs(){
   mobs=[];for(const k in MOBS){const def=MOBS[k];for(let i=0;i<def.count;i++){const m={key:k,def,seed:rnd()*10};spawnMob(m);mobs.push(m)}}
   // ボスは最初は1体だけ。残りは1分ごとに1体ずつ湧く
@@ -1712,6 +1731,7 @@ const fleePen=()=>Math.min(.8,Math.max(0,(P.mobbed||0)-1)*.1)*(cardBonus().surro
 // SP消費はLv1000より増えない（それ以上上げても損をしない）
 const spCost=(id,lv)=>Math.max(1,Math.round(SK[id].sp(Math.min(lv,1000))*(1-Math.min(50,cardBonus().spcost)/100)));
 function updateMobs(dt,s){
+  if(mobs.some(m=>m.temp&&m.state==='dead'&&m.fade>1))mobs=mobs.filter(m=>!(m.temp&&m.state==='dead'&&m.fade>1));
   let near=0;
   for(const m of mobs){
     m.moving=false; m.flash=Math.max(0,m.flash-dt); m.hpShow=Math.max(0,m.hpShow-dt);
@@ -1722,7 +1742,7 @@ function updateMobs(dt,s){
     if(m.state==='idle'){
       if(m.def.aggro&&d<(m.def.aggroR||5)&&!safe){aggro(m)}
       else{
-        m.hp=Math.min(m.def.hp,m.hp+m.def.hp*.03*dt);
+        m.hp=Math.min(m.mhp||m.def.hp,m.hp+(m.mhp||m.def.hp)*.03*dt);
         // プルンは落ちている物を拾う
         if(m.key==='prun'&&m.loot.length<4){
           m.lootT-=dt;
@@ -1753,8 +1773,8 @@ function updateMobs(dt,s){
       const ex=tx-m.x,ey=ty-m.y;
       if(!onMerc&&!safe&&td<=1.2*Math.max(1,m.def.size*.8)+.4)near++;
       if(d>(m.def.chaseR||13)||safe){m.state='idle';m.wx=m.x;m.wy=m.y}
-      else if(td>1.2*Math.max(1,m.def.size*.8)){if(!rooted)moveEnt(m,tx,ty,m.def.speed,dt,mobPass);m.atkT=Math.min(m.atkT,.5)}
-      else if(!(m.iceT>time)){if(Math.abs(ex-ey)>.05)m.face=(ex-ey)>0?1:-1;m.atkT-=dt;if(m.atkT<=0){m.atkT=m.def.delay;if(onMerc)mobHitMerc(m,onMerc);else mobAttack(m,s)}}
+      else if(td>1.2*Math.max(1,m.def.size*.8)){if(!rooted)moveEnt(m,tx,ty,m.def.speed*(m.elite==='fast'?1.5:1),dt,mobPass);m.atkT=Math.min(m.atkT,.5)}
+      else if(!(m.iceT>time)){if(Math.abs(ex-ey)>.05)m.face=(ex-ey)>0?1:-1;m.atkT-=dt;if(m.atkT<=0){m.atkT=m.def.delay*(m.elite==='fast'?.7:1);if(onMerc)mobHitMerc(m,onMerc);else mobAttack(m,s)}}
     }
   }
   P.mobbed=near;
@@ -1817,9 +1837,12 @@ function hurtMob(m,dmg,col,size,crit,srcJob){
   if(cb){const mul=1+(cb['r_'+raceOf(m)]||0)/100+(m.def.boss?cb.boss/100+(P.job==='hunter'?.25:0):0);if(mul!==1)dmg=Math.max(1,Math.round(dmg*mul))}
   if(m.def.resist===(srcJob||P.job)){dmg=Math.max(1,Math.round(dmg*.1));col='#9aa0aa';crit=false;
     if(!m.hinted&&!srcJob){m.hinted=true;const other=Object.keys(JOBS).filter(j=>j!==P.job).map(j=>`${{aco:'Q',hunter:'W',mage:'R'}[j]}で${JOBS[j].n}`).join('・');msg(`${m.def.n} は${JOBS[P.job].n}耐性！ ダメージが1/10になる。${other}に切り替えよう`,'warn')}}
+  if(m.elite==='antimagic'&&(hitTag==='fire'||hitTag==='bolt'||hitTag==='cold'))dmg=Math.max(1,Math.round(dmg/3));
+  if(m.elite==='guard')dmg=Math.min(dmg,Math.ceil(m.mhp*.25));
   m.hp-=dmg;m.flash=.12;m.hpShow=8;float(m.x,m.y,dmg,col,size,1,true,crit);aggro(m);
   // HP吸収：1回で最大HPの5%まで
   if(cb&&cb.drain&&!P.dead){const mh=S().mhp;P.hp=Math.min(mh,P.hp+Math.min(mh*.05,dmg*cb.drain/100))}
+  if(m.elite==='summon'&&!m.summoned&&m.hp>0&&m.hp<m.mhp/2){m.summoned=true;eliteSummon(m)}
   if(m.hp<=0) killMob(m);
 }
 function killMob(m){
@@ -1832,11 +1855,12 @@ function killMob(m){
   const bonus=Math.floor(combo.n/5)*.1;
   if(combo.n>(P.maxCombo||0))P.maxCombo=combo.n;
   if(combo.n%5===0){combo.pop=1;sfx('combo');float(P.x,P.y,`${combo.n} COMBO! EXP+${Math.round(bonus*100)}%`,'#7af0ff',18,.7)}
-  gainExp(m.def.exp*(1+bonus),m.def.jexp*(1+bonus));
+  const ek=m.elite?3:1;gainExp(m.def.exp*(1+bonus)*ek,m.def.jexp*(1+bonus)*ek);
   // 物語の途中で終焉の王を倒したときは、その章まで進めてから討伐を数える（転生後に第1部をくり返さないため）
   if(m.def.final)storySkipTo(chOf('終焉の王'));
   storyEvent('kill',m);if(m.def.boss)storyEvent('boss',m);sideKill(m);
-  {const dm=1+S().b.drop/100;for(const [id,r] of m.def.drops) if(rnd()<r*dm) dropItem(id,1,m)}
+  if(m.elite){if(rnd()<.6)dropItem('relic',1,m);if(m.elite==='bomb')eliteBomb(m);msg(`エリート〈${ELITE_N[m.elite]}〉${m.def.n} を倒した！`,'item')}
+  {const dm=(1+S().b.drop/100)*(m.elite?3:1);for(const [id,r] of m.def.drops) if(rnd()<r*dm) dropItem(id,1,m)}
   dropItem('zeny',Math.round(irand(m.def.zeny[0],m.def.zeny[1])*(1+S().b.zeny/100)),m);
   if(m.loot){for(const g of m.loot)dropItem(g.id,g.qty,m);m.loot=[]}
   if(m.def.boss){
@@ -1846,6 +1870,8 @@ function killMob(m){
     msg(`MVP！ ${m.def.n} を討伐しました`,'sys');msg(`MVP報酬 ${ITEMS[rw].n} を獲得`,'item');
   }
   if(curMap.onKill)curMap.onKill(m);
+  // 呼ばれた仲間は湧き直さない
+  if(m.temp)m.respawnAt=Infinity;
 }
 function dropItem(id,qty,m){const g={id,qty,x:m.x+(rnd()-.5)*.9,y:m.y+(rnd()-.5)*.9,t:0};groundItems.push(g);
   // カードが出たら、光の柱と大きな演出で知らせる
@@ -2014,7 +2040,7 @@ function castSpell(c,lv){
 function stormGust(cx,cy,lv,A=1){
   fx.push({type:'sgust',x:cx,y:cy,r:3.5,t:0,life:4.8});sfx('gx');
   const W=hitsOf('sgust',lv,10),gap=4.5/W;
-  for(let k=0;k<W;k++)later(.15+k*gap,()=>{aoe(cx,cy,3.5,o=>{hurtMob(o,mdmg(o,(.4+.06*dmgLv(lv))*A*10/W),'#a8e4ff',18);
+  for(let k=0;k<W;k++)later(.15+k*gap,()=>{aoe(cx,cy,3.5,o=>{tagged('cold',()=>hurtMob(o,mdmg(o,(.4+.06*dmgLv(lv))*A*10/W),'#a8e4ff',18));
     // 凍るまでは吹雪で押し流す（ノックバック）。ボスは動かない
     if(k<2&&o.state!=='dead'&&!o.def.boss&&!(o.iceT>time)){const a=rnd()*Math.PI*2,nx=o.x+Math.cos(a)*.7,ny=o.y+Math.sin(a)*.7;if(mobPass(nx,ny)){o.x=nx;o.y=ny}}
     if(k===2&&o.state!=='dead'&&!o.def.boss){o.root=Math.max(o.root||0,3);o.iceT=time+3;o.frozenT=time+3}});if(k%Math.max(3,Math.round(W/3.3))===0)sfx('hit')});
@@ -3468,6 +3494,8 @@ function drawMob(m){
   if(m.def.aura&&m.state!=='dead'){const r=26*m.def.size,pl=1+Math.sin(time*3)*.1;
     const g=ctx.createRadialGradient(x,y,2,x,y,r*pl);g.addColorStop(0,`rgba(${m.def.aura},.5)`);g.addColorStop(1,`rgba(${m.def.aura},0)`);
     ctx.fillStyle=g;ctx.beginPath();ctx.ellipse(x,y,r*pl,r*.5*pl,0,0,7);ctx.fill()}
+  if(m.elite&&m.state!=='dead'){const r=24*m.def.size,pl=1+Math.sin(time*5+m.seed)*.12,g=ctx.createRadialGradient(x,y,2,x,y,r*pl);g.addColorStop(0,'rgba(255,210,60,.55)');g.addColorStop(1,'rgba(255,210,60,0)');
+    ctx.fillStyle=g;ctx.beginPath();ctx.ellipse(x,y,r*pl,r*.5*pl,0,0,7);ctx.fill();ctx.strokeStyle='rgba(255,220,90,.9)';ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(x,y,r*.8,r*.4,0,0,7);ctx.stroke()}
   if(m.def.resist&&m.state!=='dead'){const r=20*m.def.size,pl=1+Math.sin(time*4+m.seed)*.12;
     ctx.fillStyle=m.def.resist==='aco'?'rgba(120,180,255,.28)':'rgba(120,230,110,.28)';ctx.beginPath();ctx.ellipse(x,y,r*pl,r*.45*pl,0,0,7);ctx.fill();
     ctx.strokeStyle=m.def.resist==='aco'?'rgba(150,200,255,.8)':'rgba(150,240,130,.8)';ctx.lineWidth=2;ctx.stroke()}
@@ -3485,7 +3513,8 @@ function drawMob(m){
     ctx.beginPath();ctx.moveTo(x-16*sz,y);ctx.lineTo(x-12*sz,y-38*sz);ctx.lineTo(x,y-46*sz);ctx.lineTo(x+13*sz,y-36*sz);ctx.lineTo(x+16*sz,y);ctx.closePath();ctx.fill();ctx.stroke();ctx.globalAlpha=1}
   else if(m.state!=='dead'&&m.root>0){ctx.strokeStyle='#9aa0aa';ctx.lineWidth=2.5;ctx.beginPath();ctx.ellipse(x,y,12,5,0,0,7);ctx.stroke();
     ctx.fillStyle='#c5cad3';for(let i=0;i<6;i++){const a=i/6*Math.PI*2;ctx.fillRect(x+Math.cos(a)*12-1,y+Math.sin(a)*5-4,2,4)}}
-  if(m.state!=='dead'&&(m.hpShow>0||m.def.boss)){const w=34*Math.max(1,m.def.size*.8);ctx.fillStyle='rgba(10,14,22,.7)';ctx.fillRect(x-w/2-1,y+5,w+2,5);ctx.fillStyle=m.hp/m.def.hp<.3?'#e9493f':'#4ecb5a';ctx.fillRect(x-w/2,y+6,w*Math.max(0,m.hp/m.def.hp),3)}
+  if(m.state!=='dead'&&(m.hpShow>0||m.def.boss||m.elite)){const w=34*Math.max(1,m.def.size*.8);ctx.fillStyle='rgba(10,14,22,.7)';ctx.fillRect(x-w/2-1,y+5,w+2,5);const mh=m.mhp||m.def.hp;ctx.fillStyle=m.hp/mh<.3?'#e9493f':'#4ecb5a';ctx.fillRect(x-w/2,y+6,w*Math.max(0,m.hp/mh),3)}
+  if(m.elite&&m.state!=='dead')label(`〈${ELITE_N[m.elite]}〉${m.def.n}`,x,y+22,'#ffd23a',12);
   if(m.def.boss&&m.state!=='dead'){label(`${m.def.n} Lv${m.def.lv}`,x,y+22,'#ffe27a',12);
     if(m.def.resist)label(m.def.resist==='aco'?'アコライト耐性':'ハンター耐性',x,y+36,m.def.resist==='aco'?'#a8d4ff':'#b0f0a0',11)}
 }
