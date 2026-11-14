@@ -208,6 +208,18 @@ kbd{font-family:var(--f-display);font-size:10px;color:var(--muted);margin-left:2
   .it{gap:6px;padding:3px 4px}
 }
 #hLv,#hJlv{display:inline-block}
+/* 勲章帳 */
+#w-medal{width:min(460px,calc(100vw - 32px))}
+.httl{font:11px var(--f-display);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
+#status.min .httl{display:none!important}
+.btn.newdot{position:relative}.btn.newdot::after{content:'';position:absolute;top:-4px;right:-4px;width:10px;height:10px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 2px var(--win)}
+.md-top{display:flex;align-items:center;gap:8px;margin-bottom:6px}.md-top .qc{font:10.5px var(--f-display);color:var(--muted)}.md-top b{font:16px var(--f-display);font-weight:400;font-variant-numeric:tabular-nums}.md-top .bar{flex:1;margin-top:0}
+.md-now{display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:5px 8px;margin-bottom:8px;border-left:3px solid var(--exp);background:var(--win-2);border-radius:4px;font-size:12px}
+.md-now b{font:13px var(--f-display);font-weight:400}
+.it.md{border-color:var(--track)}.it.md.on{border-color:var(--exp);background:#fff8e4}
+.it.md.unk .nm{color:var(--muted)}.it.md.unk .md-ic{opacity:.8}
+.md-ic{width:44px;height:56px;flex:none}
+.md-prog{display:flex;align-items:center;gap:6px;margin-top:3px;font:10.5px var(--f-display);color:var(--muted);font-variant-numeric:tabular-nums}.md-prog .bar{flex:1;margin-top:0}
 .pop{animation:lvpop .9s cubic-bezier(.3,1.6,.5,1)}
 @keyframes lvpop{0%{transform:scale(1)}25%{transform:scale(1.9);color:var(--exp)}100%{transform:scale(1)}}
 @media (prefers-reduced-motion:reduce){.bar i{transition:none}.pop{animation:none}}
@@ -220,6 +232,7 @@ kbd{font-family:var(--f-display);font-size:10px;color:var(--muted);margin-left:2
 <div class="hud panel" id="status">
   <button class="hud-tg" data-ui="status" aria-label="ステータス表示を小さくする">－</button>
   <div class="who"><b id="hName" data-act="rename" title="名前を変える">冒険者</b><span id="hJob">アコライト</span></div>
+  <div class="httl" id="hTitle" data-open="medal" title="勲章帳を開く" hidden></div>
   <div class="jobsw" role="group" aria-label="職業の切り替え"><button data-job="aco" aria-pressed="true" title="Qキー">アコライト<kbd>Q</kbd></button><button data-job="hunter" aria-pressed="false" title="Wキー">ハンター<kbd>W</kbd></button><button data-job="mage" aria-pressed="false" title="Rキー">マジシャン<kbd>R</kbd></button></div>
   <div class="row"><span>Base Lv <b id="hLv">1</b></span><span>Job Lv <b id="hJlv">1</b></span></div>
   <div class="bar" id="hpWrap"><i id="hpBar"></i><em id="hpTxt"></em></div>
@@ -243,6 +256,7 @@ kbd{font-family:var(--f-display);font-size:10px;color:var(--muted);margin-left:2
     <button class="btn" data-open="inv">アイテム<kbd>E</kbd></button>
     <button class="btn" data-open="skill">スキル<kbd>S</kbd></button>
     <button class="btn" data-open="story">物語<kbd>J</kbd></button>
+    <button class="btn" data-open="medal" id="medalBtn">勲章<kbd>M</kbd></button>
     <button class="btn" id="sitBtn">座る<kbd>Z</kbd></button>
     <button class="btn" id="muteBtn">音 ON</button>
     <button class="btn" id="bgmBtn">BGM ON</button>
@@ -255,6 +269,7 @@ kbd{font-family:var(--f-display);font-size:10px;color:var(--muted);margin-left:2
 <section class="win" id="w-skill" hidden><header><span>スキル</span><button class="x" data-close aria-label="閉じる">×</button></header><div class="body" id="b-skill"></div></section>
 <section class="win" id="w-shop" hidden><header><span>道具屋 トルテ</span><button class="x" data-close aria-label="閉じる">×</button></header><div class="body" id="b-shop"></div></section>
 <section class="win" id="w-story" hidden><header><span>物語</span><button class="x" data-close aria-label="閉じる">×</button></header><div class="body" id="b-story"></div></section>
+<section class="win" id="w-medal" hidden><header><span>勲章帳</span><button class="x" data-close aria-label="閉じる">×</button></header><div class="body" id="b-medal"></div></section>
 <section class="win" id="w-talk" hidden><header><span id="talkName">NPC</span><button class="x" data-close aria-label="閉じる">×</button></header><div class="body" id="b-talk"></div></section>
 
 <div id="dead" hidden><div class="panel deadbox"><p class="dt">力尽きてしまった…</p><p>経験値を少し失いました。</p><button class="btn" id="revive">セーブポイントへ戻る</button></div></div>
@@ -1270,7 +1285,7 @@ function newPlayer(){
   const p={x:SPAWN[0],y:SPAWN[1],face:1,path:[],target:null,queued:null,casting:null,
     lv:1,exp:0,jlv:1,jexp:0,statPts:0,skillPts:0,str:7,agi:6,vit:4,int:4,dex:5,luk:3,
     hp:1,sp:1,zeny:120,inv:[],eq:{weapon:null,armor:null},skills:{...JOBS.aco.skills},job:'aco',jobData:{},
-    buff:{agi:0,agiLv:0,magni:0,bless:0,blessLv:0,angelus:0,angelusLv:0,conc:0,concLv:0},atkT:0,swingT:0,walk:0,dead:false,bubble:null,sit:false,emote:null,reb:0,rebLv:0,rebJ:0,finalClear:false,maxCombo:0,story:null,side:null,nm:{k:0,best:0},cardsSeen:{},name:'冒険者',hotOrder:{},jlv50:true,tiers:{aco:1,hunter:1,mage:1}};
+    buff:{agi:0,agiLv:0,magni:0,bless:0,blessLv:0,angelus:0,angelusLv:0,conc:0,concLv:0},atkT:0,swingT:0,walk:0,dead:false,bubble:null,sit:false,emote:null,reb:0,rebLv:0,rebJ:0,sigils:[],sigOffer:null,finalClear:false,maxCombo:0,story:null,side:null,nm:{k:0,best:0},cardsSeen:{},name:'冒険者',hotOrder:{},jlv50:true,tiers:{aco:1,hunter:1,mage:1},medals:{got:{},c:{},b:{},nw:{},title:null,init:0}};
   return p;
 }
 function addItem(id,q=1){
@@ -1308,7 +1323,7 @@ function S(){
     bragi:P.bragi>time,
     mhp:Math.floor((38+EL*11)*(1+vit*.02)*(1+b.hpPct/100)*(JOB_HP[P.job]||1))+b.mhp,
     msp:Math.floor((12+EL*3)*(1+int*.025)),
-    speed:4.2*(P.buff.agi>0?1.3:1)*(b.spd?1.3:1)};
+    speed:4.2*(P.buff.agi>0?1.3:1)*(b.spd?1.3:1)*(galeOn()?1.5:1)};
 }
 // ヒール：INTとレベルで大きく伸びる（アコライトの回復役としての柱）
 const healAmt=l=>{const s=P?S():{int:5,mhp:0,b:{heal:0}},d=dmgLv(l);return Math.floor((((P?effLv():1)+s.int*3)*(.6+.5*d)+20*d+s.mhp*.01*Math.min(l,10))*(1+s.b.heal/100))};
@@ -1316,7 +1331,7 @@ const healAmt=l=>{const s=P?S():{int:5,mhp:0,b:{heal:0}},d=dmgLv(l);return Math.
 /* ---------- 保存 ---------- */
 const SAVE_KEY='rune-meadow-save-v1';
 function serialize(){
-  const keys=['x','y','lv','exp','jlv','jexp','statPts','skillPts','str','agi','vit','int','dex','luk','hp','sp','zeny','skills','reb','rebLv','rebJ','finalClear','maxCombo','story','side','tiers','nm','cardsSeen','name','hotOrder','jlv50'];
+  const keys=['x','y','lv','exp','jlv','jexp','statPts','skillPts','str','agi','vit','int','dex','luk','hp','sp','zeny','skills','reb','rebLv','rebJ','finalClear','maxCombo','story','side','tiers','nm','cardsSeen','name','hotOrder','jlv50','medals','sigils','sigOffer'];
   const o={}; for(const k of keys) o[k]=P[k];
   o.inv=P.inv.map(e=>({id:e.id,qty:e.qty,cards:e.cards.slice(),...(e.ref?{ref:e.ref}:{})}));
   o.eqW=P.inv.indexOf(P.eq.weapon); o.eqA=P.inv.indexOf(P.eq.armor);
@@ -1426,6 +1441,7 @@ const SFX={hit:()=>{noise(.07,.35,1200);tone(150,.09,'square',.06,0,.5)},crit:()
   asura:()=>{noise(1.1,.7,260);noise(.5,.5,2400);tone(70,1.2,'sawtooth',.14,0,.35);tone(46,1.5,'square',.1,.04,.5);tone(880,.5,'triangle',.05,0,.25);[523,659,784,1047].forEach((f,i)=>tone(f,.6,'triangle',.035,.25+i*.07))},mvp:()=>[392,523,659,784,1047].forEach((f,i)=>tone(f,.4,'square',.06,i*.12)),
   combo:()=>{[784,988,1175,1568].forEach((f,i)=>tone(f,.18,'square',.05,i*.05));noise(.15,.15,4000)},
   card:()=>{noise(.6,.2,5000);[784,988,1175,1568,1976,2349].forEach((f,i)=>tone(f,.4,'triangle',.09,i*.07));[1568,1976,2349].forEach(f=>tone(f,1.4,'sine',.05,.5));tone(392,1,'triangle',.08,.42)},
+  medal:()=>{noise(.25,.16,6000);[659,784,988,1319].forEach((f,i)=>tone(f,.16,'square',.045,i*.08));[1319,1568,1976].forEach(f=>tone(f,1.1,'triangle',.05,.34));tone(330,.9,'triangle',.07,.34)},
   lvbig:()=>{noise(.35,.25,3000);[523,659,784,1047,1319].forEach((f,i)=>tone(f,.3,'triangle',.12,i*.065));
     [523,659,784,1047].forEach(f=>tone(f,1.2,'triangle',.06,.36));tone(1568,1,'sine',.06,.36)}};
 function sfx(k){if(muted||!AC)return;try{SFX[k]()}catch(_){}}
@@ -1708,7 +1724,7 @@ function setupSecrets(M){
   if(M.secret===undefined)M.secret=makeSecret(M);
   // 入口から遠い床に宝箱を2つ（離して置く）
   const d=floorDist(M),cand=[];for(let i=0;i<MW*MH;i++)if(d[i]>=10)cand.push(i);cand.sort((a,b)=>d[b]-d[a]);
-  const chests=[];for(const i of cand){const x=i%MW,y=(i/MW)|0;if(chests.every(c=>Math.hypot(c.x-x,c.y-y)>12)){chests.push({x:x+.5,y:y+.5,opened:false,mimic:rnd()<.1});if(chests.length>=2)break}}
+  const chests=[];for(const i of cand){const x=i%MW,y=(i/MW)|0;if(chests.every(c=>Math.hypot(c.x-x,c.y-y)>12)){chests.push({x:x+.5,y:y+.5,opened:false,mimic:rnd()<.1});if(chests.length>=(hasSig('greed')?3:2))break}}
   if(M.secret)chests.push({x:M.secret.cx+.5,y:M.secret.cy+.5,opened:false,mimic:false,hidden:true});
   M.chests=chests}
 const mapLv=()=>{const m=mobs.find(o=>!o.def.boss);return m?m.def.lv:Math.max(20,P.lv)};
@@ -1718,8 +1734,8 @@ function openChest(c){
   if(c.mimic){const base=mobs.find(o=>!o.def.boss&&!o.temp)||mobs[0];if(!base)return;
     const def={...base.def,n:'ミミック',kind:'mimic',hp:Math.round(base.def.hp*3),exp:base.def.exp*3,jexp:base.def.jexp*3,aggro:true,aggroR:12,chaseR:30,count:1,respawn:0,look:{},drops:[['relic',.8],['bproof',.5],['gold',.6]]};
     const mm={key:'mimic',def,seed:rnd()*10,temp:true};spawnMob(mm);mm.x=c.x;mm.y=c.y;mm.state='chase';mobs.push(mm);
-    emote(mm,'!!',1.5);msg('宝箱がミミックだった！','warn');sfx('hurt');fx.push({type:'shock',t:0,life:.8,rgb:'200,80,60'});return}
-  const lv=mapLv(),src={x:c.x,y:c.y};
+    emote(mm,'!!',1.5);msg('宝箱がミミックだった！','warn');medalAdd('mimic');sfx('hurt');fx.push({type:'shock',t:0,life:.8,rgb:'200,80,60'});return}
+  const lv=mapLv(),src={x:c.x,y:c.y};medalAdd('chest');
   dropItem('zeny',irand(lv*20,lv*40)*(c.hidden?3:1),src);
   const rel=c.hidden?irand(3,5):irand(1,3);for(let i=0;i<rel;i++)dropItem('relic',1,src);
   if(c.hidden||rnd()<.3)dropItem('bproof',1,src);
@@ -1728,7 +1744,7 @@ function openChest(c){
   msg(c.hidden?'隠し部屋の宝箱を開けた！':'宝箱を開けた！','item');sfx('pick');fx.push({type:'lv',t:0,life:1,rgb:'255,220,120'});
 }
 function hitCrack(){const S2=curMap.secret;if(!S2||S2.broken)return;S2.hp--;sfx('hit');fx.push({type:'boom',x:S2.x+.5,y:S2.y+.5,t:0,life:.4});
-  if(S2.hp<=0){S2.broken=true;curMap.tiles[S2.y*MW+S2.x]=SA;rebuildDungeonLook(curMap);msg('ひび割れた壁が崩れた！ 奥に隠し部屋がある','item');sfx('gx')}
+  if(S2.hp<=0){S2.broken=true;medalAdd('secret');medalAdd('sec_'+curMap.id);curMap.tiles[S2.y*MW+S2.x]=SA;rebuildDungeonLook(curMap);msg('ひび割れた壁が崩れた！ 奥に隠し部屋がある','item');sfx('gx')}
   else msg('壁がぐらついた……','sys')}
 function pickChest(px,py){for(const c of curMap.chests||[]){if(c.opened)continue;const [sx,sy]=toScreen(c.x,c.y);if(Math.abs(px-sx)<20*zoom&&py<sy+8*zoom&&py>sy-28*zoom)return c}return null}
 function pickCrack(px,py){const S2=curMap.secret;if(!S2||S2.broken||!curMap.chests)return null;const [sx,sy]=toScreen(S2.x+.5,S2.y+.5);
@@ -1748,7 +1764,8 @@ function drawCrack(){const S2=curMap.secret;if(!S2||S2.broken)return;const [x,y]
 const ELITE_MAPS=new Set(['nightmare','final','forest','volcano','tower','ice','abyss','castle','pyramid']);
 const ELITE_N={guard:'堅牢',fast:'俊足',antimagic:'反魔',summon:'群れ呼び',bomb:'爆散'};
 const ELITE_D={guard:'1発のダメージは最大HPの25%まで',fast:'移動1.5倍・攻撃が速い',antimagic:'魔法ダメージ1/3',summon:'HPが半分で仲間を3体呼ぶ',bomb:'倒すと1秒後に爆発'};
-const eliteRate=()=>curMap.id==='nightmare'?Math.min(.2,.08+.02*Math.floor(((P.nm&&P.nm.k)||0)/100)):.08;
+const eliteRate=()=>Math.min(.6,eliteRate0()*(hasSig('greed')?3:1));
+const eliteRate0=()=>curMap.id==='nightmare'?Math.min(.2,.08+.02*Math.floor(((P.nm&&P.nm.k)||0)/100)):.08;
 function rollElite(m){
   if(!m.def.boss&&!m.temp&&ELITE_MAPS.has(curMap.id)&&rnd()<eliteRate()){const ks=Object.keys(ELITE_N);m.elite=ks[Math.floor(rnd()*ks.length)];m.mhp=m.def.hp*4;m.hp=m.mhp;m.summoned=false}
   else{m.elite=null;m.mhp=m.def.hp}}
@@ -1799,12 +1816,12 @@ function moveEnt(e,tx,ty,sp,dt,rule){
 
 // 囲まれ判定：冒険者を殴れる距離にいる敵の数。2体目から1体ごとにFLEEが10%下がる（最大80%）
 // 詠唱時間：詠唱が中断されないカードがあると +1秒（固定）
-const castTime=(id,lv)=>SK[id].cast(Math.min(lv,10))*S().castMul+(cardBonus().nocancel?1:0);
+const castTime=(id,lv)=>(SK[id].cast(Math.min(lv,10))*S().castMul+(cardBonus().nocancel?1:0))*(galeOn()?.5:1);
 function castInterrupt(){if(P.casting&&!cardBonus().nocancel){P.casting=null;float(P.x,P.y-.6,'詠唱中断','#d8b8ff',15);msg('ダメージを受けて詠唱が中断された！','warn')}}
 const fleePen=()=>Math.min(.8,Math.max(0,(P.mobbed||0)-1)*.1)*(cardBonus().surround?.5:1);
 // SP消費（カードで最大50%まで軽くなる）
 // SP消費はLv1000より増えない（それ以上上げても損をしない）
-const spCost=(id,lv)=>Math.max(1,Math.round(SK[id].sp(Math.min(lv,1000))*(1-Math.min(50,cardBonus().spcost)/100)));
+const spCost=(id,lv)=>hasSig('last')&&P.hp<=S().mhp*.3?0:Math.max(1,Math.round(SK[id].sp(Math.min(lv,1000))*(1-Math.min(50,cardBonus().spcost)/100)));
 function updateMobs(dt,s){
   if(mobs.some(m=>m.temp&&m.state==='dead'&&m.fade>1))mobs=mobs.filter(m=>!(m.temp&&m.state==='dead'&&m.fade>1));
   let near=0;
@@ -1904,6 +1921,7 @@ function comboMul(m){
   else if(hitTag==='bolt'&&frozen){k=1.5;t='感電！';c='#fff27a'}
   else if(hitTag==='hunt'&&(m.root>0||frozen)){k=1.5;t='狙い撃ち！';c='#ffd27a'}
   if(t&&(m.comboT||0)<time){m.comboT=time+.5;float(m.x,m.y-.6,t,c,16)}
+  if(t)medalAdd(hitTag==='fire'?'shatter':hitTag==='bolt'?'shock':'aim');
   return k}
 function hurtMob(m,dmg,col,size,crit,srcJob){
   if(m.state==='dead')return;
@@ -1915,6 +1933,7 @@ function hurtMob(m,dmg,col,size,crit,srcJob){
   if(m.elite==='antimagic'&&(hitTag==='fire'||hitTag==='bolt'||hitTag==='cold'))dmg=Math.max(1,Math.round(dmg/3));
   if(m.elite==='guard')dmg=Math.min(dmg,Math.ceil(m.mhp*.25));
   m.hp-=dmg;m.flash=.12;m.hpShow=8;float(m.x,m.y,dmg,col,size,1,true,crit);aggro(m);
+  if(!srcJob)medalMax('maxHit',dmg);
   // HP吸収：1回で最大HPの5%まで
   if(cb&&cb.drain&&!P.dead){const mh=S().mhp;P.hp=Math.min(mh,P.hp+Math.min(mh*.05,dmg*cb.drain/100))}
   if(m.elite==='summon'&&!m.summoned&&m.hp>0&&m.hp<m.mhp/2){m.summoned=true;eliteSummon(m)}
@@ -1933,7 +1952,7 @@ function killMob(m){
   const ek=m.elite?3:1;gainExp(m.def.exp*(1+bonus)*ek,m.def.jexp*(1+bonus)*ek);
   // 物語の途中で終焉の王を倒したときは、その章まで進めてから討伐を数える（転生後に第1部をくり返さないため）
   if(m.def.final)storySkipTo(chOf('終焉の王'));
-  storyEvent('kill',m);if(m.def.boss)storyEvent('boss',m);sideKill(m);
+  storyEvent('kill',m);if(m.def.boss)storyEvent('boss',m);sideKill(m);medalKill(m);
   if(m.elite){if(rnd()<.6)dropItem('relic',1,m);if(m.elite==='bomb')eliteBomb(m);msg(`エリート〈${ELITE_N[m.elite]}〉${m.def.n} を倒した！`,'item')}
   {const dm=(1+S().b.drop/100)*(m.elite?3:1);for(const [id,r] of m.def.drops) if(rnd()<r*dm) dropItem(id,1,m)}
   dropItem('zeny',Math.round(irand(m.def.zeny[0],m.def.zeny[1])*(1+S().b.zeny/100)),m);
@@ -1945,6 +1964,7 @@ function killMob(m){
     addItem('bproof');msg('ボスの証を手に入れた','item');
     msg(`MVP！ ${m.def.n} を討伐しました`,'sys');msg(`MVP報酬 ${ITEMS[rw].n} を獲得`,'item');
   }
+  sigilKill(m);
   if(curMap.onKill)curMap.onKill(m);
   // 呼ばれた仲間は湧き直さない
   if(m.temp)m.respawnAt=Infinity;
@@ -1989,9 +2009,10 @@ function levelUpFx(l1,l2,jobOnly){
   for(const id of [l1&&'hLv',l2&&'hJlv'])if(id){const el=$(id);el.classList.remove('pop');void el.offsetWidth;el.classList.add('pop')}
 }
 function die(){
+  if(hasSig('undying')&&!(P.undyT>time)){P.undyT=time+90;const s=S();P.hp=Math.max(1,Math.floor(s.mhp*.3));P.dead=false;float(P.x,P.y-.6,'不屈！','#ffffff',24);fx.push({type:'shock',t:0,life:.9,rgb:'255,255,255'});sfx('buff');msg('不屈の刻印が光った！ HP30%で踏みとどまった','item');return}
   P.hp=0;P.dead=true;P.sit=false;P.path=[];P.target=null;P.queued=null;P.casting=null;aiming=null;
   const loss=Math.floor(needBase(P.lv)*.01);P.exp=Math.max(0,P.exp-loss);
-  $('dead').hidden=false;msg('力尽きてしまった…','warn');
+  $('dead').hidden=false;msg('力尽きてしまった…','warn');medalAdd('death');
 }
 function revive(){
   const s=S();P.dead=false;P.hp=Math.max(1,Math.floor(s.mhp/2));P.sp=Math.floor(s.msp/2);
@@ -2037,11 +2058,13 @@ function useSkill(id){
   if(trap&&traps.some(t=>t.x===tx&&t.y===ty)){msg('そこにはもう罠があります','warn');return}
   const cost=spCost(id,lv); if(P.sp<cost){msg('SPが足りません','warn');return}
   P.sp-=cost; const s=S();
-  if(trap){traps.push({k:id,x:tx,y:ty,lv,t:0});if(traps.length>4)traps.shift();sfx('pick')}
+  if(trap){const spots=hasSig('trap')?[[0,0],[-1,0],[1,0]]:[[0,0]],cap=hasSig('trap')?12:4;
+    for(const [ox,oy] of spots){const x=tx+ox,y=ty+oy;if(!pass(x,y)||safeXY(x+.5,y+.5)||traps.some(t=>t.x===x&&t.y===y))continue;traps.push({k:id,x,y,lv,t:0})}
+    while(traps.length>cap)traps.shift();sfx('pick')}
   if(id==='conc'){P.buff.conc=40+20*Math.min(lv,30);P.buff.concLv=buffLv(lv);fx.push({type:'heal',t:0,life:1,col:'#a8f0b8'});msg(`集中力向上！ AGI・DEX+${2+buffLv(lv)}`,'sys')}
   if(sk.cast){P.path=[];
     P.casting={id,t:0,dur:castTime(id,lv)};dirty=true;return}
-  if(id==='heal'){const a=healAmt(lv);P.hp=Math.min(s.mhp,P.hp+a);float(P.x,P.y,a,'#7dff8a',20);fx.push({type:'heal',t:0,life:1});sfx('heal')}
+  if(id==='heal'){const a=healAmt(lv);if(hasSig('sanct'))sanctuary(a);P.hp=Math.min(s.mhp,P.hp+a);float(P.x,P.y,a,'#7dff8a',20);fx.push({type:'heal',t:0,life:1});sfx('heal')}
   if(id!=='heal')sfx('buff');
   if(id==='agi'){P.buff.agi=40+20*Math.min(lv,30);P.buff.agiLv=buffLv(lv);P.buff.agiSelf=true;fx.push({type:'heal',t:0,life:1,col:'#9cd0ff'});msg('速度増加！ 足が軽くなった','sys')}
   if(id==='bless'){P.buff.bless=40+20*Math.min(lv,30);P.buff.blessLv=buffLv(lv);P.buff.blessSelf=true;fx.push({type:'lv',t:0,life:1.4,rgb:'255,240,180'});msg(`ブレッシング！ STR・INT・DEX+${buffLv(lv)}`,'sys')}
@@ -2062,7 +2085,9 @@ function updateCast(dt){
   const c=P.casting;if(!c)return;c.t+=dt;
   if(c.t<c.dur)return;
   P.casting=null;const lv=P.skills[c.id];P.bubble={text:SK[c.id].n+'!!',t:1.2};
-  if(SK[c.id].job==='mage'){castSpell(c,lv);return}
+  if(SK[c.id].job==='mage'){castSpell(c,lv);
+    if(hasSig('echo')&&c.id!=='swall'&&rnd()<.25){const cc={...c};later(.6,()=>{if(P.dead)return;float(P.x,P.y-.8,'残響！','#d8a8ff',16);castSpell(cc,lv)})}
+    return}
   if(c.id==='magni'){P.buff.magni=30*Math.min(lv,30);P.buff.magniLv=buffLv(lv);P.buff.magniSelf=true;fx.push({type:'lv',t:0,life:1.6,rgb:'170,205,255'});msg('マグニフィカート！ 自然回復が2倍になった','sys');dirty=true;sfx('buff')}
   else if(c.id==='asura')asuraStrike(c.m,lv);
 }
@@ -2075,6 +2100,7 @@ function asuraStrike(m,lv){
   const s=S(),spr=s.msp>0?P.sp/s.msp:0;
   // 覇王プルンカード：SPを使わない（SP回復も止まらない）
   P.spheres=0;if(!cardBonus().asuraSp){P.sp=0;P.asuraLock=5}
+  medalAdd('asura');
   if(!m||m.state==='dead')return;
   const dmg=Math.max(1,Math.round(s.atk*asuraMul(lv)*(.5+.5*spr)*(.95+rnd()*.1)));
   // 破片：外へ飛び散って落ちる
@@ -2483,17 +2509,17 @@ addEventListener('keydown',e=>{
   if(k==='q'){switchJob('aco');return}
   if(k==='w'){switchJob('hunter');return}
   if(k==='r'){switchJob('mage');return}
-  if(k==='a')toggleWin('status');else if(k==='e')toggleWin('inv');else if(k==='s')toggleWin('skill');else if(k==='j')toggleWin('story');
+  if(k==='a')toggleWin('status');else if(k==='e')toggleWin('inv');else if(k==='s')toggleWin('skill');else if(k==='j')toggleWin('story');else if(k==='m')toggleWin('medal');
   else if(e.key==='Escape'){aiming=null;if(hotEdit)setHotEdit(false);for(const w of document.querySelectorAll('.win'))w.hidden=true;dirty=true}
 });
 
 /* ---------- ウィンドウ ---------- */
-const WPOS={status:[16,214],inv:[-16,140],skill:[260,120],shop:[0,0],talk:[0,0],story:[0,0]};
+const WPOS={status:[16,214],inv:[-16,140],skill:[260,120],shop:[0,0],talk:[0,0],story:[0,0],medal:[0,0]};
 function toggleWin(id,force){
   const w=$('w-'+id),open=force!=null?force:w.hidden;
   if(open&&w.hidden){w.hidden=false;const r=w.getBoundingClientRect();
     if(!w.dataset.placed){let [l,t]=WPOS[id];
-      if(VW<760||id==='shop'||id==='talk'){l=(VW-r.width)/2;t=Math.max(70,VH*.16)}else if(l<0)l=VW-r.width+l;
+      if(VW<760||id==='shop'||id==='talk'||id==='medal'){l=(VW-r.width)/2;t=Math.max(70,VH*.16)}else if(l<0)l=VW-r.width+l;
       w.style.left=clamp(l,8,VW-r.width-8)+'px';w.style.top=clamp(t,8,VH-80)+'px';w.style.bottom='';
       if(id==='talk'){const floor=Math.min(...['chat','dock'].map(k=>$(k)).filter(e=>e&&!e.hidden).map(e=>e.getBoundingClientRect().top),VH-8);
         w.style.top='auto';w.style.bottom=Math.max(8,Math.min(VH-floor+8,VH-r.height-8))+'px'}}
@@ -2710,6 +2736,7 @@ function openNpc(n){
     html=P.lv>=MAX_LV
       ?`<p class="talk-t">……ついに時の果てに至ったか。<br>終焉の神殿の最奥に「終焉の王」が待つ。倒せば、強さを保ったまま時を巻き戻し、Lv1から新たな旅を始められる（転生）。<br>神殿の魔物はLv${1100+P.reb*300}前後。安全なのは入口の9マスだけだ。</p><div class="btns"><button class="btn" data-act="warp-final">終焉の神殿へ行く</button><button class="btn" data-close>まだ早い</button></div>`
       :`<p class="talk-t">わしは時の番人。Base Lv ${MAX_LV} に至った者だけを、終焉の神殿へ案内しておる。<br>お前はまだ Lv ${P.lv}。あと ${MAX_LV-P.lv} だ。${P.reb?`<br>（転生 ${P.reb}回目の旅だな）`:''}</p><div class="btns"><button class="btn" data-close>わかった</button></div>`;
+    if(P.reb>0)html+=`<div class="btns"><button class="btn" data-act="sig-open">転生の刻印${P.sigOffer?'（選べる！）':`（${P.sigils.length}/${sigilSlots()}）`}</button></div>`;
   }
   else if(n.id==='ret') html=`<p class="talk-t">帰りたいか？</p><div class="btns"><button class="btn" data-act="warp-home">ルーンの草原へ帰る</button><button class="btn" data-close>まだ残る</button></div>`;
   else html=`<p class="talk-t">${TIPS[Math.floor(rnd()*TIPS.length)]}</p><div class="btns"><button class="btn" data-act="tip">ほかには？</button><button class="btn" data-close>ありがとう</button></div>`;
@@ -3185,6 +3212,239 @@ function sideReport(id){const S2=sideState(),q=SIDE.find(x=>x.id===id);if(!sideD
   msg(`依頼「${q.t}」を達成！ 報酬：${rewardText(q.reward)}`,'item');sfx('buff');fx.push({type:'heal',t:0,life:1,col:'#ffe08a'});dirty=true;save();
 }
 
+/* ---------- 勲章帳：冒険の達成で勲章と称号をもらう（称号は見た目だけ。ごほうびは1回きりで、強さは上がらない） ---------- */
+const MEDAL_RANK=[null,{n:'銅',c:'#c07a3a',hi:'#f6c890',t:'#f0b07a',ui:'#a8622a'},{n:'銀',c:'#8a9ab0',hi:'#f4f8fc',t:'#dbe6f2',ui:'#56657e'},
+  {n:'金',c:'#d9a52c',hi:'#fff3b0',t:'#ffd84a',ui:'#b07a10'},{n:'虹',c:'#b06ad8',hi:'#ffe0ff',t:'#f0c8ff',ui:'#9a4ac8'}];
+const MEDAL_CAT=[['adv','冒険'],['hunt','討伐'],['boss','ボス'],['col','収集'],['smith','精錬'],['nm','悪夢と闘技場'],['tech','技と連携']];
+const medalC=k=>(medalState().c[k]||0);
+const medalB=keys=>keys.filter(k=>medalState().b[k]).length;
+const bestLv=()=>P.reb?Math.max(P.lv,MAX_LV):P.lv;
+const TB_KEYS=TIER_BOSSES.map((_,i)=>'tb'+i);
+// id・分類・ランク(1銅〜4虹)・字・勲章名・称号・ヒント(h)・獲得後の説明(d)・必要数・今の数・ごほうび
+const MEDALS=[
+  {id:'lv100',cat:'adv',r:1,g:'百',n:'百の階段',t:'一人前の冒険者',h:'Base Lv 100 に到達する',need:100,cur:bestLv,rw:{zeny:30000}},
+  {id:'lv999',cat:'adv',r:3,g:'頂',n:'頂の景色',t:'頂に立つ者',h:`Base Lv ${MAX_LV} に到達する`,need:MAX_LV,cur:bestLv,rw:{zeny:500000,items:[['bproof',5]]}},
+  {id:'reb1',cat:'adv',r:3,g:'環',n:'めぐる時',t:'時をめぐる者',h:'終焉の王を倒し、初めての転生をする',need:1,cur:()=>P.reb||0,rw:{items:[['bproof',3],['relic',5]]}},
+  {id:'reb3',cat:'adv',r:4,g:'輪',n:'輪廻の環',t:'輪廻の旅人',h:'転生を3回くり返す',need:3,cur:()=>P.reb||0,rw:{items:[['bproof',10]]}},
+  {id:'tier3',cat:'adv',r:2,g:'極',n:'極みへの転職',t:'極めし者',h:'いずれかの職で3次職に転職する',need:1,cur:()=>Object.values(P.tiers||{}).filter(t=>t>=3).length,rw:{items:[['relic',5]]}},
+  {id:'side5',cat:'adv',r:1,g:'依',n:'町の頼れる人',t:'頼れる助っ人',h:'町の依頼掲示板の依頼を5回達成する',need:5,cur:()=>Object.values(sideState().done).reduce((a,b)=>a+(+b||0),0),rw:{zeny:50000}},
+  {id:'zeny',cat:'adv',r:2,g:'財',n:'金貨の山',t:'大富豪',h:'所持金 10,000,000z を貯める',need:10000000,cur:()=>P.zeny,rw:{items:[['relic',3]]}},
+  {id:'death10',cat:'adv',r:1,g:'起',n:'七転び八起き',t:'不屈の魂',secret:true,h:'ひみつの勲章：何度倒れても、また立ち上がれ…',d:'10回力尽きても、旅をあきらめなかった',need:10,cur:()=>medalC('death'),rw:{items:[['yellow',10]]}},
+
+  {id:'kill1k',cat:'hunt',r:1,g:'千',n:'千の戦い',t:'魔物ハンター',h:'モンスターを 1,000体 倒す',need:1000,cur:()=>medalC('kills'),rw:{zeny:30000}},
+  {id:'kill10k',cat:'hunt',r:3,g:'万',n:'万の戦い',t:'万魔を討つ者',h:'モンスターを 10,000体 倒す',need:10000,cur:()=>medalC('kills'),rw:{items:[['relic',10]]}},
+  {id:'combo50',cat:'hunt',r:2,g:'嵐',n:'疾風怒濤',t:'止まらない嵐',h:'50 COMBO を決める（5秒以内に倒し続ける）',need:50,cur:()=>P.maxCombo||0,rw:{items:[['relic',2]]}},
+  {id:'combo200',cat:'hunt',r:3,g:'鬼',n:'百鬼殲滅',t:'殲滅の化身',h:'200 COMBO を決める',need:200,cur:()=>P.maxCombo||0,rw:{items:[['bproof',3]]}},
+  {id:'elite1',cat:'hunt',r:1,g:'精',n:'金色の獲物',t:'金色殺し',h:'金色に輝くエリートモンスターを倒す',need:1,cur:()=>medalC('elite'),rw:{items:[['relic',1]]}},
+  {id:'elite50',cat:'hunt',r:2,g:'鋭',n:'精鋭狩り',t:'精鋭狩り',h:'エリートモンスターを 50体 倒す',need:50,cur:()=>medalC('elite'),rw:{items:[['bproof',2]]}},
+  {id:'hit100k',cat:'hunt',r:2,g:'撃',n:'会心の一撃',t:'剛の者',h:'1回の攻撃で 100,000 ダメージを与える',need:100000,cur:()=>medalC('maxHit'),rw:{items:[['relic',2]]}},
+  {id:'hit10m',cat:'hunt',r:4,g:'砕',n:'天地鳴動',t:'天地を砕く者',h:'1回の攻撃で 10,000,000 ダメージを与える',need:10000000,cur:()=>medalC('maxHit'),rw:{items:[['bproof',10]]}},
+
+  {id:'boss1',cat:'boss',r:1,g:'初',n:'はじめてのMVP',t:'MVP',h:'ボスを1体倒す',need:1,cur:()=>medalC('boss'),rw:{items:[['bproof',1]]}},
+  {id:'golds',cat:'boss',r:1,g:'金',n:'草原の黄金',t:'黄金の狩人',h:'草原のゴールドプルンと黄金ゴキを倒す',need:2,cur:()=>medalB(['gold','gtb']),rw:{zeny:30000}},
+  {id:'pharaoh',cat:'boss',r:2,g:'砂',n:'砂塵を払う者',t:'砂漠の覇者',h:'ピラミッドの奥に眠る王を倒す',need:1,cur:()=>medalB(['pharaoh']),rw:{items:[['relic',3]]}},
+  {id:'glacia',cat:'boss',r:2,g:'竜',n:'氷竜討伐',t:'竜殺し',h:'凍てつく氷窟の主を倒す',need:1,cur:()=>medalB(['glacia']),rw:{items:[['relic',3]]}},
+  {id:'seal3',cat:'boss',r:3,g:'封',n:'三つの封印',t:'封印を解く者',h:'古代樹海・火山洞・時計塔のボスをすべて倒す',need:3,cur:()=>medalB(['dryad','ifrit','hora']),rw:{items:[['bproof',3]]}},
+  {id:'sea3',cat:'boss',r:3,g:'海',n:'海原の覇者',t:'海の覇者',h:'海の3体のボス（海賊王・深海の番人・時喰らいの海竜）を倒す',need:3,cur:()=>medalB(['barbaro','leviath','thalassa']),rw:{items:[['bproof',3]]}},
+  {id:'snow2',cat:'boss',r:3,g:'雪',n:'雪解けの英雄',t:'雪原の英雄',h:'白銀の雪原と氷の城のボスを倒す',need:2,cur:()=>medalB(['glacies','celsia']),rw:{items:[['bproof',3]]}},
+  {id:'apoc',cat:'boss',r:3,g:'終',n:'終焉を越えて',t:'終焉を越えし者',h:'終焉の神殿の最奥にいる王を倒す',need:1,cur:()=>medalB(['apoc']),rw:{items:[['bproof',5]]}},
+  {id:'boss100',cat:'boss',r:3,g:'王',n:'百のMVP',t:'MVPハンター',h:'ボスを 100体 倒す',need:100,cur:()=>medalC('boss'),rw:{items:[['bproof',5]]}},
+  {id:'tb30',cat:'boss',r:4,g:'獣',n:'草原の守護者',t:'百獣を統べる者',h:`草原に現れる段階ボス ${TB_KEYS.length}種 をすべて倒す`,need:TB_KEYS.length,cur:()=>medalB(TB_KEYS),rw:{items:[['bproof',10]]}},
+
+  {id:'card30',cat:'col',r:2,g:'札',n:'カードの虫',t:'カードマニア',h:'カード帳に 30種 のカードを集める',need:30,cur:()=>CARD_IDS.filter(cardKnown).length,rw:{items:[['relic',3]]}},
+  {id:'bcard10',cat:'col',r:3,g:'冠',n:'MVPカード蒐集',t:'MVPコレクター',h:'ボスのカード（金の枠）を 10種 集める',need:10,cur:()=>CARD_IDS.filter(id=>isBossCard(id)&&cardKnown(id)).length,rw:{items:[['bproof',5]]}},
+  {id:'chest10',cat:'col',r:1,g:'宝',n:'宝探し',t:'トレジャーハンター',h:'ダンジョンの宝箱を 10個 開ける',need:10,cur:()=>medalC('chest'),rw:{zeny:50000}},
+  {id:'secret',cat:'col',r:2,g:'壁',n:'壁の向こう',t:'壁を叩く者',h:'ダンジョンのどこかに、ひびの入った壁があるらしい…',need:1,cur:()=>medalC('secret'),rw:{items:[['relic',2]]}},
+  {id:'secret8',cat:'col',r:3,g:'迷',n:'迷宮の踏破者',t:'壁の向こうを知る者',h:'8つのダンジョンすべてで隠し部屋を見つける',need:8,cur:()=>Object.keys(SECRET_PAL).filter(k=>medalC('sec_'+k)>0).length,rw:{items:[['bproof',5],['relic',5]]}},
+  {id:'mimic',cat:'col',r:1,g:'罠',n:'それは罠だ',t:'ミミックの友',secret:true,h:'ひみつの勲章：宝箱を開けるときは、ご用心…',d:'宝箱だと思ったら、ミミックだった',need:1,cur:()=>medalC('mimic'),rw:{items:[['relic',1]]}},
+
+  {id:'ref7',cat:'smith',r:2,g:'鎚',n:'カーン！',t:'鍛冶の申し子',h:'装備の精錬で +7 に成功する',need:7,cur:()=>Math.max(medalC('maxRef'),...P.inv.map(e=>e.ref||0),0),rw:{items:[['relic',3]]}},
+  {id:'ref10',cat:'smith',r:4,g:'神',n:'神々の鉄槌',t:'伝説の鍛冶師',h:'装備の精錬で +10 に成功する',need:10,cur:()=>Math.max(medalC('maxRef'),...P.inv.map(e=>e.ref||0),0),rw:{items:[['bproof',5],['relic',5]]}},
+  {id:'refail',cat:'smith',r:1,g:'涙',n:'砕けた夢',t:'それでも叩く者',secret:true,h:'ひみつの勲章：失敗は成功のもと…？',d:'精錬に10回失敗しても、ハンマーを置かなかった',need:10,cur:()=>medalC('refFail'),rw:{items:[['relic',3]]}},
+
+  {id:'nm50',cat:'nm',r:2,g:'夢',n:'悪夢の入口',t:'悪夢を歩む者',h:'ナイトメアで深度 50 に到達する',need:50,cur:()=>nmState().best||0,rw:{items:[['relic',3]]}},
+  {id:'nm300',cat:'nm',r:3,g:'淵',n:'悪夢の底',t:'夢喰い',h:'ナイトメアで深度 300 に到達する',need:300,cur:()=>nmState().best||0,rw:{items:[['bproof',5]]}},
+  {id:'nmav',cat:'nm',r:3,g:'化',n:'化身討伐',t:'悪夢殺し',h:'ナイトメアに現れる「悪夢の化身」を倒す',need:1,cur:()=>medalB(['nmavatar']),rw:{items:[['bproof',3]]}},
+  {id:'rush50',cat:'nm',r:3,g:'闘',n:'闘技場の王者',t:'闘技場の王',h:'ボスの闘技場でボスを 50体 倒す',need:50,cur:()=>medalC('rush'),rw:{items:[['bproof',5]]}},
+
+  {id:'shatter',cat:'tech',r:1,g:'氷',n:'砕けた！',t:'氷砕き',h:'凍った敵に火の魔法を当てて「砕けた！」を出す',need:1,cur:()=>medalC('shatter'),rw:{items:[['relic',1]]}},
+  {id:'combo3',cat:'tech',r:2,g:'連',n:'連携の妙手',t:'三位一体',h:'「砕けた！」「感電！」「狙い撃ち！」の3つの連携をすべて決める',need:3,cur:()=>['shatter','shock','aim'].filter(k=>medalC(k)>0).length,rw:{items:[['relic',3]]}},
+  {id:'shock100',cat:'tech',r:2,g:'雷',n:'雷鳴の使い手',t:'感電使い',h:'凍った敵に雷を当てて「感電！」を100回出す',need:100,cur:()=>medalC('shock'),rw:{items:[['relic',3]]}},
+  {id:'aim100',cat:'tech',r:2,g:'狙',n:'百発百中',t:'狙撃の名手',h:'縛った敵や凍った敵に「狙い撃ち！」を100回決める',need:100,cur:()=>medalC('aim'),rw:{items:[['relic',3]]}},
+  {id:'asura',cat:'tech',r:2,g:'覇',n:'阿修羅覇凰拳',t:'覇凰',h:'気功弾を5つ溜めて、阿修羅の奥義を放つ',need:1,cur:()=>medalC('asura'),rw:{items:[['relic',2]]}},
+];
+const MEDAL_BY={};for(const d of MEDALS)MEDAL_BY[d.id]=d;
+// 古いセーブや壊れたデータでも動くように、形を整えてから使う
+function medalState(){
+  let M=P.medals;if(!M||typeof M!=='object')M=P.medals={};
+  for(const k of ['got','c','b','nw'])if(!M[k]||typeof M[k]!=='object')M[k]={};
+  if(M.title&&!(MEDAL_BY[M.title]&&M.got[M.title]))M.title=null;
+  return M;
+}
+let medalNext=0,medalQ=[],medalCur=null,medalTab='all',medalNewView=null,medalHTML='';
+function medalAdd(k,n=1){const c=medalState().c;c[k]=(c[k]||0)+n;medalNext=0}
+function medalMax(k,v){const c=medalState().c;if(v>(c[k]||0)){c[k]=v;medalNext=0}}
+function medalKill(m){const M=medalState(),c=M.c;c.kills=(c.kills||0)+1;if(m.elite)c.elite=(c.elite||0)+1;
+  if(m.def.boss){c.boss=(c.boss||0)+1;if(m.key==='rush')c.rush=(c.rush||0)+1;else M.b[m.key]=1;medalNext=0}}
+function medalTitle(){const M=P&&P.medals;if(!M||!M.title||!M.got||!M.got[M.title])return null;const d=MEDAL_BY[M.title];if(!d)return null;
+  return {t:d.t,r:d.r,col:d.r===4?`hsl(${(time*80)%360},90%,80%)`:MEDAL_RANK[d.r].t,ui:MEDAL_RANK[d.r].ui}}
+const medalBanner=(d,lines)=>({type:'lvbig',t:0,life:3.4,title:'MEDAL!',medal:d,lines});
+function medalGrant(d,quiet){
+  const M=medalState();if(M.got[d.id])return false;
+  M.got[d.id]=Object.keys(M.got).length+1;M.nw[d.id]=1;
+  const rw=d.rw||{};if(rw.zeny)P.zeny+=rw.zeny;for(const [id,q] of rw.items||[])if(ITEMS[id])addItem(id,q);
+  // 初めての勲章の称号は自動で付ける（外したあとは勝手に付けない）
+  let auto=false;if(!M.title&&!M.tset){M.title=d.id;M.tset=1;auto=true}
+  dirty=true;if(quiet)return true;
+  msg(`★ 勲章「${d.n}」を手に入れた！ ★ 称号《${d.t}》`,'item');
+  msg(`勲章のごほうび：${rewardText(rw)}`,'item');
+  if(auto)msg(`称号《${d.t}》を名前の上に付けました（勲章帳 M で付け替えられる）`,'sys');
+  medalQ.push(medalBanner(d,[`勲章「${d.n}」`,`称号《${d.t}》`,...(VW>=560?[`ごほうび：${rewardText(rw)}`]:[])]));
+  return true;
+}
+function medalCheck(){
+  if(!P)return;const M=medalState(),quiet=!M.init;let n=0,best=null;
+  for(const d of MEDALS){if(M.got[d.id])continue;let v=0;try{v=d.cur()}catch(_){continue}
+    if(v>=d.need&&medalGrant(d,quiet)){n++;if(!best||d.r>best.r)best=d}}
+  if(quiet){M.init=1;
+    // 勲章帳ができる前のセーブ：これまでの冒険ぶんをまとめて渡す（ごほうびもまとめて）
+    if(n){msg(`★ これまでの冒険をふり返り、勲章を ${n}個 受け取った！ ★ ごほうびもカバンに届いている（勲章帳 M）`,'item');
+      medalQ.push(medalBanner(best,[`これまでの勲章 ${n}個`,'勲章帳（M）で確かめよう']))}}
+  if(n)save();
+}
+// 勲章の大きな演出は1つずつ順番に（レベルアップの演出に消されたら出し直す）
+function medalPump(){
+  if(medalCur&&!fx.includes(medalCur)&&medalCur.t<1){medalCur.t=0;fx.push(medalCur);return}
+  if(!medalQ.length||(medalCur&&fx.includes(medalCur)&&medalCur.t<medalCur.life*.8))return;
+  medalCur=medalQ.shift();fx.push(medalCur);sfx('medal');
+}
+// 勲章の絵（リボンつきのメダル）。画面の演出と勲章帳の両方で使う
+function drawMedal(g,x,y,r,rank,glyph,lock,hue){
+  const R=MEDAL_RANK[rank]||MEDAL_RANK[1];
+  const rb=lock?['#7a7a86','#5a5a66']:rank===4?['#e05a9a','#5a8ae0']:rank===3?['#c8403a','#2a4aa8']:rank===2?['#3a6ac8','#d8dce8']:['#2f8a5a','#e0c060'];
+  g.save();g.lineJoin='round';g.lineWidth=Math.max(1,r*.08);g.strokeStyle='rgba(30,20,10,.7)';
+  g.fillStyle=rb[0];g.beginPath();g.moveTo(x-r*.95,y-r*2);g.lineTo(x-r*.3,y-r*2);g.lineTo(x+r*.2,y-r*.7);g.lineTo(x-r*.45,y-r*.7);g.closePath();g.fill();g.stroke();
+  g.fillStyle=rb[1];g.beginPath();g.moveTo(x+r*.95,y-r*2);g.lineTo(x+r*.3,y-r*2);g.lineTo(x-r*.2,y-r*.7);g.lineTo(x+r*.45,y-r*.7);g.closePath();g.fill();g.stroke();
+  let fill;
+  if(lock)fill='#9a9aa6';
+  else if(rank===4){fill=g.createLinearGradient(x-r,y-r,x+r,y+r);const h=hue||0;for(let i=0;i<=4;i++)fill.addColorStop(i/4,`hsl(${(h+i*70)%360},85%,${70-i*4}%)`)}
+  else{fill=g.createRadialGradient(x-r*.35,y-r*.4,r*.1,x,y,r);fill.addColorStop(0,R.hi);fill.addColorStop(1,R.c)}
+  g.fillStyle=fill;g.beginPath();g.arc(x,y,r,0,Math.PI*2);g.fill();g.stroke();
+  g.strokeStyle='rgba(255,255,255,.55)';g.lineWidth=Math.max(1,r*.07);g.beginPath();g.arc(x,y,r*.78,0,Math.PI*2);g.stroke();
+  g.font=`${Math.round(r*1.05)}px "DotGothic16",monospace`;g.textAlign='center';g.textBaseline='middle';
+  g.fillStyle=lock?'#eeeef4':rank===2?'#2a3448':'rgba(70,34,0,.88)';g.fillText(lock?'？':glyph,x,y+r*.06);
+  g.restore();
+}
+const MEDAL_ART={};
+function medalArt(d,lock){const k=d.id+(lock?'_l':'');if(MEDAL_ART[k])return MEDAL_ART[k];
+  const R=2,c=document.createElement('canvas');c.width=44*R;c.height=56*R;const g=c.getContext('2d');g.scale(R,R);drawMedal(g,22,37,15,d.r,d.g,lock,200);
+  const url=c.toDataURL();if(!document.fonts||document.fonts.check('12px "DotGothic16"'))MEDAL_ART[k]=url;return url}
+const fmtN=n=>Math.floor(n).toLocaleString();
+function medalRow(d,M){
+  const got=!!M.got[d.id],R=MEDAL_RANK[d.r],on=M.title===d.id;let v=0;try{v=d.cur()}catch(_){}
+  const p=clamp(v/d.need,0,1),isNew=medalNewView&&medalNewView[d.id];
+  const prog=!got&&!d.secret?`<div class="md-prog"><div class="bar thin"><i style="width:${(p*100).toFixed(1)}%"></i></div><span>${fmtN(Math.min(v,d.need))} / ${fmtN(d.need)}</span></div>`:'';
+  const ds=got?`${d.d||d.h}<br>称号《${esc(d.t)}》・ごほうび：${rewardText(d.rw)}（受け取り済み）`
+    :`${d.secret?'':'ヒント：'}${d.h}<br>称号《？？？》・ごほうび：${d.secret?'？？？':rewardText(d.rw)}`;
+  const btn=got?(on?'<button class="btn" disabled>付けている</button>':`<button class="btn" data-act="medal-title" data-id="${d.id}">称号にする</button>`):'';
+  return `<div class="it md${got?'':' unk'}${on?' on':''}"><img class="md-ic" src="${medalArt(d,!got)}" alt="${R.n}の勲章"><div class="tx"><div class="nm">${got?esc(d.n):'？？？'} <span class="tag" style="background:${got?R.ui:'#9a9aa6'}">${R.n}</span>${isNew?'<span class="tag" style="background:var(--accent)">NEW</span>':''}</div><div class="ds">${ds}</div>${prog}</div>${btn}</div>`;
+}
+function renderMedals(){
+  const M=medalState();
+  // 開いたときの「NEW」はウィンドウを閉じるまで残す
+  if(!medalNewView){medalNewView={...M.nw};M.nw={}}else if(Object.keys(M.nw).length){Object.assign(medalNewView,M.nw);M.nw={}}
+  const got=MEDALS.filter(d=>M.got[d.id]).length,cur=medalTitle();
+  const tab=(k,n)=>`<button class="btn" data-act="medaltab" data-k="${k}" aria-pressed="${medalTab===k}">${n}</button>`;
+  let h=`<div class="md-top"><span class="qc">集めた勲章</span><b>${got} / ${MEDALS.length}</b><div class="bar thin"><i style="width:${(got/MEDALS.length*100).toFixed(1)}%"></i></div></div>`;
+  h+=`<div class="md-now"><span>称号：</span>${cur?`<b style="color:${cur.ui}">《${esc(cur.t)}》</b><button class="btn" data-act="medal-title" data-id="">外す</button>`:'<span class="ds">なし　手に入れた勲章の「称号にする」で、名前の上に飾れる（見た目だけ）</span>'}</div>`;
+  h+=`<div class="tabs">${tab('all','すべて')}${tab('got',`獲得済み（${got}）`)}${tab('todo','未獲得')}</div>`;
+  let any=false;
+  for(const [ck,cn] of MEDAL_CAT){const all=MEDALS.filter(d=>d.cat===ck),list=all.filter(d=>medalTab==='all'||(medalTab==='got')===!!M.got[d.id]);if(!list.length)continue;any=true;
+    h+=`<div class="eqsec">${cn}　<span class="note">${all.filter(d=>M.got[d.id]).length} / ${all.length}</span></div><div class="list">${list.map(d=>medalRow(d,M)).join('')}</div>`}
+  if(!any)h+=`<p class="note">${medalTab==='got'?'まだ勲章を持っていない。冒険に出かけよう！':'すべての勲章を集めた！ 見事だ。'}</p>`;
+  // 中身が変わったときだけ描き直す（ボタンを押している最中に消えないように）
+  if(h!==medalHTML){medalHTML=h;$('b-medal').innerHTML=h}
+}
+
+/* ---------- 転生の刻印 ---------- */
+// 転生ごとに3択から1つ刻む（最大3つ）。数字の強化ではなく、戦い方そのものが変わる効果だけ
+const SIGILS={
+  chain:{n:'雷鎖の刻印',g:'鎖',c:'#d8b020',d:'敵を倒すと、近くの敵3体に雷が連鎖する（倒した敵の最大HPの25%）。連鎖で倒れた敵からも、また連鎖する'},
+  ember:{n:'残り火の刻印',g:'焔',c:'#e0602a',d:'敵を倒すと、その場が3秒燃える。中の敵は0.5秒ごとに最大HPの6%の火傷（火なので、凍った敵は砕ける）'},
+  frost:{n:'氷棺の刻印',g:'棺',c:'#4a9ad8',d:'敵を倒すと、まわり2.5マスの敵が3秒凍る（ボス以外）。凍った敵には火が×2、雷が×1.5'},
+  gale:{n:'疾風の刻印',g:'風',c:'#3aa86a',d:'コンボ中（5秒以内に倒し続けている間）、移動が1.5倍・詠唱が半分になる'},
+  greed:{n:'黄金の刻印',g:'金',c:'#c09020',d:'エリート雑魚の出現が3倍。ダンジョンの宝箱が1つ増える'},
+  hawk:{n:'猛禽の刻印',g:'鷹',c:'#8a6a3a',d:'ハンターでブリッツビートを覚えていれば、鷹が3秒ごとに近くの敵へ勝手に飛びかかる（SP不要）'},
+  trap:{n:'罠師の刻印',g:'罠',c:'#6f7480',d:'アンクルスネアとランドマインが、足元と左右の3か所に同時に置かれる（最大12個）'},
+  echo:{n:'残響の刻印',g:'響',c:'#9a50c8',d:'攻撃魔法を唱えると、25%の確率で0.6秒後にもう一度、同じ魔法がタダで発動する'},
+  sanct:{n:'聖域の刻印',g:'聖',c:'#c8a830',d:'ヒールを使うと、足元3×3が5秒間の聖域になる（3秒に1回）。中にいると毎秒HPが回復し、敵は毎秒ヒール量の半分のダメージ'},
+  last:{n:'背水の刻印',g:'背',c:'#c03a3a',d:'HPが30%以下の間、スキルのSP消費が0になる'},
+  magnet:{n:'強欲の刻印',g:'磁',c:'#3a7ac8',d:'まわり7マスに落ちたアイテムとZenyが、自分のところへ飛んでくる'},
+  undying:{n:'不屈の刻印',g:'屈',c:'#7a7a8a',d:'倒れるほどの攻撃を受けても、HP30%で踏みとどまる（90秒に1回）'},
+};
+const SIGIL_SLOTS=3,SIG_REROLL=3,SIG_DRAW=10;
+let sigSwapK=null;
+function hasSig(k){return !!(P&&P.sigils&&P.sigils.includes(k))}
+function sigilSlots(){return Math.min(SIGIL_SLOTS,P.reb||0)}
+function galeOn(){return hasSig('gale')&&combo.n>0&&time-combo.last<=COMBO_WIN}
+function sigilOffer(){const pool=Object.keys(SIGILS).filter(k=>!P.sigils.includes(k)),out=[];
+  while(out.length<3&&pool.length)out.push(pool.splice(Math.floor(rnd()*pool.length),1)[0]);P.sigOffer=out;dirty=true;return out}
+function sigilFix(){
+  if(!Array.isArray(P.sigils))P.sigils=[];P.sigils=P.sigils.filter((k,i,a)=>SIGILS[k]&&a.indexOf(k)===i).slice(0,SIGIL_SLOTS);
+  if(P.sigOffer&&!(Array.isArray(P.sigOffer)&&P.sigOffer.length&&P.sigOffer.every(k=>SIGILS[k])))P.sigOffer=null;
+  if(!P.sigOffer&&P.sigils.length<sigilSlots())sigilOffer();
+  if(P.sigOffer)setTimeout(()=>msg('★ 転生の刻印を選べる！ 町の時の番人クロノに話しかけよう ★','item'),1500)}
+function sigilAdd(k){
+  P.sigils.push(k);P.sigOffer=null;const g=SIGILS[k];
+  msg(`★ ${g.n} を魂に刻んだ ★`,'item');sfx('mvp');
+  fx.push({type:'lv',t:0,life:1.8,angel:true,rgb:'200,170,255'},{type:'lvbig',t:0,life:3.2,title:'SIGIL!',job:true,lines:[g.n,`刻印 ${P.sigils.length} / ${sigilSlots()}`]});
+  if(P.sigils.length<sigilSlots())sigilOffer();dirty=true;save()}
+function sigRow(k,btn){const g=SIGILS[k];return `<div class="it">${icon(g.g,g.c)}<div class="tx"><div class="nm">${g.n}</div><div class="ds">${g.d}</div></div>${btn}</div>`}
+function sigilHTML(){
+  const n=sigilSlots();
+  let h=`<p class="talk-t">転生の刻印は、魂に刻む力。強さの数字ではなく、戦い方そのものを変える。<br>刻んでいる刻印：<b>${P.sigils.length} / ${n}</b>${n<SIGIL_SLOTS?`（転生${n+1}回目で${n+1}つ目が開く）`:''}</p><div class="list">`;
+  h+=P.sigils.length?P.sigils.map(k=>sigRow(k,'')).join(''):'<p class="note">まだ何も刻んでいない</p>';
+  h+='</div>';
+  if(sigSwapK)return h+`<p class="talk-t" style="margin-top:10px">「${SIGILS[sigSwapK].n}」を刻むには、どれかを消すことになる。どれと入れ替える？</p><div class="btns">${P.sigils.map((k,i)=>`<button class="btn" data-act="sig-swap" data-i="${i}">${SIGILS[k].n}を消す</button>`).join('')}<button class="btn" data-act="sig-cancel">やめる</button></div>`;
+  if(P.sigOffer)h+=`<p class="talk-t" style="margin-top:10px">さあ、ひとつ選べ。</p><div class="list">${P.sigOffer.map(k=>sigRow(k,`<button class="btn" data-act="sig-pick" data-k="${k}">刻む</button>`)).join('')}</div>`+
+    `<div class="btns"><button class="btn" data-act="sig-reroll" ${count('bproof')>=SIG_REROLL?'':'disabled'}>引き直す（ボスの証${SIG_REROLL}個）</button>${P.sigils.length>=n?'<button class="btn" data-act="sig-keep">今の刻印のままにする</button>':''}</div>`;
+  else if(n>0)h+=`<div class="btns"><button class="btn" data-act="sig-draw" ${count('bproof')>=SIG_DRAW?'':'disabled'}>新しい刻印を引く（ボスの証${SIG_DRAW}個・今 ${count('bproof')}個）</button></div>`;
+  return h}
+function openSigil(){
+  talkNpc=null;$('talkName').textContent='時の番人 クロノ';
+  $('b-talk').innerHTML=sigilHTML()+`<div class="btns"><button class="btn" data-close>閉じる</button></div>`;toggleWin('talk',true)}
+// 倒したときの刻印
+function sigilKill(m){
+  if(!P||P.dead||!P.sigils||!P.sigils.length)return;
+  const M=curMap,mx=m.x,my=m.y,mh=m.mhp||m.def.hp;
+  if(hasSig('frost')){let n=0;for(const o of mobs)if(o!==m&&o.state!=='dead'&&!o.def.boss&&Math.hypot(o.x-mx,o.y-my)<=2.5){o.frozenT=time+3;o.iceT=time+3;o.root=Math.max(o.root||0,3);n++}
+    if(n)fx.push({type:'spell',el:'cold',x:mx,y:my,t:.22,at:.22,life:.5,done:true})}
+  if(hasSig('chain')){const d=Math.max(1,Math.round(mh*.25));
+    const ts=mobs.filter(o=>o!==m&&o.state!=='dead'&&Math.hypot(o.x-mx,o.y-my)<=4).sort((a,b)=>Math.hypot(a.x-mx,a.y-my)-Math.hypot(b.x-mx,b.y-my)).slice(0,3);
+    ts.forEach((o,i)=>later(.1+i*.08,()=>{if(curMap!==M||o.state==='dead')return;const s2=S();
+      fx.push({type:'spell',el:'bolt',x:o.x,y:o.y,t:.22,at:.22,life:.5,done:true});
+      tagged('bolt',()=>hurtMob(o,o.def.boss?Math.min(d,Math.round((s2.matk+s2.atk)*3)):d,'#fff27a',18));sfx('hit')}))}
+  if(hasSig('ember')){fx.push({type:'sigzone',x:mx,y:my,r:1.3,t:0,life:3,rgb:'255,120,40'});
+    for(let k=1;k<=6;k++)later(k*.5,()=>{if(curMap!==M)return;
+      for(const o of mobs)if(o.state!=='dead'&&Math.hypot(o.x-mx,o.y-my)<=1.3){const d=o.def.boss?Math.round(S().matk*1.5):Math.round((o.mhp||o.def.hp)*.06);tagged('fire',()=>hurtMob(o,Math.max(1,d),'#ff8a3a',14))}})}
+}
+function sanctuary(a){
+  if((P.sanctCd||0)>time)return;P.sanctCd=time+3;
+  const M=curMap,cx=Math.floor(P.x)+.5,cy=Math.floor(P.y)+.5;fx.push({type:'sigzone',x:cx,y:cy,r:1.6,t:0,life:5,rgb:'255,235,150'});
+  for(let k=1;k<=5;k++)later(k,()=>{if(curMap!==M||P.dead)return;
+    if(Math.abs(P.x-cx)<=1.5&&Math.abs(P.y-cy)<=1.5){const s2=S(),h=Math.round(a*.2);P.hp=Math.min(s2.mhp,P.hp+h);float(P.x,P.y,h,'#7dff8a',14)}
+    for(const o of mobs)if(o.state!=='dead'&&Math.abs(o.x-cx)<=1.5&&Math.abs(o.y-cy)<=1.5)hurtMob(o,Math.max(1,Math.round(a*.5)),'#fff3a0',16)})}
+// 毎フレームの刻印（鷹・磁力）
+function sigilTick(dt){
+  if(!P.sigils||!P.sigils.length)return;
+  if(hasSig('hawk')&&P.job==='hunter'&&P.skills.blitz>0&&tierOf('hunter')>=2&&(P.hawkT||0)<=time){
+    let best=null,bd=6;for(const m of mobs){if(m.state==='dead')continue;const d=Math.hypot(m.x-P.x,m.y-P.y);if(d<bd){bd=d;best=m}}
+    if(best){P.hawkT=time+3;blitz(best,P.skills.blitz)}}
+  if(hasSig('magnet')&&groundItems.length)for(const g of groundItems.slice()){
+    const dx=P.x-g.x,dy=P.y-g.y,d=Math.hypot(dx,dy);if(d>7)continue;if(d<.5){pickup(g);continue}
+    const st=Math.min(d,(4+(7-d)*1.5)*dt);g.x+=dx/d*st;g.y+=dy/d*st}
+}
+
 /* ---------- 転生 ---------- */
 function openRebirth(){
   if(!P.finalClear)return;
@@ -3202,6 +3462,7 @@ function doRebirth(){
   fx.push({type:'lv',t:0,life:2.4,angel:true,rgb:'200,170,255'},{type:'shock',t:0,life:1.2,rgb:'200,170,255'});
   fx.push({type:'lvbig',t:0,life:3.6,title:'REBIRTH!',job:true,lines:[`転生 ${P.reb}回目`,`Base Lv ${bl} → 1 ／ Job Lv ${jl} → 1`,`強さは Lv${effLv()} 相当を引き継ぎ`]});
   sfx('mvp');msg(`転生した！（${P.reb}回目）Lv1からの新たな旅が始まる。強さは引き継がれている`,'item');
+  sigilOffer();sigSwapK=null;setTimeout(()=>{if(!P.dead)openSigil()},2800);
   dirty=true;save();
 }
 function statUp(k,n){let up=0;for(let i=0;i<n;i++){const c=statCost(P[k]);if(P.statPts<c||P[k]>=MAX_STAT)break;P.statPts-=c;P[k]++;up++}if(up)dirty=true;return up}
@@ -3239,8 +3500,8 @@ document.addEventListener('click',e=>{
     if(P.zeny<c.z||count('relic')<c.r){msg('Zenyか古代の秘宝が足りない','warn');return}
     P.zeny-=c.z;if(c.r)removeEntry(P.inv.find(e=>e.id==='relic'),c.r);
     const nm=ITEMS[e2.id].n;
-    if(rnd()<REF_RATE[L]){e2.ref=L;msg(`カーン！ 精錬成功！ +${L} ${nm}`,'item');sfx(L>=7?'mvp':'buff');fx.push({type:'lv',t:0,life:1.4,rgb:L>=7?'255,210,90':'200,230,255'});if(L>=7)fx.push({type:'lvbig',t:0,life:2.6,title:`+${L}`,lines:[nm,'精錬成功！']})}
-    else{const back=Math.max(REF_SAFE,(e2.ref||0)-1);const was=e2.ref||0;e2.ref=Math.min(was,back);msg(`……精錬失敗。${nm} は +${e2.ref} になった`,'warn');sfx('hurt');fx.push({type:'shock',t:0,life:.9,rgb:'140,140,150'})}
+    if(rnd()<REF_RATE[L]){e2.ref=L;medalMax('maxRef',L);msg(`カーン！ 精錬成功！ +${L} ${nm}`,'item');sfx(L>=7?'mvp':'buff');fx.push({type:'lv',t:0,life:1.4,rgb:L>=7?'255,210,90':'200,230,255'});if(L>=7)fx.push({type:'lvbig',t:0,life:2.6,title:`+${L}`,lines:[nm,'精錬成功！']})}
+    else{medalAdd('refFail');const back=Math.max(REF_SAFE,(e2.ref||0)-1);const was=e2.ref||0;e2.ref=Math.min(was,back);msg(`……精錬失敗。${nm} は +${e2.ref} になった`,'warn');sfx('hurt');fx.push({type:'shock',t:0,life:.9,rgb:'140,140,150'})}
     dirty=true;if(talkNpc)openNpc(talkNpc);return}
   else if(act==='proof-toggle'){proofOpen=!proofOpen;if(talkNpc)openNpc(talkNpc);return}
   else if(act==='proof-trade'){const id=a.dataset.c;if(!ITEMS[id]||!isBossCard(id)||count('bproof')<PROOF_NEED)return;
@@ -3261,6 +3522,9 @@ document.addEventListener('click',e=>{
     cardPickRef=null}
   else if(act==='card-out'){const e2=P.inv[+a.dataset.i],k=+a.dataset.k;if(e2&&e2.cards[k]){const c=e2.cards.splice(k,1)[0];addItem(c);msg(`${ITEMS[c].n} を外しました（カバンに戻りました）`,'item');sfx('pick')}}
   else if(act==='hotedit'){setHotEdit(!hotEdit)}
+  else if(act==='medaltab'){medalTab=a.dataset.k}
+  else if(act==='medal-title'){const M=medalState(),id=a.dataset.id;M.tset=1;
+    if(!id){M.title=null;msg('称号を外しました','sys')}else if(M.got[id]&&MEDAL_BY[id]){M.title=id;msg(`称号《${MEDAL_BY[id].t}》を付けました`,'item');sfx('buff')}save()}
   else if(act==='rename'){toggleWin('status',true);renderStatus();setTimeout(()=>{const el=$('nameIn');if(el){el.focus();el.select()}},50);return}
   else if(act==='rename-ok'){applyName()}
   else if(act==='doheal'){const s=S();P.hp=s.mhp;P.sp=s.msp;fx.push({type:'heal',t:0,life:1});msg('HPとSPが全回復した','item');$('w-talk').hidden=true}
@@ -3288,6 +3552,13 @@ document.addEventListener('click',e=>{
   else if(act==='promote'){promote(a.dataset.job);$('b-talk').innerHTML=jobMasterHTML();return}
   else if(act==='story-next'){storyNext();return}
   else if(act==='story-choice'){storyChoose(+a.dataset.i);return}
+  else if(act==='sig-open'){sigSwapK=null;openSigil();return}
+  else if(act==='sig-pick'){const k=a.dataset.k;if(!P.sigOffer||!P.sigOffer.includes(k))return;if(P.sigils.length<sigilSlots())sigilAdd(k);else sigSwapK=k;openSigil();return}
+  else if(act==='sig-swap'){const i=+a.dataset.i;if(!sigSwapK||!P.sigils[i]||!P.sigOffer||!P.sigOffer.includes(sigSwapK))return;const old=P.sigils.splice(i,1)[0];msg(`${SIGILS[old].n} を消した`,'sys');sigilAdd(sigSwapK);sigSwapK=null;openSigil();return}
+  else if(act==='sig-cancel'){sigSwapK=null;openSigil();return}
+  else if(act==='sig-keep'){P.sigOffer=null;sigSwapK=null;msg('刻印はそのままにした','sys');openSigil();return}
+  else if(act==='sig-reroll'){if(!P.sigOffer||count('bproof')<SIG_REROLL)return;removeEntry(P.inv.find(e=>e.id==='bproof'),SIG_REROLL);sigSwapK=null;sigilOffer();sfx('buff');openSigil();return}
+  else if(act==='sig-draw'){if(P.sigOffer||sigilSlots()<1||count('bproof')<SIG_DRAW)return;removeEntry(P.inv.find(e=>e.id==='bproof'),SIG_DRAW);sigilOffer();sfx('buff');openSigil();return}
   else if(act==='rebirth'){$('w-talk').hidden=true;doRebirth();return}
   else if(act==='warp-snow'){$('w-talk').hidden=true;enterMap(getSnow(),SNOW_ARR[0],SNOW_ARR[1]);return}
   else if(act==='warp-castle'){$('w-talk').hidden=true;enterMap(getCastle(),CX-.5,CY+1.5);return}
@@ -3371,9 +3642,14 @@ function hud(){
   if(harvest){const busy=harvest.units.filter(u=>u.st!=='idle').length;
     rows.push(`<div class="mrow hv"><span>ハーヴェスト</span><span>${busy?`${busy}匹収集中　`:''}残り ${fmtTime(harvest.end-time)}</span><i style="width:${clamp((harvest.end-time)/MERC_TIME,0,1)*100}%"></i></div>`)}
   hm.hidden=!rows.length;hm.innerHTML=rows.join('');
-  $('hBuff').innerHTML=BUFFS.filter(([k])=>P.buff[k]>0).map(([k,n])=>`<span>${n} ${Math.ceil(P.buff[k])}s</span>`).join('')+(P.bragi>time?'<span style="background:#2a7a5a">♪ ブラギの詩</span>':'')+(P.spheres>0&&P.job==='aco'?`<span style="background:#b07a1a">気功弾 ${'●'.repeat(P.spheres)}${'○'.repeat(5-P.spheres)}</span>`:'')+(P.amp?`<span style="background:#8a3ab0">魔力増幅 ×${P.amp.mul.toFixed(2)}</span>`:'')+(fleePen()>0?`<span style="background:#a8322a">囲まれ ${P.mobbed}体 FLEE-${Math.round(fleePen()*100)}%</span>`:'');
+  $('hBuff').innerHTML=(P.sigils||[]).map(k=>`<span style="background:${SIGILS[k].c}">◆${SIGILS[k].n.replace('の刻印','')}</span>`).join('')+(galeOn()?'<span style="background:#2a8a5a">疾風</span>':'')+BUFFS.filter(([k])=>P.buff[k]>0).map(([k,n])=>`<span>${n} ${Math.ceil(P.buff[k])}s</span>`).join('')+(P.bragi>time?'<span style="background:#2a7a5a">♪ ブラギの詩</span>':'')+(P.spheres>0&&P.job==='aco'?`<span style="background:#b07a1a">気功弾 ${'●'.repeat(P.spheres)}${'○'.repeat(5-P.spheres)}</span>`:'')+(P.amp?`<span style="background:#8a3ab0">魔力増幅 ×${P.amp.mul.toFixed(2)}</span>`:'')+(fleePen()>0?`<span style="background:#a8322a">囲まれ ${P.mobbed}体 FLEE-${Math.round(fleePen()*100)}%</span>`:'');
   const bAlive=mobs.filter(m=>m.def.boss&&m.state!=='dead').length,bt=Math.ceil(bossTimer);
   $('hName').textContent=pname();
+  {const tt=medalTitle(),ht=$('hTitle');ht.hidden=!tt;if(tt){const tx=`《${tt.t}》`;if(ht.textContent!==tx)ht.textContent=tx;ht.style.color=tt.ui}}
+  if(time>=medalNext){medalNext=time+.5;medalCheck()}
+  medalPump();
+  $('medalBtn').classList.toggle('newdot',Object.keys(medalState().nw).length>0);
+  if(medalNewView&&$('w-medal').hidden)medalNewView=null;
   $('mmTxt').textContent=`${curMap.name} (${Math.floor(P.x)}, ${Math.floor(P.y)})`;
   $('mmHome').hidden=!curMap.noSafe;
   $('mmBoss').textContent=curMap.id==='nightmare'?`深度 ${nmState().k}　敵Lv${nmLv()}　最高 ${nmState().best}`:curMap.id==='rush'?`ボス ${bAlive}体　カード率UP`:curMap.id==='field'?`ボス段階${bossTier()+1} ${bAlive}体　`+(bAlive<BOSS_MAX_ALIVE?`次 ${Math.floor(bt/60)}:${String(bt%60).padStart(2,'0')}`:'最大数')
@@ -3382,7 +3658,7 @@ function hud(){
     if(k==='s'){const lv=P.skills[id],lock=skillLocked(id);el.textContent=lock?'封':lv?'Lv'+lv:'';b.classList.toggle('locked',lock);b.classList.toggle('off',lock||!lv||P.sp<spCost(id,lv)||(id==='asura'&&(P.spheres||0)<5));b.classList.toggle('aim',aiming===id||(P.queued&&P.queued.id===id))}
     else{const n=count(id);el.textContent=n;b.classList.toggle('off',!n)}});
   if(dirty){dirty=false;
-    if(!$('w-status').hidden)renderStatus();if(!$('w-inv').hidden)renderInv();if(!$('w-skill').hidden)renderSkill();if(!$('w-shop').hidden)renderShop();if(!$('w-story').hidden)renderStoryLog();}
+    if(!$('w-status').hidden)renderStatus();if(!$('w-inv').hidden)renderInv();if(!$('w-skill').hidden)renderSkill();if(!$('w-shop').hidden)renderShop();if(!$('w-story').hidden)renderStoryLog();if(!$('w-medal').hidden)renderMedals();}
 }
 
 /* ---------- 描画 ---------- */
@@ -3396,10 +3672,10 @@ function drawTags(){
   const placed=tagBlock.slice(),bubbles=[];
   for(const n of [...NPCS,P,...mercs.filter(mc=>!(mc.down>0))])if(n.bubble&&n.bubble.t>0){const [x,y]=iso(n.x,n.y);bubbles.push({t:n.bubble.text,x,y:y-70,me:n===P})}
   // 自分の名前は動かさない。NPCの名前は 0 → 上 → 下 → … の順に空きを探す
-  const me=tags.find(g=>g.me),rest=tags.filter(g=>!g.me);
+  const mine=tags.filter(g=>g.me),rest=tags.filter(g=>!g.me);
   const fit=(g,w,top,bot,steps)=>{for(const dy of steps){const r=tagRect(g.x,g.y+dy,w,top,bot);if(!tagHit(r,placed)){placed.push(r);g.y+=dy;return}}
     placed.push(tagRect(g.x,g.y,w,top,bot))};
-  if(me){ctx.font=`${me.size}px "DotGothic16",monospace`;placed.push(tagRect(me.x,me.y,ctx.measureText(me.t).width+4,me.size,3))}
+  for(const me of mine){ctx.font=`${me.size}px "DotGothic16",monospace`;placed.push(tagRect(me.x,me.y,ctx.measureText(me.t).width+4,me.size,3))}
   for(const g of rest){ctx.font=`${g.size}px "DotGothic16",monospace`;const h=g.size+3;fit(g,ctx.measureText(g.t).width+4,g.size,3,[0,-h,h,-2*h,2*h])}
   ctx.font='12px "Zen Maru Gothic",sans-serif';
   for(const b of bubbles){b.w=Math.min(220,ctx.measureText(b.t).width+14);fit(b,b.w,14,6,[0,-22,-44,-66])}
@@ -3725,6 +4001,10 @@ function draw(){
   for(const f of fx){if(f.type!=='warn'||f.t>f.at)continue;const [x,y]=iso(f.x,f.y),q=f.t/f.at,rx=f.r*45,ry=f.r*22.6,wc=f.col||'255,40,40';
     ctx.fillStyle=`rgba(${wc},${.15+q*.3})`;ctx.beginPath();ctx.ellipse(x,y,rx,ry,0,0,7);ctx.fill();
     ctx.strokeStyle=`rgba(${wc},.9)`;ctx.lineWidth=2.5;ctx.beginPath();ctx.ellipse(x,y,rx*q,ry*q,0,0,7);ctx.stroke();ctx.beginPath();ctx.ellipse(x,y,rx,ry,0,0,7);ctx.stroke()}
+  for(const f of fx){if(f.type!=='sigzone')continue;const [x,y]=iso(f.x,f.y),p=f.t/f.life,a=Math.min(1,f.t*4,(1-p)*4),rx=f.r*45,ry=f.r*22.6,fl=1+Math.sin(time*9+f.x)*.05;
+    const g=ctx.createRadialGradient(x,y,2,x,y,rx*fl);g.addColorStop(0,`rgba(${f.rgb},${.55*a})`);g.addColorStop(1,`rgba(${f.rgb},0)`);ctx.fillStyle=g;ctx.beginPath();ctx.ellipse(x,y,rx*fl,ry*fl,0,0,7);ctx.fill();
+    ctx.strokeStyle=`rgba(${f.rgb},${.8*a})`;ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(x,y,rx,ry,0,0,7);ctx.stroke();
+    for(let i=0;i<6;i++){const q=(time*1.3+i/6+f.x)%1,px=x+Math.sin(i*2.4+f.y)*rx*.6,py=y-q*30;ctx.fillStyle=`rgba(${f.rgb},${a*(1-q)})`;ctx.fillRect(px-1.5,py-1.5,3,3)}}
   for(const f of fx){if(f.type!=='click')continue;const [x,y]=iso(f.x,f.y),p=f.t/f.life;ctx.strokeStyle=`rgba(255,255,255,${1-p})`;ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(x,y,14*(1-p*.5),7*(1-p*.5),0,0,7);ctx.stroke()}
   if(P.target&&P.target.kind==='mob'){const m=P.target.ref,[x,y]=iso(m.x,m.y),p=1+Math.sin(time*8)*.08;ctx.strokeStyle='rgba(255,90,80,.9)';ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(x,y,17*m.def.size*p,7*m.def.size*p,0,0,7);ctx.stroke()}
   for(const f of fx){if(f.type!=='gx')continue;const p=f.t/f.life,a=p<.12?p/.12:Math.max(0,1-(p-.12)/.88);
@@ -3776,7 +4056,9 @@ function draw(){
     ctx.globalAlpha=1;const s=S();
     ctx.fillStyle='rgba(10,14,22,.75)';ctx.fillRect(x-18,y+6,36,8);tagBlock.push(tagRect(x,y+6,36,0,8));ctx.fillStyle=P.hp/s.mhp<.25?'#e9493f':'#4ecb5a';ctx.fillRect(x-17,y+7,34*clamp(P.hp/s.mhp,0,1),3);
     ctx.fillStyle='#5b9cff';ctx.fillRect(x-17,y+11,34*clamp(P.sp/s.msp,0,1),2);
-    tags.push({t:pname(),x,y:y+27,col:'#ffffff',size:12,me:true});
+    // 称号は名前の上に（見た目だけ）
+    const ttl=medalTitle();if(ttl)tags.push({t:`《${ttl.t}》`,x,y:y+27,col:ttl.col,size:10,me:true});
+    tags.push({t:pname(),x,y:y+(ttl?40:27),col:'#ffffff',size:12,me:true});
     if(P.casting){const c=P.casting;ctx.fillStyle='rgba(10,14,22,.8)';ctx.fillRect(x-24,y-64,48,7);ctx.fillStyle='#ffb04a';ctx.fillRect(x-23,y-63,46*clamp(c.t/c.dur,0,1),5);label(SK[c.id].n,x,y-68,'#ffffff',11)}
   }]);
   objs.sort((a,b)=>a[0]-b[0]);for(const o of objs)o[1]();
@@ -3957,15 +4239,19 @@ function drawLvBanner(){
   for(const f of fx){if(f.type!=='lvbig')continue;const p=f.t/f.life,t=f.t;
     ctx.setTransform(DPR,0,0,DPR,0,0);
     if(t<.25){ctx.fillStyle=`rgba(255,250,225,${.45*(1-t/.25)})`;ctx.fillRect(0,0,VW,VH)}
-    const sc=t<.12?.3+t/.12*1.05:t<.22?1.35-(t-.12)/.1*.35:1,a=p>.8?(1-p)/.2:1,cy=VH*(f.img?.42:.3)-(p>.8?(p-.8)*80:0);
+    const sc=t<.12?.3+t/.12*1.05:t<.22?1.35-(t-.12)/.1*.35:1,a=p>.8?(1-p)/.2:1,cy=VH*(f.img?.42:f.medal?.6:.3)-(p>.8?(p-.8)*80:0);
     ctx.globalAlpha=a;ctx.save();ctx.translate(VW/2,cy);ctx.scale(sc,sc);
     const big=Math.min(60,VW/9);ctx.font=`${big}px "DotGothic16",monospace`;ctx.textAlign='center';ctx.lineJoin='round';
     // カードの絵：くるっと回りながら現れる
     if(f.img&&f.img.complete){const S2=Math.min(120,VH*.2),fl=Math.abs(Math.cos(Math.min(1,t/.5)*Math.PI*2));ctx.save();ctx.translate(0,-big-S2/2-8);ctx.scale(t<.5?Math.max(.05,fl):1,1);
       ctx.shadowColor='rgba(255,230,140,.9)';ctx.shadowBlur=18;ctx.fillStyle='#e0b83a';ctx.fillRect(-S2/2-4,-S2/2-4,S2+8,S2+8);ctx.shadowBlur=0;ctx.drawImage(f.img,-S2/2,-S2/2,S2,S2);ctx.restore()}
+    // 勲章：くるっと回りながら現れるメダル
+    if(f.medal){const fl=t<.5?Math.max(.05,Math.abs(Math.cos(Math.min(1,t/.5)*Math.PI*2))):1;ctx.save();ctx.translate(0,-big-34);ctx.scale(fl,1);
+      ctx.shadowColor='rgba(255,230,140,.9)';ctx.shadowBlur=16;drawMedal(ctx,0,0,26,f.medal.r,f.medal.g,false,time*90);ctx.restore()}
     const ttl=f.title||'LEVEL UP!';ctx.lineWidth=9;ctx.strokeStyle=f.job?'#3a1f5a':'#5a2a08';ctx.strokeText(ttl,0,0);
     const g=ctx.createLinearGradient(0,-big*.8,0,0);
-    if(f.card){const h=(time*90)%360;g.addColorStop(0,`hsl(${h},95%,85%)`);g.addColorStop(.5,`hsl(${(h+60)%360},95%,65%)`);g.addColorStop(1,`hsl(${(h+140)%360},90%,55%)`)}
+    if(f.medal&&f.medal.r<4){const R=MEDAL_RANK[f.medal.r];g.addColorStop(0,R.hi);g.addColorStop(1,R.c)}
+    else if(f.card||f.medal){const h=(time*90)%360;g.addColorStop(0,`hsl(${h},95%,85%)`);g.addColorStop(.5,`hsl(${(h+60)%360},95%,65%)`);g.addColorStop(1,`hsl(${(h+140)%360},90%,55%)`)}
     else if(f.job){g.addColorStop(0,'#f3e8ff');g.addColorStop(1,'#a873e6')}else{g.addColorStop(0,'#fffbe0');g.addColorStop(.5,'#ffd84a');g.addColorStop(1,'#e68a1c')}
     ctx.fillStyle=g;ctx.fillText(ttl,0,0);
     // きらめき
@@ -3998,6 +4284,7 @@ function update(dt){
     if(P.emote){P.emote.t-=dt;if(P.emote.t<=0)P.emote=null}P.rh=(P.rh||0)+dt*fast;P.rs=(P.rs||0)+dt*fast;
     if(P.rh>=6){P.rh=0;if(P.hp<s.mhp)P.hp=Math.min(s.mhp,P.hp+Math.max(1,Math.floor((s.mhp/40+s.vit/4)*(1+s.b.hpRegen/100))))}
     if(P.asuraLock>0)P.asuraLock-=dt;
+    sigilTick(dt);
     if(P.rs>=8){P.rs=0;if(P.sp<s.msp&&!(P.asuraLock>0))P.sp=Math.min(s.msp,P.sp+Math.floor((1+Math.floor(s.msp/60)+Math.floor(s.int/6))*(1+s.b.spRegen/100)))}
     P.atkT=Math.max(0,P.atkT-dt);P.swingT=Math.max(0,P.swingT-dt);P.moving=false;
     const frozen=P.frozen>time;
@@ -4036,6 +4323,7 @@ function start(data){
   resize();
   const d=data&&data.save?data.save:loadLocal();
   if(d){try{deserialize(d)}catch(e){freshStart()}}else freshStart();
+  sigilFix();
   initMobs();
   [camX,camY]=iso(P.x,P.y);
   msg('ルーンの草原へようこそ！','sys');
@@ -4052,6 +4340,7 @@ function start(data){
   if(d&&d.harvest&&d.harvest.remain>1){hireHarvest(d.harvest.remain,true);msg(`ハーヴェストが合流しました（残り ${fmtTime(harvest.end-time)}）`,'item')}
   if(d)for(const sm of (d.mercs||(d.merc?[d.merc]:[])))if(sm&&sm.remain>1&&MERC_LOOK[sm.job]){hireMerc(sm.job,sm.remain,true);msg(`傭兵 ${MERC_LOOK[sm.job].name} が合流しました（残り ${fmtTime(sm.remain)}）`,'item')}
   msg('Qでアコライト、Wでハンター、Rでマジシャンに切り替え（左上のボタンでも可）','sys');
+  msg('Mキー（メニューの「勲章」）で勲章帳。冒険の達成で勲章と称号がもらえる','sys');
   buildHotbar();hud();requestAnimationFrame(t=>{last=t;requestAnimationFrame(frame)});
 }
 const hot=window.claude&&window.claude.hot;
