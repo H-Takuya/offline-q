@@ -452,6 +452,7 @@ const ITEMS={
   c_barbaro:{n:'海賊王バルバロカード',t:'card',b:{str:10,luk:10,atk:30},sell:10,g:'札',c:'#5a1a1a',d:'STR+10 / LUK+10 / ATK+30'},
   tfrost:{n:'時の霜',t:'etc',sell:60,g:'霜',c:'#9ad8ff',d:'雪原の魔物がまとっていた、時を凍らせる霜。フロスト村の村長が探している'},
   icekey:{n:'氷晶の鍵',t:'key',g:'鍵',c:'#8ab8f0',d:'氷牙の王が守っていた鍵。氷晶の城の門を開く。だいじな物'},
+  bproof:{n:'ボスの証',t:'etc',sell:0,g:'証',c:'#c8a040',d:'ボスを倒した証。30個で好きなボスのカードと交換できる（夢幻の門番 ノクス）'},
   seal_f:{n:'翠の封印',t:'key',g:'封',c:'#5ad06a',d:'樹海の巫女が守っていた封印。終焉の神殿の門を開く三つの封印のひとつ。だいじな物'},
   seal_v:{n:'炎の封印',t:'key',g:'封',c:'#ff7a2a',d:'火山の炉の守り神が守っていた封印。終焉の神殿の門を開く三つの封印のひとつ。だいじな物'},
   seal_t:{n:'刻の封印',t:'key',g:'封',c:'#ffd84a',d:'天空の時計塔の頂にあった封印。終焉の神殿の門を開く三つの封印のひとつ。だいじな物'},
@@ -1238,6 +1239,7 @@ function enterMap(M,x,y){
   useMap(M);
   fwalls=[];P.swall=null;
   if(M.initMobs){M.initMobs();groundItems=[];traps=[]}else{mobs=M.mobs||mobs;groundItems=M.items||[];traps=M.traps||[]}
+  setupSecrets(M);
   P.x=x;P.y=y;P.path=[];P.target=null;P.queued=null;P.casting=null;P.gcast=null;P.sit=false;aiming=null;
   mercs.forEach((m,i)=>{[m.x,m.y]=nearFree(x+.8,y+.8+i*.6);m.path=[];m.target=null;m.cast=null});
   if(harvest)for(const u of harvest.units){if(u.carry)hvDeliver(u.carry);Object.assign(u,{x:x+(rnd()-.5)*1.5,y:y+(rnd()-.5)*1.5,st:'idle',it:null,carry:null})}
@@ -1405,7 +1407,7 @@ function float(x,y,text,col,size=18,rise=1,arc=false,crit=false){
     if(typeof f.text==='number'&&f.t<.18&&f.col===col&&Math.abs(f.x-x)<.6&&Math.abs(f.y-y)<.6){f.text+=text;f.hits=(f.hits||1)+1;f.size=Math.min(30,Math.max(f.size,size)+.4);f.crit=f.crit||crit;return}}}
   floats.push({x,y,text,col,size,t:0,life:arc?1:1.1,rise,dx:(rnd()-.5)*10,arc,crit,dir:rnd()<.5?-1:1});
   if(floats.length>FLOAT_MAX)floats.splice(0,floats.length-FLOAT_MAX)}
-const EMO={'!':['!','#e0342a'],'?':['?','#3b78dc'],'♪':['♪','#a04fd0'],'♥':['♥','#e0457a'],'…':['…','#555566'],'怒':['怒','#d23a2a'],thx:['Thx','#2c8a4a']};
+const EMO={'!':['!','#e0342a'],'?':['?','#3b78dc'],'♪':['♪','#a04fd0'],'♥':['♥','#e0457a'],'…':['…','#555566'],'怒':['怒','#d23a2a'],thx:['Thx','#2c8a4a'],'!!':['!!','#e0342a'],'★':['★','#e0a020']};
 const EMO_CMD={'/!':'!','/?':'?','/ho':'♪','/lv':'♥','/...':'…','/an':'怒','/thx':'thx'};
 function emote(e,k,life=2.2){e.emote={k,t:life,life}}
 
@@ -1677,6 +1679,71 @@ function findSpawn(z){
     if(d>=z[0]&&d<=z[1]&&pass(x,y)&&!townXY(x+.5,y+.5)) return [x+.5,y+.5];}
   return [CX+12.5,CY+12.5];
 }
+// ボスの証の交換：30個で好きなボスのカード1枚
+const PROOF_NEED=30;let proofOpen=false;
+function proofHTML(){const have=count('bproof');
+  let h=`<p class="talk-t" style="margin-top:10px">ボスの証を ${PROOF_NEED}個 持ってくれば、好きなボスのカードと交換しよう。（今 ${have}個）</p><div class="btns"><button class="btn" data-act="proof-toggle">${proofOpen?'カードの一覧を閉じる':'交換できるカードを見る'}</button></div>`;
+  if(proofOpen){const ids=CARD_IDS.filter(isBossCard);
+    h+=`<div class="pickgrid" style="margin-top:6px">${ids.map(id=>`<button class="pickcard" data-act="proof-trade" data-c="${id}" ${have>=PROOF_NEED?'':'disabled'}><img src="${cardArt(id)}" alt=""><b>${ITEMS[id].n}</b><span>${ITEMS[id].d}</span><em>${cardOwned(id)?'×'+cardOwned(id):''}</em></button>`).join('')}</div>`}
+  return h}
+// ---------- 宝箱と隠し部屋（ダンジョン）。宝箱は入るたびに置き直し、1割はミミック ----------
+const SECRET_PAL={pyramid:()=>PAL_SAND,ice:()=>PAL_ICE,final:()=>PAL_VOID,forest:()=>PAL_FOREST,volcano:()=>PAL_LAVA,tower:()=>PAL_CLOCK,abyss:()=>PAL_SEA,castle:()=>PAL_CRYSTAL};
+function rebuildDungeonLook(M){const pal=SECRET_PAL[M.id](),D={tiles:M.tiles,shade:M.shade};
+  M.ground=renderDungeonGround(D,pal);M.objs=dungeonObjs(D,pal===PAL_SAND?wallImgs:[makeWall(false,pal),makeWall(true,pal)],pal);if(curMap===M)useMap(M)}
+// 入口からの歩数（床だけをたどる）
+function floorDist(M){const d=new Int32Array(MW*MH).fill(-1),q=[[CX,CY]];d[CY*MW+CX]=0;
+  for(let h=0;h<q.length;h++){const [x,y]=q[h];for(const [dx,dy] of DIRS.slice(0,4)){const nx=x+dx,ny=y+dy,k=ny*MW+nx;if(nx>1&&ny>1&&nx<MW-2&&ny<MH-2&&M.tiles[k]===SA&&d[k]<0){d[k]=d[y*MW+x]+1;q.push([nx,ny])}}}return d}
+// 隠し部屋：床に面した壁の1マスを「ひび割れた壁」にして、その奥の壁の中に3×3の小部屋を掘る（最初に入ったときに1回だけ）
+function makeSecret(M){const d=floorDist(M),T=(x,y)=>(x<2||y<2||x>MW-3||y>MH-3)?-1:M.tiles[y*MW+x];let best=null;
+  for(let y=3;y<MH-3;y++)for(let x=3;x<MW-3;x++){if(T(x,y)!==WL)continue;
+    for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){const fx=x-dx,fy=y-dy;if(T(fx,fy)!==SA||d[fy*MW+fx]<8)continue;
+      let ok=true;for(let k=0;k<=4&&ok;k++)for(let j=-2;j<=2;j++){if(k===0&&j===0)continue;const tx=x+dx*k+(dy?j:0),ty=y+dy*k+(dx?j:0);if(T(tx,ty)!==WL){ok=false;break}}
+      if(ok&&(!best||d[fy*MW+fx]>best.dist))best={x,y,dx,dy,fx,fy,dist:d[fy*MW+fx]}}}
+  if(!best)return null;
+  for(let k=1;k<=3;k++)for(let j=-1;j<=1;j++){const tx=best.x+best.dx*k+(best.dy?j:0),ty=best.y+best.dy*k+(best.dx?j:0);M.tiles[ty*MW+tx]=SA}
+  rebuildDungeonLook(M);
+  return {x:best.x,y:best.y,fx:best.fx,fy:best.fy,cx:best.x+best.dx*2,cy:best.y+best.dy*2,hp:3,broken:false}}
+function setupSecrets(M){
+  if(!SECRET_PAL[M.id]){M.chests=null;return}
+  if(M.secret===undefined)M.secret=makeSecret(M);
+  // 入口から遠い床に宝箱を2つ（離して置く）
+  const d=floorDist(M),cand=[];for(let i=0;i<MW*MH;i++)if(d[i]>=10)cand.push(i);cand.sort((a,b)=>d[b]-d[a]);
+  const chests=[];for(const i of cand){const x=i%MW,y=(i/MW)|0;if(chests.every(c=>Math.hypot(c.x-x,c.y-y)>12)){chests.push({x:x+.5,y:y+.5,opened:false,mimic:rnd()<.1});if(chests.length>=2)break}}
+  if(M.secret)chests.push({x:M.secret.cx+.5,y:M.secret.cy+.5,opened:false,mimic:false,hidden:true});
+  M.chests=chests}
+const mapLv=()=>{const m=mobs.find(o=>!o.def.boss);return m?m.def.lv:Math.max(20,P.lv)};
+function randomBossCard(){const pool=rushPool();return pool[Math.floor(rnd()*pool.length)].card}
+function openChest(c){
+  if(c.opened)return;c.opened=true;
+  if(c.mimic){const base=mobs.find(o=>!o.def.boss&&!o.temp)||mobs[0];if(!base)return;
+    const def={...base.def,n:'ミミック',kind:'mimic',hp:Math.round(base.def.hp*3),exp:base.def.exp*3,jexp:base.def.jexp*3,aggro:true,aggroR:12,chaseR:30,count:1,respawn:0,look:{},drops:[['relic',.8],['bproof',.5],['gold',.6]]};
+    const mm={key:'mimic',def,seed:rnd()*10,temp:true};spawnMob(mm);mm.x=c.x;mm.y=c.y;mm.state='chase';mobs.push(mm);
+    emote(mm,'!!',1.5);msg('宝箱がミミックだった！','warn');sfx('hurt');fx.push({type:'shock',t:0,life:.8,rgb:'200,80,60'});return}
+  const lv=mapLv(),src={x:c.x,y:c.y};
+  dropItem('zeny',irand(lv*20,lv*40)*(c.hidden?3:1),src);
+  const rel=c.hidden?irand(3,5):irand(1,3);for(let i=0;i<rel;i++)dropItem('relic',1,src);
+  if(c.hidden||rnd()<.3)dropItem('bproof',1,src);
+  if(rnd()<.6)dropItem('yellow',1,src);if(rnd()<.4)dropItem('blue',1,src);
+  if(rnd()<(c.hidden?.1:.03))dropItem(randomBossCard(),1,src);
+  msg(c.hidden?'隠し部屋の宝箱を開けた！':'宝箱を開けた！','item');sfx('pick');fx.push({type:'lv',t:0,life:1,rgb:'255,220,120'});
+}
+function hitCrack(){const S2=curMap.secret;if(!S2||S2.broken)return;S2.hp--;sfx('hit');fx.push({type:'boom',x:S2.x+.5,y:S2.y+.5,t:0,life:.4});
+  if(S2.hp<=0){S2.broken=true;curMap.tiles[S2.y*MW+S2.x]=SA;rebuildDungeonLook(curMap);msg('ひび割れた壁が崩れた！ 奥に隠し部屋がある','item');sfx('gx')}
+  else msg('壁がぐらついた……','sys')}
+function pickChest(px,py){for(const c of curMap.chests||[]){if(c.opened)continue;const [sx,sy]=toScreen(c.x,c.y);if(Math.abs(px-sx)<20*zoom&&py<sy+8*zoom&&py>sy-28*zoom)return c}return null}
+function pickCrack(px,py){const S2=curMap.secret;if(!S2||S2.broken||!curMap.chests)return null;const [sx,sy]=toScreen(S2.x+.5,S2.y+.5);
+  if(Math.abs(px-sx)<26*zoom&&py<sy+10*zoom&&py>sy-(WALL_H+20)*zoom)return {x:S2.fx+.5,y:S2.fy+.5,crack:true};return null}
+function drawChest(x,y,open,mimic){shadow(x,y,13,5);
+  ctx.fillStyle=mimic?'#7a3a2a':'#8a5a2a';ctx.strokeStyle='#3a2410';ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.rect(x-12,y-16,24,14);ctx.fill();ctx.stroke();
+  ctx.fillStyle='#d9a52c';ctx.fillRect(x-12,y-11,24,3);ctx.fillRect(x-2,y-14,4,7);
+  if(open){ctx.fillStyle=mimic?'#5a1a1a':'#2a1a0a';ctx.fillRect(x-11,y-20,22,5);ctx.fillStyle=mimic?'#7a3a2a':'#8a5a2a';ctx.beginPath();ctx.rect(x-12,y-30,24,8);ctx.fill();ctx.stroke();
+    if(mimic){ctx.fillStyle='#fff';for(let i=0;i<5;i++){ctx.beginPath();ctx.moveTo(x-10+i*5,y-21);ctx.lineTo(x-8+i*5,y-17);ctx.lineTo(x-6+i*5,y-21);ctx.fill()}ctx.fillStyle='#ff3a2a';ctx.beginPath();ctx.arc(x-5,y-26,1.8,0,7);ctx.arc(x+5,y-26,1.8,0,7);ctx.fill()}}
+  else{ctx.fillStyle='#9a6a32';ctx.beginPath();ctx.ellipse(x,y-16,12,5,0,Math.PI,0);ctx.fill();ctx.stroke();
+    const tw=.5+.5*Math.sin(time*4+x);ctx.fillStyle=`rgba(255,240,170,${.6*tw})`;ctx.beginPath();ctx.arc(x+8,y-22,2,0,7);ctx.fill()}}
+function drawCrack(){const S2=curMap.secret;if(!S2||S2.broken)return;const [x,y]=iso(S2.x+.5,S2.y+.5),cy=y-WALL_H*.55;
+  ctx.strokeStyle='rgba(20,12,4,.85)';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(x-10,cy-12);ctx.lineTo(x-3,cy-3);ctx.lineTo(x-8,cy+5);ctx.lineTo(x+2,cy+12);ctx.moveTo(x-3,cy-3);ctx.lineTo(x+7,cy-7);ctx.lineTo(x+10,cy+2);ctx.stroke();
+  ctx.fillStyle=`rgba(255,220,140,${.25+.2*Math.sin(time*3)})`;ctx.beginPath();ctx.arc(x,cy,5,0,7);ctx.fill()}
 // エリート雑魚：ダンジョンとナイトメアにまれに出る金色の個体。HP×4、経験値・ドロップ×3、性質を1つ持つ
 const ELITE_MAPS=new Set(['nightmare','final','forest','volcano','tower','ice','abyss','castle','pyramid']);
 const ELITE_N={guard:'堅牢',fast:'俊足',antimagic:'反魔',summon:'群れ呼び',bomb:'爆散'};
@@ -1875,6 +1942,7 @@ function killMob(m){
     const rw=(m.def.mvp.find(([,r])=>rnd()<r)||m.def.mvp[m.def.mvp.length-1])[0];addItem(rw);
     if(m.def.final){P.finalClear=true;const st=storyStep();if(!(st&&st.auto))setTimeout(openRebirth,1800)}
     fx.push({type:'mvp',t:0,life:3.2});sfx('mvp');
+    addItem('bproof');msg('ボスの証を手に入れた','item');
     msg(`MVP！ ${m.def.n} を討伐しました`,'sys');msg(`MVP報酬 ${ITEMS[rw].n} を獲得`,'item');
   }
   if(curMap.onKill)curMap.onKill(m);
@@ -2326,7 +2394,7 @@ function updateTarget(dt,s){
   if(T.stay&&!P.queued)return;
   if(T.kind==='item'&&!groundItems.includes(T.ref)){P.target=null;return}
   const e=T.ref,d=Math.hypot(e.x-P.x,e.y-P.y);
-  const range=T.kind==='mob'?(s.range||(P.queued&&SK[P.queued.id].range)||1.3+.25*e.def.size):T.kind==='npc'?1.8:.6;
+  const range=T.kind==='mob'?(s.range||(P.queued&&SK[P.queued.id].range)||1.3+.25*e.def.size):T.kind==='npc'?1.8:T.kind==='chest'?1.3:T.kind==='crack'?.7:.6;
   // 遠距離（弓・魔法）は射線が通っているときだけ撃てる。通っていなければ回り込む
   if(d<=range&&(range<2||los(P.x,P.y,e.x,e.y))){
     P.path=[];
@@ -2340,6 +2408,8 @@ function updateTarget(dt,s){
         else playerAttack(e,s,1,0,false);
         P.atkT=usedSk?s.delay*(s.bragi?.3:1)*(s.b.sdelay?.5:1):s.delay*(s.bragi?.85:1);P.swingT=Math.min(.22,s.delay*.9)}
     }else if(T.kind==='npc'){openNpc(e);P.target=null}
+    else if(T.kind==='chest'){openChest(e);P.target=null}
+    else if(T.kind==='crack'){if(!curMap.secret||curMap.secret.broken){P.target=null}else if(P.atkT<=0){P.swingT=.2;P.atkT=Math.max(.4,s.delay);hitCrack();if(curMap.secret.broken)P.target=null}}
     else{pickup(e);P.target=null}
     return;
   }
@@ -2376,6 +2446,8 @@ cv.addEventListener('pointerdown',e=>{
     if(m){P.target={kind:'mob',ref:m};P.queued={id};}return}
   if(m){P.target={kind:'mob',ref:m};P.queued=null;return}
   const n=pickNpc(e.clientX,e.clientY);if(n){P.target={kind:'npc',ref:n};return}
+  const ch=pickChest(e.clientX,e.clientY);if(ch){P.target={kind:'chest',ref:ch};return}
+  const ck=pickCrack(e.clientX,e.clientY);if(ck){P.target={kind:'crack',ref:ck};return}
   const g=pickItem(e.clientX,e.clientY);if(g){P.target={kind:'item',ref:g};return}
   if(P.casting){P.casting=null;msg('詠唱を中断しました','warn')}
   P.target=null;P.queued=null;P.gcast=null;
@@ -2620,7 +2692,7 @@ function openNpc(n){
     html=`<p class="talk-t">夢と現のはざまへようこそ。ここから先に、安全な場所はひとつもない。<br>どこへ行く？</p><div class="list">`+
       `<div class="it">${icon('王','#b8862a')}<div class="tx"><div class="nm">ボスの闘技場</div><div class="ds">ボスだけが次々と現れる小さな闘技場。どのボスもカードが出やすい（ドロップ20%＋MVP報酬10%）。安全地帯なし<br>${rushOpen()?'挑戦できます':`転生${RUSH_REB}回目から（今 ${r}回）`}</div></div>${rushOpen()?'<button class="btn" data-act="warp-rush">行く</button>':''}</div>`+
       `<div class="it">${icon('夢','#8a2a4a')}<div class="tx"><div class="nm">ナイトメア</div><div class="ds">倒すたびに敵が強くなるエンドレス。いつでも町へ戻れて、次は続きから。${NM_AVATAR_EVERY}体ごとに「悪夢の化身」が現れる<br>${nmOpen()?`現在 深度${S0.k}（敵 Lv${nmLv()}）／ 最高 深度${S0.best}`:'転生すると挑戦できます'}</div></div>${nmOpen()?'<button class="btn" data-act="warp-nm">行く</button>':''}</div>`+
-      `</div><div class="btns"><button class="btn" data-close>やめておく</button></div>`;
+      `</div>`+proofHTML()+`<div class="btns"><button class="btn" data-close>やめておく</button></div>`;
   }
   else if(SEAL_GUIDE[n.id]){const id=SEAL_GUIDE[n.id],G=SEAL_DG[id],T=SEAL_TALK[id];
     html=P.lv>=G.lv
@@ -3170,6 +3242,11 @@ document.addEventListener('click',e=>{
     if(rnd()<REF_RATE[L]){e2.ref=L;msg(`カーン！ 精錬成功！ +${L} ${nm}`,'item');sfx(L>=7?'mvp':'buff');fx.push({type:'lv',t:0,life:1.4,rgb:L>=7?'255,210,90':'200,230,255'});if(L>=7)fx.push({type:'lvbig',t:0,life:2.6,title:`+${L}`,lines:[nm,'精錬成功！']})}
     else{const back=Math.max(REF_SAFE,(e2.ref||0)-1);const was=e2.ref||0;e2.ref=Math.min(was,back);msg(`……精錬失敗。${nm} は +${e2.ref} になった`,'warn');sfx('hurt');fx.push({type:'shock',t:0,life:.9,rgb:'140,140,150'})}
     dirty=true;if(talkNpc)openNpc(talkNpc);return}
+  else if(act==='proof-toggle'){proofOpen=!proofOpen;if(talkNpc)openNpc(talkNpc);return}
+  else if(act==='proof-trade'){const id=a.dataset.c;if(!ITEMS[id]||!isBossCard(id)||count('bproof')<PROOF_NEED)return;
+    removeEntry(P.inv.find(e=>e.id==='bproof'),PROOF_NEED);addItem(id);
+    fx.push({type:'lvbig',t:0,life:3.2,title:'CARD!',card:true,img:cardImage(id),lines:[ITEMS[id].n,'ボスの証と交換']});sfx('card');msg(`ボスの証 ${PROOF_NEED}個 と ${ITEMS[id].n} を交換した`,'item');
+    if(talkNpc)openNpc(talkNpc);return}
   else if(act==='forge'){const id=a.dataset.id;if(!forgeOpen()||!FORGE.some(f=>f[0]===id))return;
     if(P.zeny<FORGE_Z||count('relic')<FORGE_RELIC){msg('Zenyか古代の秘宝が足りない','warn');return}
     if(!(forgeArm&&forgeArm.id===id&&forgeArm.t>time)){forgeArm={id,t:time+4};if(talkNpc)openNpc(talkNpc);return}
@@ -3511,7 +3588,8 @@ function drawMob(m){
     ctx.strokeStyle=m.def.resist==='aco'?'rgba(150,200,255,.8)':'rgba(150,240,130,.8)';ctx.lineWidth=2;ctx.stroke()}
   const k=m.def.kind||m.key,sz=m.def.size,look=m.def.look||{};
   const scaled=fn=>{ctx.save();ctx.translate(x,y);ctx.scale(sz,sz);fn();ctx.restore()};
-  if(k==='kino'){if(sz!==1)scaled(()=>{drawKino(0,0,m);if(look.crown)drawCrown(0,-30)});else drawKino(x,y,m)}
+  if(k==='mimic')scaled(()=>drawChest(0,0,true,true));
+  else if(k==='kino'){if(sz!==1)scaled(()=>{drawKino(0,0,m);if(look.crown)drawCrown(0,-30)});else drawKino(x,y,m)}
   else if(k==='wolf'){if(sz!==1)scaled(()=>drawWolf(0,0,m));else drawWolf(x,y,m)}
   else if(k==='gtb')drawBug(x,y,m);
   else if(k==='human')scaled(()=>drawHuman(0,0,{...look,face:m.face,walk:time,moving:m.moving,body:m.flash>0?'#ffffff':look.body,weapon:look.hat==='helm'?'#b8bec8':null}));
@@ -3670,6 +3748,8 @@ function draw(){
     const [px,py]=iso(P.x,P.y),behind=t.d>P.x+P.y&&Math.abs(px-t.sx)<34&&py<t.sy&&py>t.sy-110;
     if(behind)ctx.globalAlpha=.45;ctx.drawImage(t.img,t.sx-t.ox,t.sy-t.oy);ctx.globalAlpha=1}])}
   for(const g of groundItems)objs.push([g.x+g.y-.3,()=>drawItem(g)]);
+  for(const c of curMap.chests||[])objs.push([c.x+c.y-.2,()=>{const [x,y]=iso(c.x,c.y);drawChest(x,y,c.opened,false)}]);
+  if(curMap.secret&&!curMap.secret.broken&&curMap.chests)objs.push([curMap.secret.x+curMap.secret.y+1.06,drawCrack]);
   for(const m of mobs)objs.push([m.x+m.y,()=>drawMob(m)]);
   if(curMap.id==='field'){objs.push([CX+CY,drawFountain]);addTownDeco(objs)}
   for(const mc of mercs)if(!(mc.down>0))objs.push([mc.x+mc.y,()=>drawMerc(mc)]);
@@ -3796,6 +3876,7 @@ const CUR={
   grab:svgCur(`<svg xmlns='http://www.w3.org/2000/svg' width='26' height='26'><path d='M6 12V7a2 2 0 014 0v4V5a2 2 0 014 0v6V6a2 2 0 014 0v6V9a2 2 0 014 0v7c0 5-3 8-8 8h-2c-4 0-6-2-8-5l-3-5a2 2 0 013-2z' fill='#f6d47a' stroke='#3a2810' stroke-width='1.5' stroke-linejoin='round'/></svg>`,12,12,'pointer'),
 };
 function drawEmote(e,h){
+  if(!EMO[e.emote.k])return;
   const [x,y]=iso(e.x,e.y),k=EMO[e.emote.k],p=1-e.emote.t/e.emote.life,by=y-h-(p<.1?(1-p/.1)*8:0);
   ctx.fillStyle='#ffffff';ctx.strokeStyle='#3a3a4a';ctx.lineWidth=1.5;
   ctx.beginPath();ctx.roundRect(x-13,by-22,26,20,7);ctx.fill();ctx.stroke();
