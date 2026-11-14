@@ -1285,7 +1285,7 @@ function newPlayer(){
   const p={x:SPAWN[0],y:SPAWN[1],face:1,path:[],target:null,queued:null,casting:null,
     lv:1,exp:0,jlv:1,jexp:0,statPts:0,skillPts:0,str:7,agi:6,vit:4,int:4,dex:5,luk:3,
     hp:1,sp:1,zeny:120,inv:[],eq:{weapon:null,armor:null},skills:{...JOBS.aco.skills},job:'aco',jobData:{},
-    buff:{agi:0,agiLv:0,magni:0,bless:0,blessLv:0,angelus:0,angelusLv:0,conc:0,concLv:0},atkT:0,swingT:0,walk:0,dead:false,bubble:null,sit:false,emote:null,reb:0,rebLv:0,rebJ:0,sigils:[],sigOffer:null,finalClear:false,maxCombo:0,story:null,side:null,nm:{k:0,best:0},cardsSeen:{},name:'冒険者',hotOrder:{},jlv50:true,tiers:{aco:1,hunter:1,mage:1},medals:{got:{},c:{},b:{},nw:{},title:null,init:0}};
+    buff:{agi:0,agiLv:0,magni:0,bless:0,blessLv:0,angelus:0,angelusLv:0,conc:0,concLv:0},atkT:0,swingT:0,walk:0,dead:false,bubble:null,sit:false,emote:null,reb:0,rebLv:0,rebJ:0,sigils:[],sigOffer:null,rift:null,finalClear:false,maxCombo:0,story:null,side:null,nm:{k:0,best:0},cardsSeen:{},name:'冒険者',hotOrder:{},jlv50:true,tiers:{aco:1,hunter:1,mage:1},medals:{got:{},c:{},b:{},nw:{},title:null,init:0}};
   return p;
 }
 function addItem(id,q=1){
@@ -1331,7 +1331,7 @@ const healAmt=l=>{const s=P?S():{int:5,mhp:0,b:{heal:0}},d=dmgLv(l);return Math.
 /* ---------- 保存 ---------- */
 const SAVE_KEY='rune-meadow-save-v1';
 function serialize(){
-  const keys=['x','y','lv','exp','jlv','jexp','statPts','skillPts','str','agi','vit','int','dex','luk','hp','sp','zeny','skills','reb','rebLv','rebJ','finalClear','maxCombo','story','side','tiers','nm','cardsSeen','name','hotOrder','jlv50','medals','sigils','sigOffer'];
+  const keys=['x','y','lv','exp','jlv','jexp','statPts','skillPts','str','agi','vit','int','dex','luk','hp','sp','zeny','skills','reb','rebLv','rebJ','finalClear','maxCombo','story','side','tiers','nm','cardsSeen','name','hotOrder','jlv50','medals','sigils','sigOffer','rift'];
   const o={}; for(const k of keys) o[k]=P[k];
   o.inv=P.inv.map(e=>({id:e.id,qty:e.qty,cards:e.cards.slice(),...(e.ref?{ref:e.ref}:{})}));
   o.eqW=P.inv.indexOf(P.eq.weapon); o.eqA=P.inv.indexOf(P.eq.armor);
@@ -1761,11 +1761,11 @@ function drawCrack(){const S2=curMap.secret;if(!S2||S2.broken)return;const [x,y]
   ctx.strokeStyle='rgba(20,12,4,.85)';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(x-10,cy-12);ctx.lineTo(x-3,cy-3);ctx.lineTo(x-8,cy+5);ctx.lineTo(x+2,cy+12);ctx.moveTo(x-3,cy-3);ctx.lineTo(x+7,cy-7);ctx.lineTo(x+10,cy+2);ctx.stroke();
   ctx.fillStyle=`rgba(255,220,140,${.25+.2*Math.sin(time*3)})`;ctx.beginPath();ctx.arc(x,cy,5,0,7);ctx.fill()}
 // エリート雑魚：ダンジョンとナイトメアにまれに出る金色の個体。HP×4、経験値・ドロップ×3、性質を1つ持つ
-const ELITE_MAPS=new Set(['nightmare','final','forest','volcano','tower','ice','abyss','castle','pyramid']);
+const ELITE_MAPS=new Set(['rift','nightmare','final','forest','volcano','tower','ice','abyss','castle','pyramid']);
 const ELITE_N={guard:'堅牢',fast:'俊足',antimagic:'反魔',summon:'群れ呼び',bomb:'爆散'};
 const ELITE_D={guard:'1発のダメージは最大HPの25%まで',fast:'移動1.5倍・攻撃が速い',antimagic:'魔法ダメージ1/3',summon:'HPが半分で仲間を3体呼ぶ',bomb:'倒すと1秒後に爆発'};
 const eliteRate=()=>Math.min(.6,eliteRate0()*(hasSig('greed')?3:1));
-const eliteRate0=()=>curMap.id==='nightmare'?Math.min(.2,.08+.02*Math.floor(((P.nm&&P.nm.k)||0)/100)):.08;
+const eliteRate0=()=>curMap.rift&&rmod('elite')?.5:curMap.id==='nightmare'?Math.min(.2,.08+.02*Math.floor(((P.nm&&P.nm.k)||0)/100)):.08;
 function rollElite(m){
   if(!m.def.boss&&!m.temp&&ELITE_MAPS.has(curMap.id)&&rnd()<eliteRate()){const ks=Object.keys(ELITE_N);m.elite=ks[Math.floor(rnd()*ks.length)];m.mhp=m.def.hp*4;m.hp=m.mhp;m.summoned=false}
   else{m.elite=null;m.mhp=m.def.hp}}
@@ -1889,7 +1889,7 @@ function mobAttack(m,s){
   const hit=clamp(80+m.def.hit-s.flee,5,95);
   if(rnd()*100>=hit){float(P.x,P.y,'Miss','#bfe3ff',16);return}
   const raw=irand(m.def.atk[0],m.def.atk[1]);
-  const dmg=Math.max(1,Math.round((raw*(1-Math.min(.5,s.def/100))-s.vdef)*(1-Math.min(60,s.b.reduce)/100)*(1-acoSelf().guard)*(1-refA((P.eq.armor&&P.eq.armor.ref)||0))));
+  const dmg=Math.max(1,Math.round((raw*(1-Math.min(.5,s.def/100))-s.vdef)*(1-Math.min(60,s.b.reduce)/100)*(1-acoSelf().guard)*(1-refA((P.eq.armor&&P.eq.armor.ref)||0))*(riftHas('glass')?2:1)));
   P.hp-=dmg; float(P.x,P.y,dmg,'#ff5a4c',18,1,true); sfx('hurt');castInterrupt();
   if(P.hp<=0) die();
 }
@@ -1926,6 +1926,7 @@ function comboMul(m){
 function hurtMob(m,dmg,col,size,crit,srcJob){
   if(m.state==='dead')return;
   if(hitTag&&!srcJob){const k=comboMul(m);if(k>1)dmg=Math.round(dmg*k)}
+  if(curMap.rift&&!srcJob&&RR){const mg=hitTag==='fire'||hitTag==='bolt'||hitTag==='cold';dmg=Math.max(1,Math.round(dmg*(rmod('glass')?2:1)*(rmod('magic')?(mg?2:.5):1)))}
   const cb=srcJob?null:cardBonus();
   if(cb){const mul=1+(cb['r_'+raceOf(m)]||0)/100+(m.def.boss?cb.boss/100+(P.job==='hunter'?.25:0):0);if(mul!==1)dmg=Math.max(1,Math.round(dmg*mul))}
   if(m.def.resist===(srcJob||P.job)){dmg=Math.max(1,Math.round(dmg*.1));col='#9aa0aa';crit=false;
@@ -2076,6 +2077,7 @@ function useSkill(id){
 function useItem(id){
   if(P.dead)return; const e=P.inv.find(e=>e.id===id); if(!e){msg(`${ITEMS[id].n} を持っていません`,'warn');return}
   const it=ITEMS[id],s=S();
+  if((it.hp||it.sp)&&riftHas('drought')){msg('渇きのほころび：ここではポーションが使えない','warn');return}
   if(it.hp){P.hp=Math.min(s.mhp,P.hp+it.hp);float(P.x,P.y,it.hp,'#7dff8a',18)}
   if(it.sp){P.sp=Math.min(s.msp,P.sp+it.sp);float(P.x,P.y,it.sp,'#8fc4ff',18)}
   fx.push({type:'heal',t:0,life:.7,col:it.c});removeEntry(e);sfx('heal');
@@ -2736,6 +2738,7 @@ function openNpc(n){
     html=P.lv>=MAX_LV
       ?`<p class="talk-t">……ついに時の果てに至ったか。<br>終焉の神殿の最奥に「終焉の王」が待つ。倒せば、強さを保ったまま時を巻き戻し、Lv1から新たな旅を始められる（転生）。<br>神殿の魔物はLv${1100+P.reb*300}前後。安全なのは入口の9マスだけだ。</p><div class="btns"><button class="btn" data-act="warp-final">終焉の神殿へ行く</button><button class="btn" data-close>まだ早い</button></div>`
       :`<p class="talk-t">わしは時の番人。Base Lv ${MAX_LV} に至った者だけを、終焉の神殿へ案内しておる。<br>お前はまだ Lv ${P.lv}。あと ${MAX_LV-P.lv} だ。${P.reb?`<br>（転生 ${P.reb}回目の旅だな）`:''}</p><div class="btns"><button class="btn" data-close>わかった</button></div>`;
+    if(P.reb>0){const T=riftToday(),b=P.rift&&P.rift.day===T.day?P.rift.best:0;html+=`<div class="btns"><button class="btn" data-act="rift-open">時のほころび（${T.name}${b?`・今日 ${RIFT_RN[b]}`:''}）</button></div>`}
     if(P.reb>0)html+=`<div class="btns"><button class="btn" data-act="sig-open">転生の刻印${P.sigOffer?'（選べる！）':`（${P.sigils.length}/${sigilSlots()}）`}</button></div>`;
   }
   else if(n.id==='ret') html=`<p class="talk-t">帰りたいか？</p><div class="btns"><button class="btn" data-act="warp-home">ルーンの草原へ帰る</button><button class="btn" data-close>まだ残る</button></div>`;
@@ -3267,6 +3270,9 @@ const MEDALS=[
   {id:'nmav',cat:'nm',r:3,g:'化',n:'化身討伐',t:'悪夢殺し',h:'ナイトメアに現れる「悪夢の化身」を倒す',need:1,cur:()=>medalB(['nmavatar']),rw:{items:[['bproof',3]]}},
   {id:'rush50',cat:'nm',r:3,g:'闘',n:'闘技場の王者',t:'闘技場の王',h:'ボスの闘技場でボスを 50体 倒す',need:50,cur:()=>medalC('rush'),rw:{items:[['bproof',5]]}},
 
+  {id:'rift1',cat:'nm',r:1,g:'綻',n:'ほころびを閉じる者',t:'時の繕い手',h:'時の番人クロノの「時のほころび」をはじめて閉じる',need:1,cur:()=>medalC('rift'),rw:{items:[['relic',3]]}},
+  {id:'riftS',cat:'nm',r:3,g:'瞬',n:'刹那の修繕',t:'時を縫う者',h:'時のほころびをランクSで閉じる（3分以内）',need:1,cur:()=>medalC('riftS'),rw:{items:[['bproof',5]]}},
+  {id:'rift7',cat:'nm',r:4,g:'暦',n:'七日の繕い',t:'暦を巡る者',h:'ちがう日の時のほころびを7回閉じる',need:7,cur:()=>medalC('riftDays'),rw:{items:[['bproof',10],['relic',10]]}},
   {id:'shatter',cat:'tech',r:1,g:'氷',n:'砕けた！',t:'氷砕き',h:'凍った敵に火の魔法を当てて「砕けた！」を出す',need:1,cur:()=>medalC('shatter'),rw:{items:[['relic',1]]}},
   {id:'combo3',cat:'tech',r:2,g:'連',n:'連携の妙手',t:'三位一体',h:'「砕けた！」「感電！」「狙い撃ち！」の3つの連携をすべて決める',need:3,cur:()=>['shatter','shock','aim'].filter(k=>medalC(k)>0).length,rw:{items:[['relic',3]]}},
   {id:'shock100',cat:'tech',r:2,g:'雷',n:'雷鳴の使い手',t:'感電使い',h:'凍った敵に雷を当てて「感電！」を100回出す',need:100,cur:()=>medalC('shock'),rw:{items:[['relic',3]]}},
@@ -3365,6 +3371,92 @@ function renderMedals(){
   // 中身が変わったときだけ描き直す（ボタンを押している最中に消えないように）
   if(h!==medalHTML){medalHTML=h;$('b-medal').innerHTML=h}
 }
+
+/* ---------- 時のほころび（日替わり挑戦） ---------- */
+// 毎日ちがう場所・ちがうルール2つ。規定数倒すと番人が出る。倒すまでの時間でランク（S/A/B/C）。ほうびは1日1回（ランクを上げれば差分）
+const RIFT_MODS={
+  magic:{n:'魔力の嵐',d:'魔法（火・雷・氷）のダメージ×2、それ以外は×0.5'},
+  glass:{n:'硝子の大砲',d:'与えるダメージ×2、受けるダメージも×2'},
+  fast:{n:'疾走する群れ',d:'敵の移動が1.5倍、攻撃も速い'},
+  horde:{n:'大群',d:'敵の数が2倍。番人までの討伐数も100体に増える'},
+  elite:{n:'金色の宴',d:'敵の半分がエリート'},
+  bomb:{n:'爆ぜる命',d:'倒した敵はすべて1秒後に爆発する（半径2マス）'},
+  drought:{n:'渇き',d:'ポーションが使えず、HP・SPの自然回復も止まる'},
+  tough:{n:'鋼の肉体',d:'敵のHPが2倍'},
+};
+const RIFT_PALS=[['砂の',PAL_SAND],['氷の',PAL_ICE],['虚ろの',PAL_VOID],['森の',PAL_FOREST],['溶岩の',PAL_LAVA],['時計の',PAL_CLOCK],['海の',PAL_SEA],['水晶の',PAL_CRYSTAL]];
+const RIFT_MOBS=[['rwolf','ほころび狼','wolf','#4a3a8a',1.2,0,{speed:3.2}],['rprun','時くずれプルン','prun','#6a5ab0',1.3,-20,{}],['rghost','迷い時の影','ghost','#8a7ad0',1.1,20,{speed:2.8}],
+  ['rknight','狭間の騎士','human','#2a2a5a',1.15,30,{look:{hat:'helm',body:'#2a2a5a',hair:'#14143a',skin:'#9090b0',eye:'#7af0ff'}}],['rdrake','逆さ時の竜','dragon','#3a3a7a',1.15,50,{}],
+  ['rgtb','秒針ゴキ','gtb','#5a4a2a',1.05,10,{speed:3.6,delay:.85}]];
+const RIFT_LIMIT=600,RIFT_RANK=[0,450,300,180],RIFT_RN=['—','C','B','A','S'],RIFT_BP=[0,1,2,4,6],RIFT_RL=[0,2,4,6,10];
+let RR=null,RMAP=null;
+const rmod=k=>!!(RR&&RR.mods.includes(k));
+const riftHas=k=>!!(curMap&&curMap.rift&&rmod(k));
+const riftLv=()=>750+P.reb*200;
+function riftToday(){
+  const d=new Date(),day=`${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`;let h=2166136261;for(const ch of day){h^=ch.charCodeAt(0);h=Math.imul(h,16777619)}h>>>=0;
+  const R=mulberry(h),ks=Object.keys(RIFT_MODS),mods=[];while(mods.length<2){const k=ks[Math.floor(R()*ks.length)];if(!mods.includes(k))mods.push(k)}
+  const pi=Math.floor(R()*RIFT_PALS.length);return {day,seed:h%99991+11,mods,pal:pi,name:`${RIFT_PALS[pi][0]}ほころび`}}
+function riftDef(key){
+  const [,n,kind,col,size,off,o]=RIFT_MOBS.find(a=>a[0]===key),lv=riftLv()+off,hk=rmod('tough')?2:1,fk=rmod('fast');
+  return {n,kind,lv,hp:Math.round((10*Math.pow(lv,1.35)+80)*hk),atk:[Math.round(lv*1.8),Math.round(lv*2.5)],def:Math.min(60,15+Math.floor(lv/30)),hit:lv+35,flee:Math.round(lv*.75),
+    exp:Math.round(Math.pow(lv,1.27)*1.5),jexp:Math.round(Math.pow(lv,1.27)),speed:(o.speed||2.5)*(fk?1.5:1),delay:(o.delay||1.05)*(fk?.7:1),aggro:true,aggroR:14,chaseR:50,col,size,
+    count:6,respawn:1.5,look:o.look||{},drops:[['yellow',.2],['blue',.1],['relic',.1],['gold',.08]],zeny:[lv*4,lv*8]}}
+function riftBoss(){
+  const lv=riftLv()+150,pool=rushPool(),card=pool[Math.floor(rnd()*pool.length)].card,hk=rmod('tough')?2:1;
+  return {n:'ほころびの番人',kind:'dragon',lv,hp:Math.round(150*Math.pow(lv,1.3)*2*hk),atk:[Math.round(lv*2.6),Math.round(lv*3.6)],def:50,hit:lv+60,flee:Math.round(lv*.9),
+    exp:Math.round(Math.pow(lv,1.6)*3),jexp:Math.round(Math.pow(lv,1.6)*2),speed:2.5,delay:1.05,aggro:true,aggroR:14,chaseR:40,boss:true,tier:-99,
+    col:'#2a2a6a',size:2.6,aura:'140,120,255',special:{every:7,r:4,mult:1.5,col:'140,120,255',msg:'ほころびの番人が時を歪めている！ 青い円の外へ逃げろ！'},
+    count:1,respawn:0,look:{},drops:[['relic',1],['relic',1],['gold',1],[card,.25]],zeny:[lv*150,lv*300],mvp:[[card,.1],['relic',1]]}}
+function getRift(){
+  const T=riftToday();if(RMAP&&RMAP.day===T.day)return RMAP.map;
+  const pal=RIFT_PALS[T.pal][1],D=genDungeon(T.seed),imgs=[makeWall(false,pal),makeWall(true,pal)];
+  const M={id:'rift',rift:true,name:T.name,tiles:D.tiles,shade:D.shade,ground:renderDungeonGround(D,pal),objs:dungeonObjs(D,imgs,pal),safe:DG_SAFE,bgm:'nightmare',vig:'20,10,50',dark:true,
+    npcs:[{id:'ret',n:'帰還の神官 アニ',x:CX+1.5,y:CY-.5,body:'#efe6cc',hair:'#1a1a2a',face:-1}],
+    spawn:()=>{for(let i=0;i<600;i++){const x=irand(2,MW-3),y=irand(2,MH-3);if(D.tiles[y*MW+x]===SA&&Math.hypot(x+.5-CX,y+.5-CY)>6)return [x+.5,y+.5]}return [CX+.5,CY+8.5]},
+    bossSpawn:()=>{for(let i=0;i<600;i++){const x=irand(2,MW-3),y=irand(2,MH-3);if(D.tiles[y*MW+x]===SA&&Math.hypot(x+.5-P.x,y+.5-P.y)>5&&Math.hypot(x+.5-P.x,y+.5-P.y)<14)return [x+.5,y+.5]}return [CX+.5,CY+8.5]},
+    initMobs:()=>{mobs=[];const n=rmod('horde')?12:6;for(const [key] of RIFT_MOBS)for(let i=0;i<n;i++){const m={key,def:riftDef(key),seed:rnd()*10};spawnMob(m);mobs.push(m)}
+      const g={key:'riftboss',def:riftBoss(),seed:rnd()*10};spawnMob(g);g.state='dead';g.fade=9;g.respawnAt=Infinity;mobs.push(g)},
+    onKill:m=>riftKill(m)};
+  RMAP={day:T.day,map:M};return M}
+function riftEnter(){
+  const T=riftToday();RR={day:T.day,mods:T.mods,t:0,kills:0,goal:T.mods.includes('horde')?100:60,boss:false,done:false,fail:false};
+  enterMap(getRift(),CX+.5,CY+.5);
+  fx.push({type:'lvbig',t:0,life:3.6,title:'RIFT',job:true,lines:[T.name,T.mods.map(k=>RIFT_MODS[k].n).join('・'),`${RR.goal}体倒して番人を呼べ　制限10分`]});sfx('gx');
+  msg(`${T.name}に入った。今日のルール：${T.mods.map(k=>`${RIFT_MODS[k].n}（${RIFT_MODS[k].d}）`).join(' ／ ')}`,'warn')}
+function riftKill(m){
+  if(!RR||RR.done)return;
+  if(m.key==='riftboss'){m.respawnAt=Infinity;riftClear();return}
+  RR.kills++;if(rmod('bomb')&&m.elite!=='bomb')eliteBomb(m);
+  if(!RR.boss&&RR.kills>=RR.goal){RR.boss=true;const g=mobs.find(x=>x.key==='riftboss');if(g){g.def=riftBoss();g.respawnAt=time+1.5}
+    fx.push({type:'lvbig',t:0,life:3,title:'GUARDIAN',lines:['ほころびの番人が現れる…','倒せばほころびが閉じる']});sfx('mvp');msg('ほころびの番人が現れた！','warn')}}
+function riftTick(dt){
+  if(!curMap.rift||!RR||RR.done)return;RR.t+=dt;
+  if(RR.t>=RIFT_LIMIT){RR.done=true;RR.fail=true;msg('時のほころびが閉じてしまった……（時間切れ）','warn');sfx('hurt');
+    fx.push({type:'lvbig',t:0,life:3,title:'TIME UP',lines:['ほころびが閉じた','また挑もう（何度でも入れる）']});
+    later(3,()=>{if(curMap.rift)enterMap(FIELD,CX-3.5,CY+3.5)})}}
+function riftClear(){
+  RR.done=true;const T=riftToday(),t=RR.t,r=t<=RIFT_RANK[3]?4:t<=RIFT_RANK[2]?3:t<=RIFT_RANK[1]?2:1,RN=RIFT_RN[r];
+  if(!P.rift||P.rift.day!==T.day)P.rift={day:T.day,best:0,bestT:0};
+  const prev=P.rift.best,lines=[`${T.name}　${fmtTime(t)}`];
+  medalAdd('rift');if(r===4)medalAdd('riftS');if(!prev)medalAdd('riftDays');
+  if(r>prev){const bp=RIFT_BP[r]-RIFT_BP[prev],rl=RIFT_RL[r]-RIFT_RL[prev],z=Math.round(riftLv()*200*(r-prev));
+    addItem('bproof',bp);addItem('relic',rl);P.zeny+=z;lines.push(`ボスの証×${bp}・古代の秘宝×${rl}・${z.toLocaleString()}z`);
+    if(r>=3&&prev<3&&rnd()<(r===4?.25:.1)){const pool=rushPool(),c=pool[Math.floor(rnd()*pool.length)].card;addItem(c);lines.push(`★ ${ITEMS[c].n} ★`);msg(`★ ほころびの奥から ${ITEMS[c].n} を見つけた！ ★`,'item')}
+    P.rift.best=r;msg(`時のほころびを閉じた！ ランク ${RN}（${fmtTime(t)}）　ほうび：${lines[1]}`,'item')}
+  else{lines.push('今日のほうびは受け取り済み');msg(`時のほころびを閉じた！ ランク ${RN}（${fmtTime(t)}）　今日の最高はランク ${RIFT_RN[prev]}`,'item')}
+  if(!P.rift.bestT||t<P.rift.bestT)P.rift.bestT=t;
+  fx.push({type:'lvbig',t:0,life:4.2,title:`RANK ${RN}`,lines:['時のほころびを閉じた！',...lines]});sfx('mvp');dirty=true;save()}
+function riftHud(){
+  if(!RR)return curMap.name;if(RR.done)return RR.fail?'時間切れ　アニに話して帰ろう':'クリア！　アニに話して帰ろう';
+  return `残り ${fmtTime(RIFT_LIMIT-RR.t)}　${RR.boss?'番人を倒せ！':`討伐 ${RR.kills}/${RR.goal}`}`}
+function riftHTML(){
+  const T=riftToday(),b=P.rift&&P.rift.day===T.day?P.rift:null;
+  return `<p class="talk-t">時の流れに、小さなほころびができておる。今日のほころびは <b>${T.name}</b>。<br>中で${T.mods.includes('horde')?100:60}体倒すと番人が現れる。番人を倒せばほころびは閉じる。制限時間は10分。速く閉じるほどランクが上がる（S 3分・A 5分・B 7分30秒以内）。<br>ほうびは1日1回。ランクを上げて閉じ直せば、その差分がもらえる。ほころびは毎日かわる。</p>`+
+    `<div class="list">${T.mods.map(k=>`<div class="it">${icon('乱','#5a4ab0')}<div class="tx"><div class="nm">今日のルール：${RIFT_MODS[k].n}</div><div class="ds">${RIFT_MODS[k].d}</div></div></div>`).join('')}</div>`+
+    `<p class="note">今日の最高：${b?`ランク ${RIFT_RN[b.best]}（${fmtTime(b.bestT)}）`:'まだ閉じていない'}　／　敵 Lv${riftLv()}　／　ランクごとのほうび（合計）：S 証${RIFT_BP[4]}・秘宝${RIFT_RL[4]}・カード25%　A 証${RIFT_BP[3]}・秘宝${RIFT_RL[3]}・カード10%　B 証${RIFT_BP[2]}・秘宝${RIFT_RL[2]}　C 証${RIFT_BP[1]}・秘宝${RIFT_RL[1]}</p>`+
+    `<div class="btns"><button class="btn" data-act="rift-go">ほころびへ入る</button><button class="btn" data-close>やめておく</button></div>`}
+function openRift(){talkNpc=null;$('talkName').textContent='時の番人 クロノ';$('b-talk').innerHTML=riftHTML();toggleWin('talk',true)}
 
 /* ---------- 転生の刻印 ---------- */
 // 転生ごとに3択から1つ刻む（最大3つ）。数字の強化ではなく、戦い方そのものが変わる効果だけ
@@ -3552,6 +3644,8 @@ document.addEventListener('click',e=>{
   else if(act==='promote'){promote(a.dataset.job);$('b-talk').innerHTML=jobMasterHTML();return}
   else if(act==='story-next'){storyNext();return}
   else if(act==='story-choice'){storyChoose(+a.dataset.i);return}
+  else if(act==='rift-open'){openRift();return}
+  else if(act==='rift-go'){$('w-talk').hidden=true;riftEnter();return}
   else if(act==='sig-open'){sigSwapK=null;openSigil();return}
   else if(act==='sig-pick'){const k=a.dataset.k;if(!P.sigOffer||!P.sigOffer.includes(k))return;if(P.sigils.length<sigilSlots())sigilAdd(k);else sigSwapK=k;openSigil();return}
   else if(act==='sig-swap'){const i=+a.dataset.i;if(!sigSwapK||!P.sigils[i]||!P.sigOffer||!P.sigOffer.includes(sigSwapK))return;const old=P.sigils.splice(i,1)[0];msg(`${SIGILS[old].n} を消した`,'sys');sigilAdd(sigSwapK);sigSwapK=null;openSigil();return}
@@ -3652,7 +3746,7 @@ function hud(){
   if(medalNewView&&$('w-medal').hidden)medalNewView=null;
   $('mmTxt').textContent=`${curMap.name} (${Math.floor(P.x)}, ${Math.floor(P.y)})`;
   $('mmHome').hidden=!curMap.noSafe;
-  $('mmBoss').textContent=curMap.id==='nightmare'?`深度 ${nmState().k}　敵Lv${nmLv()}　最高 ${nmState().best}`:curMap.id==='rush'?`ボス ${bAlive}体　カード率UP`:curMap.id==='field'?`ボス段階${bossTier()+1} ${bAlive}体　`+(bAlive<BOSS_MAX_ALIVE?`次 ${Math.floor(bt/60)}:${String(bt%60).padStart(2,'0')}`:'最大数')
+  $('mmBoss').textContent=curMap.rift?riftHud():curMap.id==='nightmare'?`深度 ${nmState().k}　敵Lv${nmLv()}　最高 ${nmState().best}`:curMap.id==='rush'?`ボス ${bAlive}体　カード率UP`:curMap.id==='field'?`ボス段階${bossTier()+1} ${bAlive}体　`+(bAlive<BOSS_MAX_ALIVE?`次 ${Math.floor(bt/60)}:${String(bt%60).padStart(2,'0')}`:'最大数')
     :`敵 ${mobs.filter(m=>m.state!=='dead').length}体　${((mobs.find(m=>m.def.boss)||{def:{n:'ボス'}}).def.n).split(/[ の]/).pop()}${bAlive?'出現中':'不在'}`;
   HOT.forEach(([k,id],i)=>{const el=$('hn'+i),b=el.parentElement;
     if(k==='s'){const lv=P.skills[id],lock=skillLocked(id);el.textContent=lock?'封':lv?'Lv'+lv:'';b.classList.toggle('locked',lock);b.classList.toggle('off',lock||!lv||P.sp<spCost(id,lv)||(id==='asura'&&(P.spheres||0)<5));b.classList.toggle('aim',aiming===id||(P.queued&&P.queued.id===id))}
@@ -4280,11 +4374,11 @@ function update(dt){
   if(P.amp){P.amp.t-=dt;if(P.amp.t<=0){P.amp=null;msg('魔力増幅の効果が切れました','sys');dirty=true}}
   for(const [k,n] of BUFFS) if(P.buff[k]>0){P.buff[k]-=dt;if(P.buff[k]<=0){P.buff[k]=0;msg(`${n}の効果が切れました`,'sys');dirty=true}}
   if(!P.dead){
-    const fast=(safeXY(P.x,P.y)?2:1)*(P.buff.magni>0?2:1)*(P.sit?2:1);
+    const fast=(safeXY(P.x,P.y)?2:1)*(P.buff.magni>0?2:1)*(P.sit?2:1)*(riftHas('drought')?0:1);
     if(P.emote){P.emote.t-=dt;if(P.emote.t<=0)P.emote=null}P.rh=(P.rh||0)+dt*fast;P.rs=(P.rs||0)+dt*fast;
     if(P.rh>=6){P.rh=0;if(P.hp<s.mhp)P.hp=Math.min(s.mhp,P.hp+Math.max(1,Math.floor((s.mhp/40+s.vit/4)*(1+s.b.hpRegen/100))))}
     if(P.asuraLock>0)P.asuraLock-=dt;
-    sigilTick(dt);
+    sigilTick(dt);riftTick(dt);
     if(P.rs>=8){P.rs=0;if(P.sp<s.msp&&!(P.asuraLock>0))P.sp=Math.min(s.msp,P.sp+Math.floor((1+Math.floor(s.msp/60)+Math.floor(s.int/6))*(1+s.b.spRegen/100)))}
     P.atkT=Math.max(0,P.atkT-dt);P.swingT=Math.max(0,P.swingT-dt);P.moving=false;
     const frozen=P.frozen>time;
